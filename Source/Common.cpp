@@ -609,13 +609,13 @@ const char* GetWindowName()
 {
     // Default config names
     #if defined ( FONLINE_SERVER )
-    static char window_name[ MAX_FOPATH ] = { "FOnline Server\0--default-server-name--" };
+    static char window_name[ MAX_FOPATH ] = { "FOnline Redux Server\0--default-server-name--" };
     int         path_type = PT_SERVER_ROOT;
     #elif defined ( FONLINE_MAPPER )
-    static char window_name[ MAX_FOPATH ] = { "FOnline Mapper\0--default-mapper-name--" };
+    static char window_name[ MAX_FOPATH ] = { "FOnline Redux Mapper\0--default-mapper-name--" };
     int         path_type = PT_MAPPER_ROOT;
     #else // FONLINE_CLIENT and others
-    static char window_name[ MAX_FOPATH ] = { "FOnline\0--default-client-name--" };
+    static char window_name[ MAX_FOPATH ] = { "FOnline Redux\0--default-client-name--" };
     #endif
 
     // Extract config name from current exe
@@ -624,28 +624,6 @@ const char* GetWindowName()
     {
         // Call once
         processed = true;
-
-        // Take name from config file
-        #if defined ( FONLINE_SERVER )
-        IniParser& cfg = IniParser::GetServerConfig();
-        #elif defined ( FONLINE_MAPPER )
-        IniParser& cfg = IniParser::GetMapperConfig();
-        #else // FONLINE_CLIENT and others
-        IniParser& cfg = IniParser::GetClientConfig();
-        #endif
-        if( !cfg.IsLoaded() )
-            return window_name;
-
-        // 'WindowName' section
-        char str[ MAX_FOPATH ];
-        #if !defined ( FONLINE_CLIENT )
-        if( !cfg.GetStr( "WindowName", "", str ) || !str[ 0 ] )
-            return window_name;
-        #else
-        if( !cfg.GetStr( "WindowName", "", str ) || !str[ 0 ] )
-            return window_name;
-        #endif
-        Str::Copy( window_name, str );
 
         // Singleplayer appendix
         if( Singleplayer )
