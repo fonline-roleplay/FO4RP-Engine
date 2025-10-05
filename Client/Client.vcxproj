@@ -134,9 +134,9 @@
     <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='ReleaseD3D|x64'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='ReleaseD3D|x64'" />
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">FOnline</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='ReleaseD3D|Win32'">FOnlineD3D</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">FOnlineDbg</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClientOGL</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='ReleaseD3D|Win32'">ClientD3D</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ClientDbg</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Midl>

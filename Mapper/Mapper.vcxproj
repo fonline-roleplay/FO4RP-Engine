@@ -128,7 +128,7 @@
     <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='ReleaseD3D|x64'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='ReleaseD3D|x64'" />
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Mapper</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MapperOGL</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='ReleaseD3D|Win32'">MapperD3D</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MapperDbg</TargetName>
   </PropertyGroup>
