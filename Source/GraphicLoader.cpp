@@ -8,6 +8,16 @@
 #include "Assimp/assimp.h"
 #include "Assimp/aiPostProcess.h"
 
+#include "fbxsdk/fbxsdk.h"
+#ifdef FO_WINDOWS
+# pragma comment( lib, "libfbxsdk-mt.lib")
+#endif
+
+#include "PNG/png.h"
+#ifdef FO_MSVC
+# pragma comment( lib, "libpng16.lib" )
+#endif
+
 // Assimp functions
 const aiScene* ( *Ptr_aiImportFileFromMemory )( const char* pBuffer, unsigned int pLength, unsigned int pFlags, const char* pHint );
 void           ( * Ptr_aiReleaseImport )( const aiScene* pScene );
@@ -19,81 +29,129 @@ unsigned int   ( * Ptr_aiGetMaterialTextureCount )( const aiMaterial* pMat, aiTe
 aiReturn       ( * Ptr_aiGetMaterialTexture )( const aiMaterial* mat, aiTextureType type, unsigned int  index, aiString* path, aiTextureMapping* mapping, unsigned int* uvindex, float* blend, aiTextureOp* op, aiTextureMapMode* mapmode, unsigned int* flags );
 aiReturn       ( * Ptr_aiGetMaterialFloatArray )( const aiMaterial* pMat, const char* pKey, unsigned int type, unsigned int index, float* pOut, unsigned int* pMax );
 
+static Frame* FillNode(aiScene* scene, aiNode* node);
+static void   FixFrame(Frame* root_frame, Frame* frame, aiScene* scene, aiNode* node);
+
+// FBX stuff
+class FbxStreamImpl: public FbxStream
+{
+private:
+    FileManager* fm;
+    EState       curState;
+
+public:
+    FbxStreamImpl(): FbxStream()
+    {
+        fm = NULL;
+        curState = FbxStream::eClosed;
+    }
+
+    virtual EState GetState()
+    {
+        return curState;
+    }
+
+    virtual bool Open( void* stream )
+    {
+        fm = (FileManager*) stream;
+        fm->SetCurPos( 0 );
+        curState = FbxStream::eOpen;
+        return true;
+    }
+
+    virtual bool Close()
+    {
+        fm->SetCurPos( 0 );
+        fm = NULL;
+        curState = FbxStream::eClosed;
+        return true;
+    }
+
+    virtual bool Flush()
+    {
+        return true;
+    }
+
+    virtual int Write( const void* data, int size )
+    {
+        return 0;
+    }
+
+    virtual int Read( void* data, int size ) const
+    {
+        return fm->CopyMem( data, size ) ? size : 0;
+    }
+
+    virtual char* ReadString( char* buffer, int max_size, bool stop_at_first_white_space = false )
+    {
+        const char* str = (char*) fm->GetCurBuf();
+        int         len = 0;
+        while( *str && len < max_size - 1 )
+        {
+            str++;
+            len++;
+            if( *str == '\n' || ( stop_at_first_white_space && *str == ' ' ) )
+                break;
+        }
+        if( len )
+            fm->CopyMem( buffer, len );
+        buffer[ len ] = 0;
+        return buffer;
+    }
+
+    virtual int GetReaderID() const
+    {
+        return 0;
+    }
+
+    virtual int GetWriterID() const
+    {
+        return -1;
+    }
+
+    virtual void Seek( const FbxInt64& offset, const FbxFile::ESeekPos& seek_pos )
+    {
+        if( seek_pos == FbxFile::eBegin )
+            fm->SetCurPos( (uint) offset );
+        else if( seek_pos == FbxFile::eCurrent )
+            fm->GoForward( (uint) offset );
+        else if( seek_pos == FbxFile::eEnd )
+            fm->SetCurPos( fm->GetFsize() - (uint) offset );
+    }
+
+    virtual long GetPosition() const
+    {
+        return fm->GetCurPos();
+    }
+
+    virtual void SetPosition( long position )
+    {
+        fm->SetCurPos( position );
+    }
+
+    virtual int GetError() const
+    {
+        return 0;
+    }
+
+    virtual void ClearError()
+    {}
+};
+
+Frame* FillNodeFbx( FbxScene* scene, FbxNode* fbx_node, vector< FbxNode* >& bones );
+void   FixFrameFbx( Frame* root_frame, Frame* frame, FbxScene* fbx_scene, FbxNode* fbx_node );
+Matrix ConvertFbxMatrix( const FbxAMatrix& m );
+
 /************************************************************************/
 /* Models                                                               */
 /************************************************************************/
 
 PCharVec GraphicLoader::processedFiles;
 FrameVec GraphicLoader::loadedModels;
-PCharVec GraphicLoader::loadedAnimationsFNames;
 PtrVec   GraphicLoader::loadedAnimations;
 
-Frame* GraphicLoader::LoadModel( Device_ device, const char* fname )
+Frame* GraphicLoader::LoadModel( const char* fname )
 {
-    // Load Assimp dynamic library
-    static bool binded = false;
-    static bool binded_try = false;
-    if( !binded )
-    {
-        // Already try
-        if( binded_try )
-            return NULL;
-        binded_try = true;
-
-        // Library extension
-        #ifdef FO_WINDOWS
-        # define ASSIMP_PATH        ""
-        # define ASSIMP_LIB_NAME    "Assimp32.dll"
-        #else
-        # define ASSIMP_PATH        "./"
-        # define ASSIMP_LIB_NAME    "Assimp32.so"
-        #endif
-
-        // Check dll availability
-        void* dll = DLL_Load( ASSIMP_PATH ASSIMP_LIB_NAME );
-        if( !dll )
-        {
-            if( GameOpt.ClientPath.c_std_str() != "" )
-                dll = DLL_Load( ( GameOpt.ClientPath.c_std_str() + ASSIMP_LIB_NAME ).c_str() );
-            if( !dll )
-            {
-                WriteLogF( _FUNC_, " - '" ASSIMP_LIB_NAME "' not found.\n" );
-                return NULL;
-            }
-        }
-
-        // Bind functions
-        uint errors = 0;
-        #define BIND_ASSIMP_FUNC( f )                                            \
-            Ptr_ ## f = ( decltype( Ptr_ ## f ) )DLL_GetAddress( dll, # f );     \
-            if( !Ptr_ ## f )                                                     \
-            {                                                                    \
-                WriteLogF( _FUNC_, " - Assimp function<" # f "> not found.\n" ); \
-                errors++;                                                        \
-            }
-        BIND_ASSIMP_FUNC( aiImportFileFromMemory );
-        BIND_ASSIMP_FUNC( aiReleaseImport );
-        BIND_ASSIMP_FUNC( aiGetErrorString );
-        BIND_ASSIMP_FUNC( aiEnableVerboseLogging );
-        BIND_ASSIMP_FUNC( aiGetPredefinedLogStream );
-        BIND_ASSIMP_FUNC( aiAttachLogStream );
-        BIND_ASSIMP_FUNC( aiGetMaterialTextureCount );
-        BIND_ASSIMP_FUNC( aiGetMaterialTexture );
-        BIND_ASSIMP_FUNC( aiGetMaterialFloatArray );
-        #undef BIND_ASSIMP_FUNC
-        if( errors )
-            return NULL;
-        binded = true;
-
-        // Logging
-        if( GameOpt.AssimpLogging )
-        {
-            Ptr_aiEnableVerboseLogging( true );
-            static aiLogStream c = Ptr_aiGetPredefinedLogStream( aiDefaultLogStream_FILE, "Assimp.log" );
-            Ptr_aiAttachLogStream( &c );
-        }
-    }
-
     // Find already loaded
     for( auto it = loadedModels.begin(), end = loadedModels.end(); it != end; ++it )
     {
@@ -108,421 +166,328 @@ Frame* GraphicLoader::LoadModel( Device_ device, const char* fname )
             return NULL;
     processedFiles.push_back( Str::Duplicate( fname ) );
 
-    // Load file
-    FileManager fm;
-    if( !fm.LoadFile( fname, PT_DATA ) )
+    // Load file write time
+    FileManager file;
+    if( !file.LoadFile( fname, PT_DATA, true ) )
     {
         WriteLogF( _FUNC_, " - 3d file not found, name<%s>.\n", fname );
         return NULL;
     }
 
-    // Load scene
-    aiScene* scene = (aiScene*) Ptr_aiImportFileFromMemory( (const char*) fm.GetBuf(), fm.GetFsize(),
-                                                            aiProcess_CalcTangentSpace | aiProcess_GenNormals | aiProcess_GenUVCoords |
-                                                            aiProcess_Triangulate | aiProcess_JoinIdenticalVertices |
-                                                            aiProcess_SortByPType | aiProcess_SplitLargeMeshes | aiProcess_LimitBoneWeights |
-                                                            aiProcess_ImproveCacheLocality
-                                                            #ifdef FO_D3D
-                                                            | aiProcess_ConvertToLeftHanded
-                                                            #endif
-                                                            , "" );
-    if( !scene )
+    // Try load from cache
+    char fname_cache[ MAX_FOPATH ] = { 0 };
+    Str::Copy( fname_cache, fname );
+    Str::Replacement( fname_cache, '/', '_' );
+    Str::Replacement( fname_cache, '\\', '_' );
+    Str::Append( fname_cache, "b" );
+    FileManager file_cache;
+    if( file_cache.LoadFile( fname_cache, PT_CACHE ) )
     {
-        WriteLogF( _FUNC_, " - Can't load 3d file, name<%s>, error<%s>.\n", fname, Ptr_aiGetErrorString() );
+        uint version = file_cache.GetBEUInt();
+        if( version != MODELS_BINARY_VERSION || file.GetWriteTime() > file_cache.GetWriteTime() )
+            file_cache.UnloadFile();                  // Disable loading from this binary, because its outdated
+    }
+    if( file_cache.IsLoaded() )
+    {
+        // Load frames
+        Frame* root_frame = new Frame();
+        root_frame->Load( file_cache );
+        root_frame->FixAfterLoad( root_frame );
+
+        // Load animations
+        uint anim_sets_count = file_cache.GetBEUInt();
+        for( uint i = 0; i < anim_sets_count; i++ )
+        {
+            AnimSet* anim_set = new AnimSet();
+            anim_set->Load( file_cache );
+            loadedAnimations.push_back( anim_set );
+        }
+        return root_frame;
+    }
+
+    // Load file data
+    if( !file.LoadFile( fname, PT_DATA ) )
+    {
+        WriteLogF( _FUNC_, " - 3d file not found, name<%s>.\n", fname );
         return NULL;
     }
 
-    // Extract frames
-    #ifdef FO_D3D
-    Frame* frame_root = FillNode( device, scene->mRootNode, scene );
-    if( !frame_root )
+    // Result frame
+    Frame* root_frame = NULL;
+    uint   loaded_anim_sets = 0;
+
+    // FBX loader
+    const char* ext = FileManager::GetExtension( fname );
+    if( Str::CompareCase( ext, "fbx" ) )
     {
-        WriteLogF( _FUNC_, " - Conversion fail, name<%s>.\n", fname );
+        // Create manager
+        static FbxManager* fbx_manager = NULL;
+        if( !fbx_manager )
+        {
+            fbx_manager = FbxManager::Create();
+            if( !fbx_manager )
+            {
+                WriteLogF( _FUNC_, " - Unable to create FBX Manager.\n" );
+                return NULL;
+            }
+
+            // Create an IOSettings object. This object holds all import/export settings.
+            FbxIOSettings* ios = FbxIOSettings::Create( fbx_manager, IOSROOT );
+            fbx_manager->SetIOSettings( ios );
+
+            // Load plugins from the executable directory (optional)
+            fbx_manager->LoadPluginsDirectory( FbxGetApplicationDirectory().Buffer() );
+        }
+
+        // Create an FBX scene
+        FbxScene* fbx_scene = FbxScene::Create( fbx_manager, "My Scene" );
+        if( !fbx_scene )
+        {
+            WriteLogF( _FUNC_, " - Unable to create FBX scene.\n" );
+            return NULL;
+        }
+
+        // Create an importer
+        FbxImporter* fbx_importer = FbxImporter::Create( fbx_manager, "" );
+        if( !fbx_importer )
+        {
+            WriteLogF( _FUNC_, " - Unable to create FBX importer.\n" );
+            return NULL;
+        }
+
+        // Initialize the importer
+        FbxStreamImpl fbx_stream;
+        if( !fbx_importer->Initialize( &fbx_stream, &file, -1, fbx_manager->GetIOSettings() ) )
+        {
+            WriteLogF( _FUNC_, " - Call to FbxImporter::Initialize() failed, error<%s>.\n", fbx_importer->GetStatus().GetErrorString() );
+            if( fbx_importer->GetStatus().GetCode() == FbxStatus::eInvalidFileVersion )
+            {
+                int file_major, file_minor, file_revision;
+                int sdk_major,  sdk_minor,  sdk_revision;
+                FbxManager::GetFileFormatVersion( sdk_major, sdk_minor, sdk_revision );
+                fbx_importer->GetFileVersion( file_major, file_minor, file_revision );
+                WriteLogF( _FUNC_, " - FBX file format version for this FBX SDK is %d.%d.%d.\n", sdk_major, sdk_minor, sdk_revision );
+                WriteLogF( _FUNC_, " - FBX file format version for file<%s> is %d.%d.%d.\n", fname, file_major, file_minor, file_revision );
+            }
+            return NULL;
+        }
+
+        // Import the scene
+        if( !fbx_importer->Import( fbx_scene ) )
+        {
+            // Todo: Password
+            /*if (fbx_importer->GetStatus().GetCode() == FbxStatus::ePasswordError)
+                        {
+                                char password[MAX_FOTEXT];
+                                IOS_REF.SetStringProp(IMP_FBX_PASSWORD, FbxString(password));
+                                IOS_REF.SetBoolProp(IMP_FBX_PASSWORD_ENABLE, true);
+                                if(!fbx_importer->Import(pScene) && lImporter->GetStatus().GetCode() == FbxStatus::ePasswordError)
+                                        return NULL;
+                        }*/
+            WriteLogF( _FUNC_, " - Can't import scene, file<%s>.\n", fname );
+            return NULL;
+        }
+
+        // Load hierarchy
+        vector< FbxNode* > bones;
+        root_frame = FillNodeFbx( fbx_scene, fbx_scene->GetRootNode(), bones );
+        FixFrameFbx( root_frame, root_frame, fbx_scene, fbx_scene->GetRootNode() );
+        root_frame->Name = Str::Duplicate( fname );
+        loadedModels.push_back( root_frame );
+
+        // Extract animations
+        FloatVec          times;
+        VectorVec         sv;
+        QuaternionVec     rv;
+        VectorVec         tv;
+        FbxAnimEvaluator* fbx_anim_evaluator = fbx_manager->GetAnimationEvaluator();
+        for( int i = 0; i < fbx_scene->GetMemberCount< FbxAnimStack >(); i++ )
+        {
+            FbxAnimStack* fbx_anim_stack = fbx_scene->GetMember< FbxAnimStack >( i );
+            fbx_anim_evaluator->SetContext( fbx_anim_stack );
+
+            FbxTakeInfo* take_info = fbx_importer->GetTakeInfo( i );
+            int          frames_count = (int) take_info->mLocalTimeSpan.GetDuration().GetFrameCount() + 1;
+            float        frame_rate = (float) ( frames_count - 1 ) / (float) take_info->mLocalTimeSpan.GetDuration().GetSecondDouble();
+
+            times.resize( frames_count );
+            sv.resize( frames_count );
+            rv.resize( frames_count );
+            tv.resize( frames_count );
+
+            AnimSet* anim_set = new AnimSet();
+            for( uint n = 0; n < (uint) bones.size(); n++ )
+            {
+                FbxTime cur_time;
+                for( int f = 0; f < frames_count; f++ )
+                {
+                    float time = (float) f;
+                    cur_time.SetFrame( f );
+
+                    times[ f ] = time;
+
+                    Matrix m = ConvertFbxMatrix( fbx_anim_evaluator->GetNodeLocalTransform( bones[ n ], cur_time ) );
+                    m.Decompose( sv[ f ], rv[ f ], tv[ f ] );
+                }
+                anim_set->AddBoneOutput( bones[ n ]->GetName(), times, sv, times, rv, times, tv );
+            }
+
+            anim_set->SetData( fname, take_info->mName.Buffer(), (float) frames_count, frame_rate );
+            loadedAnimations.push_back( anim_set );
+            loaded_anim_sets++;
+        }
+
+        // Release importer and scene
+        fbx_importer->Destroy( true );
+        fbx_scene->Destroy( true );
+    }
+    // Assimp loader
+    else
+    {
+        // Load Assimp dynamic library
+        static bool binded = false;
+        static bool binded_try = false;
+        if( !binded )
+        {
+            // Already try
+            if( binded_try )
+                return NULL;
+            binded_try = true;
+
+            // Library extension
+            #ifdef FO_WINDOWS
+            # define ASSIMP_PATH        ""
+            # define ASSIMP_LIB_NAME    "Assimp32.dll"
+            #else
+            # define ASSIMP_PATH        "./"
+            # define ASSIMP_LIB_NAME    "Assimp32.so"
+            #endif
+
+            // Check dll availability
+            void* dll = DLL_Load( ASSIMP_PATH ASSIMP_LIB_NAME );
+            if( !dll )
+            {
+                if( GameOpt.ClientPath.c_std_str() != "" )
+                    dll = DLL_Load( ( GameOpt.ClientPath.c_std_str() + ASSIMP_LIB_NAME ).c_str() );
+                if( !dll )
+                {
+                    WriteLogF( _FUNC_, " - '" ASSIMP_LIB_NAME "' not found.\n" );
+                    return NULL;
+                }
+            }
+
+            // Bind functions
+            uint errors = 0;
+            #define BIND_ASSIMP_FUNC( f )                                            \
+                Ptr_ ## f = ( decltype( Ptr_ ## f ) )DLL_GetAddress( dll, # f );     \
+                if( !Ptr_ ## f )                                                     \
+                {                                                                    \
+                    WriteLogF( _FUNC_, " - Assimp function<" # f "> not found.\n" ); \
+                    errors++;                                                        \
+                }
+            BIND_ASSIMP_FUNC( aiImportFileFromMemory );
+            BIND_ASSIMP_FUNC( aiReleaseImport );
+            BIND_ASSIMP_FUNC( aiGetErrorString );
+            BIND_ASSIMP_FUNC( aiEnableVerboseLogging );
+            BIND_ASSIMP_FUNC( aiGetPredefinedLogStream );
+            BIND_ASSIMP_FUNC( aiAttachLogStream );
+            BIND_ASSIMP_FUNC( aiGetMaterialTextureCount );
+            BIND_ASSIMP_FUNC( aiGetMaterialTexture );
+            BIND_ASSIMP_FUNC( aiGetMaterialFloatArray );
+            #undef BIND_ASSIMP_FUNC
+            if( errors )
+                return NULL;
+            binded = true;
+
+            // Logging
+            if( GameOpt.AssimpLogging )
+            {
+                Ptr_aiEnableVerboseLogging( true );
+                static aiLogStream c = Ptr_aiGetPredefinedLogStream( aiDefaultLogStream_FILE, "Assimp.log" );
+                Ptr_aiAttachLogStream( &c );
+            }
+        }
+
+        // Load scene
+        aiScene* scene = (aiScene*) Ptr_aiImportFileFromMemory( (const char*) file.GetBuf(), file.GetFsize(),
+                                                                aiProcess_CalcTangentSpace | aiProcess_GenNormals | aiProcess_GenUVCoords |
+                                                                aiProcess_Triangulate | aiProcess_JoinIdenticalVertices |
+                                                                aiProcess_SortByPType | aiProcess_SplitLargeMeshes | aiProcess_LimitBoneWeights |
+                                                                aiProcess_ImproveCacheLocality, "" );
+        if( !scene )
+        {
+            WriteLogF( _FUNC_, " - Can't load 3d file, name<%s>, error<%s>.\n", fname, Ptr_aiGetErrorString() );
+            return NULL;
+        }
+
+        // Extract frames
+        root_frame = FillNode( scene, scene->mRootNode );
+        FixFrame( root_frame, root_frame, scene, scene->mRootNode );
+        root_frame->Name = Str::Duplicate( fname );
+        loadedModels.push_back( root_frame );
+
+        // Extract animations
+        FloatVec      st;
+        VectorVec     sv;
+        FloatVec      rt;
+        QuaternionVec rv;
+        FloatVec      tt;
+        VectorVec     tv;
+        for( unsigned int i = 0; i < scene->mNumAnimations; i++ )
+        {
+            aiAnimation* anim = scene->mAnimations[ i ];
+            AnimSet*     anim_set = new AnimSet();
+
+            for( unsigned int j = 0; j < anim->mNumChannels; j++ )
+            {
+                aiNodeAnim* na = anim->mChannels[ j ];
+
+                st.resize( na->mNumScalingKeys );
+                sv.resize( na->mNumScalingKeys );
+                for( unsigned int k = 0; k < na->mNumScalingKeys; k++ )
+                {
+                    st[ k ] = (float) na->mScalingKeys[ k ].mTime;
+                    sv[ k ] = na->mScalingKeys[ k ].mValue;
+                }
+                rt.resize( na->mNumRotationKeys );
+                rv.resize( na->mNumRotationKeys );
+                for( unsigned int k = 0; k < na->mNumRotationKeys; k++ )
+                {
+                    rt[ k ] = (float) na->mRotationKeys[ k ].mTime;
+                    rv[ k ] = na->mRotationKeys[ k ].mValue;
+                }
+                tt.resize( na->mNumPositionKeys );
+                tv.resize( na->mNumPositionKeys );
+                for( unsigned int k = 0; k < na->mNumPositionKeys; k++ )
+                {
+                    tt[ k ] = (float) na->mPositionKeys[ k ].mTime;
+                    tv[ k ] = na->mPositionKeys[ k ].mValue;
+                }
+
+                anim_set->AddBoneOutput( na->mNodeName.data, st, sv, rt, rv, tt, tv );
+            }
+
+            anim_set->SetData( fname, anim->mName.data, (float) anim->mDuration, (float) anim->mTicksPerSecond );
+            loadedAnimations.push_back( anim_set );
+            loaded_anim_sets++;
+        }
+
         Ptr_aiReleaseImport( scene );
-        return NULL;
-    }
-    #else
-    Frame* frame_root = FillNode( scene, scene->mRootNode );
-    FixFrame( frame_root, frame_root, scene, scene->mRootNode );
-    #endif
-    frame_root->Name = Str::Duplicate( fname );
-    loadedModels.push_back( frame_root );
-
-    // Extract animations
-    FloatVec      st;
-    VectorVec     sv;
-    FloatVec      rt;
-    QuaternionVec rv;
-    FloatVec      tt;
-    VectorVec     tv;
-    for( unsigned int i = 0; i < scene->mNumAnimations; i++ )
-    {
-        aiAnimation* anim = scene->mAnimations[ i ];
-        AnimSet*     anim_set = new AnimSet();
-
-        for( unsigned int j = 0; j < anim->mNumChannels; j++ )
-        {
-            aiNodeAnim* na = anim->mChannels[ j ];
-
-            st.resize( na->mNumScalingKeys );
-            sv.resize( na->mNumScalingKeys );
-            for( unsigned int k = 0; k < na->mNumScalingKeys; k++ )
-            {
-                st[ k ] = (float) na->mScalingKeys[ k ].mTime;
-                sv[ k ] = na->mScalingKeys[ k ].mValue;
-            }
-            rt.resize( na->mNumRotationKeys );
-            rv.resize( na->mNumRotationKeys );
-            for( unsigned int k = 0; k < na->mNumRotationKeys; k++ )
-            {
-                rt[ k ] = (float) na->mRotationKeys[ k ].mTime;
-                rv[ k ] = na->mRotationKeys[ k ].mValue;
-            }
-            tt.resize( na->mNumPositionKeys );
-            tv.resize( na->mNumPositionKeys );
-            for( unsigned int k = 0; k < na->mNumPositionKeys; k++ )
-            {
-                tt[ k ] = (float) na->mPositionKeys[ k ].mTime;
-                tv[ k ] = na->mPositionKeys[ k ].mValue;
-            }
-
-            anim_set->AddOutput( na->mNodeName.data, st, sv, rt, rv, tt, tv );
-        }
-
-        anim_set->SetData( anim->mName.data, (float) anim->mDuration, (float) anim->mTicksPerSecond );
-        loadedAnimations.push_back( anim_set );
-        loadedAnimationsFNames.push_back( Str::Duplicate( fname ) );
     }
 
-    Ptr_aiReleaseImport( scene );
-    return frame_root;
+    // Save to cache
+    file_cache.SwitchToWrite();
+    file_cache.SetBEUInt( MODELS_BINARY_VERSION );
+    root_frame->Save( file_cache );
+    file_cache.SetBEUInt( loaded_anim_sets );
+    for( uint i = 0; i < loaded_anim_sets; i++ )
+        ( (AnimSet*) loadedAnimations[ loadedAnimations.size() - i - 1 ] )->Save( file_cache );
+    file_cache.SaveOutBufToFile( fname_cache, PT_CACHE );
+
+    return root_frame;
 }
 
-#ifdef FO_D3D
-Frame* GraphicLoader::FillNode( Device_ device, const aiNode* node, const aiScene* scene )
-{
-    // Create frame
-    Frame* frame = new Frame();
-    memzero( frame, sizeof( Frame ) );
-    frame->Name = Str::Duplicate( node->mName.data );
-    frame->DrawMesh = NULL;
-    frame->Sibling = NULL;
-    frame->FirstChild = NULL;
-    frame->TransformationMatrix = node->mTransformation;
-    MATRIX_TRANSPOSE( frame->TransformationMatrix );
-    frame->CombinedTransformationMatrix = Matrix();
-
-    // Merge meshes, because Assimp split subsets
-    if( node->mNumMeshes )
-    {
-        // Calculate whole data
-        uint                   faces_count = 0;
-        uint                   vertices_count = 0;
-        vector< aiBone* >      all_bones;
-        vector< D3DXMATERIAL > materials;
-        for( unsigned int m = 0; m < node->mNumMeshes; m++ )
-        {
-            aiMesh* mesh = scene->mMeshes[ node->mMeshes[ m ] ];
-
-            // Faces and vertices
-            faces_count += mesh->mNumFaces;
-            vertices_count += mesh->mNumVertices;
-
-            // Shared bones
-            for( unsigned int i = 0; i < mesh->mNumBones; i++ )
-            {
-                aiBone* bone = mesh->mBones[ i ];
-                bool    bone_aviable = false;
-                for( uint b = 0, bb = (uint) all_bones.size(); b < bb; b++ )
-                {
-                    if( Str::Compare( all_bones[ b ]->mName.data, bone->mName.data ) )
-                    {
-                        bone_aviable = true;
-                        break;
-                    }
-                }
-                if( !bone_aviable )
-                    all_bones.push_back( bone );
-            }
-
-            // Material
-            D3DXMATERIAL material;
-            memzero( &material, sizeof( material ) );
-            aiMaterial*  mtrl = scene->mMaterials[ mesh->mMaterialIndex ];
-            aiString     path;
-            if( Ptr_aiGetMaterialTextureCount( mtrl, aiTextureType_DIFFUSE ) )
-            {
-                Ptr_aiGetMaterialTexture( mtrl, aiTextureType_DIFFUSE, 0, &path, NULL, NULL, NULL, NULL, NULL, NULL );
-                material.pTextureFilename = Str::Duplicate( path.data );
-            }
-
-            Ptr_aiGetMaterialFloatArray( mtrl, AI_MATKEY_COLOR_DIFFUSE, (float*) &material.MatD3D.Diffuse, NULL );
-            Ptr_aiGetMaterialFloatArray( mtrl, AI_MATKEY_COLOR_AMBIENT, (float*) &material.MatD3D.Ambient, NULL );
-            Ptr_aiGetMaterialFloatArray( mtrl, AI_MATKEY_COLOR_SPECULAR, (float*) &material.MatD3D.Specular, NULL );
-            Ptr_aiGetMaterialFloatArray( mtrl, AI_MATKEY_COLOR_EMISSIVE, (float*) &material.MatD3D.Emissive, NULL );
-            material.MatD3D.Diffuse.a = 1.0f;
-            material.MatD3D.Ambient.a = 1.0f;
-            material.MatD3D.Specular.a = 1.0f;
-            material.MatD3D.Emissive.a = 1.0f;
-
-            materials.push_back( material );
-        }
-
-        // Mesh declarations
-        D3DVERTEXELEMENT9 declaration[] =
-        {
-            { 0, 0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
-            { 0, 12, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_NORMAL, 0 },
-            { 0, 24, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0 },
-            { 0, 32, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TANGENT, 0 },
-            { 0, 44, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_BINORMAL, 0 },
-            D3DDECL_END()
-        };
-
-        // Create mesh
-        D3DXMESHDATA dxmesh;
-        dxmesh.Type = D3DXMESHTYPE_MESH;
-        D3D_HR( D3DXCreateMesh( faces_count, vertices_count, D3DXMESH_MANAGED, declaration, device, &dxmesh.pMesh ) );
-
-        // Skinning
-        ID3DXSkinInfo* skin_info = NULL;
-
-        // Fill data
-        struct Vertex
-        {
-            float x, y, z;
-            float nx, ny, nz;
-            float u, v;
-            float tx, ty, tz;
-            float bx, by, bz;
-        }* vb;
-        int    vsize = 56;
-        WORD*  ib;
-        DWORD* att;
-        D3D_HR( dxmesh.pMesh->LockVertexBuffer( 0, (void**) &vb ) );
-        D3D_HR( dxmesh.pMesh->LockIndexBuffer( 0, (void**) &ib ) );
-        D3D_HR( dxmesh.pMesh->LockAttributeBuffer( 0, &att ) );
-
-        uint cur_vertices = 0;
-        uint cur_faces = 0;
-        for( unsigned int m = 0; m < node->mNumMeshes; m++ )
-        {
-            aiMesh* mesh = scene->mMeshes[ node->mMeshes[ m ] ];
-
-            for( unsigned int i = 0; i < mesh->mNumVertices; i++ )
-            {
-                Vertex& v = *vb;
-                vb = (Vertex*) ( ( (char*) vb ) + vsize );
-                memzero( &v, vsize );
-
-                // Vertices data
-                v.x = mesh->mVertices[ i ].x;
-                v.y = mesh->mVertices[ i ].y;
-                v.z = mesh->mVertices[ i ].z;
-
-                if( mesh->mTextureCoords && mesh->mTextureCoords[ 0 ] )
-                {
-                    v.u = mesh->mTextureCoords[ 0 ][ i ].x;
-                    v.v = mesh->mTextureCoords[ 0 ][ i ].y;
-                }
-                if( mesh->mNormals )
-                {
-                    v.nx = mesh->mNormals[ i ].x;
-                    v.ny = mesh->mNormals[ i ].y;
-                    v.nz = mesh->mNormals[ i ].z;
-                }
-                if( false && mesh->mTangents )
-                {
-                    v.tx = mesh->mTangents[ i ].x;
-                    v.ty = mesh->mTangents[ i ].y;
-                    v.tz = mesh->mTangents[ i ].z;
-                    v.bx = mesh->mBitangents[ i ].x;
-                    v.by = mesh->mBitangents[ i ].y;
-                    v.bz = mesh->mBitangents[ i ].z;
-                }
-            }
-
-            // Indices
-            for( unsigned int i = 0; i < mesh->mNumFaces; i++ )
-            {
-                aiFace& face = mesh->mFaces[ i ];
-                for( unsigned int j = 0; j < face.mNumIndices; j++ )
-                {
-                    *ib = face.mIndices[ j ] + cur_vertices;
-                    ib++;
-                }
-
-                *( att + cur_faces + i ) = m;
-            }
-
-            cur_vertices += mesh->mNumVertices;
-            cur_faces += mesh->mNumFaces;
-        }
-
-        // Skin info
-        if( all_bones.size() )
-        {
-            D3D_HR( D3DXCreateSkinInfo( vertices_count, declaration, (uint) all_bones.size(), &skin_info ) );
-
-            vector< vector< DWORD > > vertices( all_bones.size() );
-            vector< FloatVec >        weights( all_bones.size() );
-
-            for( uint b = 0, bb = (uint) all_bones.size(); b < bb; b++ )
-            {
-                aiBone* bone = all_bones[ b ];
-
-                // Bone options
-                skin_info->SetBoneName( b, bone->mName.data );
-                skin_info->SetBoneOffsetMatrix( b, (D3DXMATRIX*) &bone->mOffsetMatrix );
-
-                // Reserve memory
-                vertices.reserve( vertices_count );
-                weights.reserve( vertices_count );
-            }
-
-            cur_vertices = 0;
-            for( unsigned int m = 0; m < node->mNumMeshes; m++ )
-            {
-                aiMesh* mesh = scene->mMeshes[ node->mMeshes[ m ] ];
-
-                for( unsigned int i = 0; i < mesh->mNumBones; i++ )
-                {
-                    aiBone* bone = mesh->mBones[ i ];
-
-                    // Get bone id
-                    uint bone_id = 0;
-                    for( uint b = 0, bb = (uint) all_bones.size(); b < bb; b++ )
-                    {
-                        if( Str::Compare( all_bones[ b ]->mName.data, bone->mName.data ) )
-                        {
-                            bone_id = b;
-                            break;
-                        }
-                    }
-
-                    // Fill weights
-                    if( bone->mNumWeights )
-                    {
-                        for( unsigned int j = 0; j < bone->mNumWeights; j++ )
-                        {
-                            aiVertexWeight& vw = bone->mWeights[ j ];
-                            vertices[ bone_id ].push_back( vw.mVertexId + cur_vertices );
-                            weights[ bone_id ].push_back( vw.mWeight );
-                        }
-                    }
-                }
-
-                cur_vertices += mesh->mNumVertices;
-            }
-
-            // Set influences
-            for( uint b = 0, bb = (uint) all_bones.size(); b < bb; b++ )
-            {
-                if( vertices[ b ].size() )
-                    skin_info->SetBoneInfluence( b, (uint) vertices[ b ].size(), &vertices[ b ][ 0 ], &weights[ b ][ 0 ] );
-            }
-        }
-
-        D3D_HR( dxmesh.pMesh->UnlockVertexBuffer() );
-        D3D_HR( dxmesh.pMesh->UnlockIndexBuffer() );
-        D3D_HR( dxmesh.pMesh->UnlockAttributeBuffer() );
-
-        MeshContainer* mesh_container = new MeshContainer();
-        memzero( mesh_container, sizeof( MeshContainer ) );
-
-        // Adjacency data - holds information about triangle adjacency, required by the ID3DMESH object
-        uint faces = dxmesh.pMesh->GetNumFaces();
-        mesh_container->Adjacency = new uint[ faces * 3 ];
-        dxmesh.pMesh->GenerateAdjacency( 0.0000125f, (DWORD*) mesh_container->Adjacency );
-
-        // Changed 24/09/07 - can just assign pointer and add a ref rather than need to clone
-        mesh_container->InitMesh = dxmesh.pMesh;
-        mesh_container->InitMesh->AddRef();
-
-        // Create material and texture arrays. Note that I always want to have at least one
-        mesh_container->NumMaterials = max( materials.size(), 1 );
-        mesh_container->Materials = new Material_[ mesh_container->NumMaterials ];
-        mesh_container->TextureNames = new char*[ mesh_container->NumMaterials ];
-        mesh_container->Effects = new EffectInstance[ mesh_container->NumMaterials ];
-
-        if( materials.size() > 0 )
-        {
-            // Load all the textures and copy the materials over
-            for( uint i = 0; i < materials.size(); i++ )
-            {
-                if( materials[ i ].pTextureFilename )
-                    mesh_container->TextureNames[ i ] = Str::Duplicate( materials[ i ].pTextureFilename );
-                else
-                    mesh_container->TextureNames[ i ] = NULL;
-                mesh_container->Materials[ i ] = materials[ i ].MatD3D;
-                memzero( &mesh_container->Effects[ i ], sizeof( EffectInstance ) );
-            }
-        }
-        else
-        {
-            // Make a default material in the case where the mesh did not provide one
-            memzero( &mesh_container->Materials[ 0 ], sizeof( Material_ ) );
-            mesh_container->Materials[ 0 ].Diffuse.a = 1.0f;
-            mesh_container->Materials[ 0 ].Diffuse.r = 0.5f;
-            mesh_container->Materials[ 0 ].Diffuse.g = 0.5f;
-            mesh_container->Materials[ 0 ].Diffuse.b = 0.5f;
-            mesh_container->Materials[ 0 ].Specular = mesh_container->Materials[ 0 ].Diffuse;
-            mesh_container->TextureNames[ 0 ] = NULL;
-            memzero( &mesh_container->Effects[ 0 ], sizeof( EffectInstance ) );
-        }
-
-        // If there is skin data associated with the mesh copy it over
-        if( skin_info )
-        {
-            // Save off the SkinInfo
-            mesh_container->Skin = skin_info;
-            skin_info->AddRef();
-
-            // Need an array of offset matrices to move the vertices from the figure space to the bone's space
-            UINT numBones = skin_info->GetNumBones();
-            mesh_container->BoneOffsets = new Matrix[ numBones ];
-
-            // Create the arrays for the bones and the frame matrices
-            mesh_container->FrameCombinedMatrixPointer = new Matrix*[ numBones ];
-            memzero( mesh_container->FrameCombinedMatrixPointer, sizeof( Matrix* ) * numBones );
-
-            // get each of the bone offset matrices so that we don't need to get them later
-            for( UINT i = 0; i < numBones; i++ )
-                mesh_container->BoneOffsets[ i ] = *( (Matrix*) mesh_container->Skin->GetBoneOffsetMatrix( i ) );
-        }
-        else
-        {
-            // No skin info so NULL all the pointers
-            mesh_container->Skin = NULL;
-            mesh_container->BoneOffsets = NULL;
-            mesh_container->FrameCombinedMatrixPointer = NULL;
-            mesh_container->SkinMesh = NULL;
-        }
-
-        dxmesh.pMesh->Release();
-        if( skin_info )
-            skin_info->Release();
-
-        frame->DrawMesh = mesh_container;
-    }
-
-    // Childs
-    Frame* frame_last = NULL;
-    for( unsigned int i = 0; i < node->mNumChildren; i++ )
-    {
-        aiNode* node_child = node->mChildren[ i ];
-        Frame*  frame_child = FillNode( device, node_child, scene );
-        if( !i )
-            frame->FirstChild = frame_child;
-        else
-            frame_last->Sibling = frame_child;
-        frame_last = frame_child;
-    }
-
-    return frame;
-}
-#else
-Frame* GraphicLoader::FillNode( aiScene* scene, aiNode* node )
+Frame* FillNode( aiScene* scene, aiNode* node )
 {
     Frame* frame = new Frame();
     frame->Name = node->mName.data;
@@ -593,8 +558,7 @@ Frame* GraphicLoader::FillNode( aiScene* scene, aiNode* node )
         }
 
         // Faces
-        ms.FacesCount = aimesh->mNumFaces;
-        ms.Indicies.resize( ms.FacesCount * 3 );
+		ms.Indicies.resize(aimesh->mNumFaces * 3);
         for( uint i = 0; i < aimesh->mNumFaces; i++ )
         {
             aiFace& face = aimesh->mFaces[ i ];
@@ -633,7 +597,7 @@ Frame* GraphicLoader::FillNode( aiScene* scene, aiNode* node )
     return frame;
 }
 
-void GraphicLoader::FixFrame( Frame* root_frame, Frame* frame, aiScene* scene, aiNode* node )
+void FixFrame( Frame* root_frame, Frame* frame, aiScene* scene, aiNode* node )
 {
     for( uint m = 0; m < node->mNumMeshes; m++ )
     {
@@ -643,6 +607,7 @@ void GraphicLoader::FixFrame( Frame* root_frame, Frame* frame, aiScene* scene, a
         // Bones
         mesh.BoneInfluences = 0;
         mesh.BoneOffsets.resize( aimesh->mNumBones );
+		mesh.BoneNames.resize( aimesh->mNumBones );
         mesh.FrameCombinedMatrixPointer.resize( aimesh->mNumBones );
         for( uint i = 0; i < aimesh->mNumBones; i++ )
         {
@@ -650,6 +615,7 @@ void GraphicLoader::FixFrame( Frame* root_frame, Frame* frame, aiScene* scene, a
 
             // Matrices
             mesh.BoneOffsets[ i ] = bone->mOffsetMatrix;
+			mesh.BoneNames[ i ] = bone->mName.data;
             Frame* bone_frame = root_frame->Find( bone->mName.data );
             if( bone_frame )
                 mesh.FrameCombinedMatrixPointer[ i ] = &bone_frame->CombinedTransformationMatrix;
@@ -692,46 +658,304 @@ void GraphicLoader::FixFrame( Frame* root_frame, Frame* frame, aiScene* scene, a
         }
 
         // OGL buffers
-        GL( glGenBuffers( 1, &mesh.VBO ) );
-        GL( glBindBuffer( GL_ARRAY_BUFFER, mesh.VBO ) );
-        GL( glBufferData( GL_ARRAY_BUFFER, mesh.Vertices.size() * sizeof( Vertex3D ), &mesh.Vertices[ 0 ], GL_STATIC_DRAW ) );
-        GL( glGenBuffers( 1, &mesh.IBO ) );
-        GL( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh.IBO ) );
-        GL( glBufferData( GL_ELEMENT_ARRAY_BUFFER, mesh.Indicies.size() * sizeof( short ), &mesh.Indicies[ 0 ], GL_STATIC_DRAW ) );
-        mesh.VAO = 0;
-        if( GLEW_ARB_vertex_array_object && ( GLEW_ARB_framebuffer_object || GLEW_EXT_framebuffer_object ) )
-        {
-            GL( glGenVertexArrays( 1, &mesh.VAO ) );
-            GL( glBindVertexArray( mesh.VAO ) );
-            GL( glVertexAttribPointer( 0, 4, GL_FLOAT, GL_FALSE, sizeof( Vertex3D ), (void*) OFFSETOF( Vertex3D, Position ) ) );
-            GL( glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, sizeof( Vertex3D ), (void*) OFFSETOF( Vertex3D, Normal ) ) );
-            GL( glVertexAttribPointer( 2, 4, GL_FLOAT, GL_FALSE, sizeof( Vertex3D ), (void*) OFFSETOF( Vertex3D, Color ) ) );
-            GL( glVertexAttribPointer( 3, 2, GL_FLOAT, GL_FALSE, sizeof( Vertex3D ), (void*) OFFSETOF( Vertex3D, TexCoord ) ) );
-            GL( glVertexAttribPointer( 4, 2, GL_FLOAT, GL_FALSE, sizeof( Vertex3D ), (void*) OFFSETOF( Vertex3D, TexCoord2 ) ) );
-            GL( glVertexAttribPointer( 5, 2, GL_FLOAT, GL_FALSE, sizeof( Vertex3D ), (void*) OFFSETOF( Vertex3D, TexCoord3 ) ) );
-            GL( glVertexAttribPointer( 6, 3, GL_FLOAT, GL_FALSE, sizeof( Vertex3D ), (void*) OFFSETOF( Vertex3D, Tangent ) ) );
-            GL( glVertexAttribPointer( 7, 3, GL_FLOAT, GL_FALSE, sizeof( Vertex3D ), (void*) OFFSETOF( Vertex3D, Bitangent ) ) );
-            GL( glVertexAttribPointer( 8, 4, GL_FLOAT, GL_FALSE, sizeof( Vertex3D ), (void*) OFFSETOF( Vertex3D, BlendWeights ) ) );
-            GL( glVertexAttribPointer( 9, 4, GL_FLOAT, GL_FALSE, sizeof( Vertex3D ), (void*) OFFSETOF( Vertex3D, BlendIndices ) ) );
-            for( uint i = 0; i <= 9; i++ )
-                GL( glEnableVertexAttribArray( i ) );
-            GL( glBindVertexArray( 0 ) );
-        }
+		mesh.CreateBuffers();
     }
 
     for( uint i = 0; i < node->mNumChildren; i++ )
         FixFrame( root_frame, frame->Children[ i ], scene, node->mChildren[ i ] );
 }
-#endif
 
-AnimSet* GraphicLoader::LoadAnimation( Device_ device, const char* anim_fname, const char* anim_name )
+Frame* FillNodeFbx( FbxScene* scene, FbxNode* fbx_node, vector< FbxNode* >& bones )
+{
+    Frame* frame = new Frame();
+    frame->Name = fbx_node->GetName();
+    frame->TransformationMatrix = ConvertFbxMatrix( fbx_node->EvaluateLocalTransform() );
+    frame->CombinedTransformationMatrix = Matrix();
+    frame->Children.resize( fbx_node->GetChildCount() );
+
+    if( fbx_node->GetSkeleton() != NULL )
+        bones.push_back( fbx_node );
+
+    FbxMesh* fbx_mesh = fbx_node->GetMesh();
+    if( fbx_mesh && fbx_node->Show && fbx_mesh->GetPolygonVertexCount() == fbx_mesh->GetPolygonCount() * 3 && fbx_mesh->GetPolygonCount() > 0 )
+    {
+        frame->Mesh.resize( 1 );
+        MeshSubset& ms = frame->Mesh[ 0 ];
+
+        // Vertices
+        int*        vertices = fbx_mesh->GetPolygonVertices();
+        int         vertices_count = fbx_mesh->GetPolygonVertexCount();
+
+        FbxVector4* vertices_data = fbx_mesh->GetControlPoints();
+        ms.Vertices.resize( vertices_count );
+        ms.VerticesTransformed.resize( vertices_count );
+
+        FbxGeometryElementNormal*   fbx_normals = fbx_mesh->GetElementNormal();
+        FbxGeometryElementTangent*  fbx_tangents = fbx_mesh->GetElementTangent();
+        FbxGeometryElementBinormal* fbx_binormals = fbx_mesh->GetElementBinormal();
+        FbxLayerElementVertexColor* fbx_colors = fbx_mesh->GetElementVertexColor();
+        FbxGeometryElementUV*       fbx_uvs0 = fbx_mesh->GetElementUV( 0 );
+        FbxGeometryElementUV*       fbx_uvs1 = fbx_mesh->GetElementUV( 1 );
+        FbxGeometryElementUV*       fbx_uvs2 = fbx_mesh->GetElementUV( 2 );
+        for( int i = 0; i < vertices_count; i++ )
+        {
+            Vertex3D&   v = ms.Vertices[ i ];
+            FbxVector4& fbx_v = vertices_data[ vertices[ i ] ];
+
+            memzero( &v, sizeof( v ) );
+            v.Position = Vector( (float) fbx_v.mData[ 0 ], (float) fbx_v.mData[ 1 ], (float) fbx_v.mData[ 2 ] );
+            v.PositionW = 1.0f;
+
+            #define FBX_GET_ELEMENT( elements, index )                                                                                                                     \
+                ( elements->GetMappingMode() == FbxGeometryElement::eByPolygonVertex ?                                                                                     \
+                  ( elements->GetReferenceMode() == FbxGeometryElement::eDirect ?                                                                                          \
+                    elements->GetDirectArray().GetAt( index ) : elements->GetDirectArray().GetAt( elements->GetIndexArray().GetAt( index ) ) ) :                           \
+                  ( elements->GetMappingMode() == FbxGeometryElement::eByControlPoint ?                                                                                    \
+                    ( elements->GetReferenceMode() == FbxGeometryElement::eDirect ?                                                                                        \
+                      elements->GetDirectArray().GetAt( vertices[ index ] ) : elements->GetDirectArray().GetAt( elements->GetIndexArray().GetAt( vertices[ index ] ) ) ) : \
+                    elements->GetDirectArray().GetAt( -1 ) ) )
+
+            if( fbx_normals )
+            {
+                const FbxVector4& fbx_normal = FBX_GET_ELEMENT( fbx_normals, i );
+                v.Normal = Vector( (float) fbx_normal[ 0 ], (float) fbx_normal[ 1 ], (float) fbx_normal[ 2 ] );
+            }
+            if( fbx_tangents )
+            {
+                const FbxVector4& fbx_tangent = FBX_GET_ELEMENT( fbx_tangents, i );
+                v.Tangent = Vector( (float) fbx_tangent[ 0 ], (float) fbx_tangent[ 1 ], (float) fbx_tangent[ 2 ] );
+            }
+            if( fbx_binormals )
+            {
+                const FbxVector4& fbx_binormal = FBX_GET_ELEMENT( fbx_binormals, i );
+                v.Bitangent = Vector( (float) fbx_binormal[ 0 ], (float) fbx_binormal[ 1 ], (float) fbx_binormal[ 2 ] );
+            }
+            if( fbx_colors )
+            {
+                const FbxColor& fbx_color = FBX_GET_ELEMENT( fbx_colors, i );
+                v.Color[ 2 ] = (float) fbx_color.mRed;
+                v.Color[ 1 ] = (float) fbx_color.mGreen;
+                v.Color[ 0 ] = (float) fbx_color.mBlue;
+                v.Color[ 3 ] = (float) fbx_color.mAlpha;
+            }
+            if( fbx_uvs0 )
+            {
+                const FbxVector2& fbx_uv0 = FBX_GET_ELEMENT( fbx_uvs0, i );
+                v.TexCoord[ 0 ] = (float) fbx_uv0[ 0 ];
+                v.TexCoord[ 1 ] = (float) fbx_uv0[ 1 ];
+            }
+            if( fbx_uvs1 )
+            {
+                const FbxVector2& fbx_uv1 = FBX_GET_ELEMENT( fbx_uvs1, i );
+                v.TexCoord2[ 0 ] = (float) fbx_uv1[ 0 ];
+                v.TexCoord2[ 1 ] = (float) fbx_uv1[ 1 ];
+            }
+            if( fbx_uvs2 )
+            {
+                const FbxVector2& fbx_uv2 = FBX_GET_ELEMENT( fbx_uvs2, i );
+                v.TexCoord3[ 0 ] = (float) fbx_uv2[ 0 ];
+                v.TexCoord3[ 1 ] = (float) fbx_uv2[ 1 ];
+            }
+            #undef FBX_GET_ELEMENT
+
+            v.BlendIndices[ 0 ] = -1.0f;
+            v.BlendIndices[ 1 ] = -1.0f;
+            v.BlendIndices[ 2 ] = -1.0f;
+            v.BlendIndices[ 3 ] = -1.0f;
+        }
+
+        // Faces
+        ms.Indicies.resize( vertices_count );
+        for( int i = 0; i < vertices_count; i++ )
+            ms.Indicies[ i ] = i;
+
+        // Material
+        for( int i = 0; i < 4; i++ )
+        {
+            ms.DiffuseColor[ i ] = ( i < 3 ? 0.0f : 1.0f );
+            ms.AmbientColor[ i ] = ( i < 3 ? 0.0f : 1.0f );
+            ms.SpecularColor[ i ] = ( i < 3 ? 0.0f : 1.0f );
+            ms.EmissiveColor[ i ] = ( i < 3 ? 0.0f : 1.0f );
+        }
+
+        FbxGeometryElementMaterial* fbx_material_element = fbx_mesh->GetElementMaterial( 0 );
+        if( fbx_material_element )
+        {
+            int                 mat_id = fbx_material_element->GetIndexArray().GetAt( 0 );
+            FbxSurfaceMaterial* fbx_material = fbx_mesh->GetNode()->GetMaterial( mat_id );
+
+            FbxProperty         prop_diffuse = fbx_material->FindProperty( FbxSurfaceMaterial::sDiffuse );
+            FbxProperty         prop_diffuse_factor = fbx_material->FindProperty( FbxSurfaceMaterial::sDiffuseFactor );
+            if( prop_diffuse.IsValid() )
+            {
+                char tex_fname[ MAX_FOPATH ];
+                FileManager::ExtractFileName( prop_diffuse.GetSrcObject< FbxFileTexture >()->GetFileName(), tex_fname );
+                ms.DiffuseTexture = tex_fname;
+
+                if( prop_diffuse_factor.IsValid() )
+                {
+                    FbxDouble3 color = prop_diffuse.Get< FbxDouble3 >();
+                    FbxDouble  factor = prop_diffuse_factor.Get< FbxDouble >();
+                    ms.DiffuseColor[ 0 ] = (float) ( color.mData[ 0 ] * factor );
+                    ms.DiffuseColor[ 1 ] = (float) ( color.mData[ 1 ] * factor );
+                    ms.DiffuseColor[ 2 ] = (float) ( color.mData[ 2 ] * factor );
+                }
+            }
+
+            FbxProperty prop_ambient = fbx_material->FindProperty( FbxSurfaceMaterial::sAmbient );
+            FbxProperty prop_ambient_factor = fbx_material->FindProperty( FbxSurfaceMaterial::sAmbientFactor );
+            if( prop_ambient.IsValid() && prop_ambient_factor.IsValid() )
+            {
+                FbxDouble3 color = prop_ambient.Get< FbxDouble3 >();
+                FbxDouble  factor = prop_ambient_factor.Get< FbxDouble >();
+                ms.AmbientColor[ 0 ] = (float) ( color.mData[ 0 ] * factor );
+                ms.AmbientColor[ 1 ] = (float) ( color.mData[ 1 ] * factor );
+                ms.AmbientColor[ 2 ] = (float) ( color.mData[ 2 ] * factor );
+            }
+
+            FbxProperty prop_specular = fbx_material->FindProperty( FbxSurfaceMaterial::sSpecular );
+            FbxProperty prop_specular_factor = fbx_material->FindProperty( FbxSurfaceMaterial::sSpecularFactor );
+            if( prop_specular.IsValid() && prop_specular_factor.IsValid() )
+            {
+                FbxDouble3 color = prop_specular.Get< FbxDouble3 >();
+                FbxDouble  factor = prop_specular_factor.Get< FbxDouble >();
+                ms.SpecularColor[ 0 ] = (float) ( color.mData[ 0 ] * factor );
+                ms.SpecularColor[ 1 ] = (float) ( color.mData[ 1 ] * factor );
+                ms.SpecularColor[ 2 ] = (float) ( color.mData[ 2 ] * factor );
+            }
+
+            FbxProperty prop_emissive = fbx_material->FindProperty( FbxSurfaceMaterial::sEmissive );
+            FbxProperty prop_emissive_factor = fbx_material->FindProperty( FbxSurfaceMaterial::sEmissiveFactor );
+            if( prop_emissive.IsValid() && prop_emissive_factor.IsValid() )
+            {
+                FbxDouble3 color = prop_emissive.Get< FbxDouble3 >();
+                FbxDouble  factor = prop_emissive_factor.Get< FbxDouble >();
+                ms.EmissiveColor[ 0 ] = (float) ( color.mData[ 0 ] * factor );
+                ms.EmissiveColor[ 1 ] = (float) ( color.mData[ 1 ] * factor );
+                ms.EmissiveColor[ 2 ] = (float) ( color.mData[ 2 ] * factor );
+            }
+        }
+
+        // Effect
+        ms.DrawEffect.EffectFilename = NULL;
+
+        // Transformed vertices position
+        ms.VerticesTransformed = ms.Vertices;
+        ms.VerticesTransformedValid = false;
+    }
+
+    for( int i = 0; i < fbx_node->GetChildCount(); i++ )
+        frame->Children[ i ] = FillNodeFbx( scene, fbx_node->GetChild( i ), bones );
+    return frame;
+}
+
+void FixFrameFbx( Frame* root_frame, Frame* frame, FbxScene* fbx_scene, FbxNode* fbx_node )
+{
+    if( frame->Mesh.size() > 0 )
+    {
+        FbxMesh*    fbx_mesh = fbx_node->GetMesh();
+        MeshSubset& mesh = frame->Mesh[ 0 ];
+        mesh.BoneInfluences = 0;
+
+        if( fbx_mesh->GetDeformerCount( FbxDeformer::eSkin ) )
+        {
+            FbxSkin* fbx_skin = (FbxSkin*) fbx_mesh->GetDeformer( 0, FbxDeformer::eSkin );
+
+            // Bones
+            int num_bones = fbx_skin->GetClusterCount();
+            mesh.BoneOffsets.resize( num_bones );
+            mesh.BoneNames.resize( num_bones );
+            mesh.FrameCombinedMatrixPointer.resize( num_bones );
+            for( int i = 0; i < num_bones; i++ )
+            {
+                FbxCluster* fbx_cluster = fbx_skin->GetCluster( i );
+
+                // Matrices
+                FbxAMatrix link_matrix;
+                fbx_cluster->GetTransformLinkMatrix( link_matrix );
+                FbxAMatrix cur_matrix;
+                fbx_cluster->GetTransformMatrix( cur_matrix );
+                mesh.BoneOffsets[ i ] = ConvertFbxMatrix( link_matrix ).Inverse() * ConvertFbxMatrix( cur_matrix );
+                mesh.BoneNames[ i ] = fbx_cluster->GetLink()->GetName();
+
+                Frame* bone_frame = root_frame->Find( fbx_cluster->GetLink()->GetName() );
+                if( bone_frame )
+                    mesh.FrameCombinedMatrixPointer[ i ] = &bone_frame->CombinedTransformationMatrix;
+                else
+                    mesh.FrameCombinedMatrixPointer[ i ] = NULL;
+
+                // Blend data
+                int     num_weights = fbx_cluster->GetControlPointIndicesCount();
+                int*    indicies = fbx_cluster->GetControlPointIndices();
+                double* weights = fbx_cluster->GetControlPointWeights();
+                int     vertices_count = fbx_mesh->GetPolygonVertexCount();
+                int*    vertices = fbx_mesh->GetPolygonVertices();
+                for( int j = 0; j < num_weights; j++ )
+                {
+                    for( int k = 0; k < vertices_count; k++ )
+                    {
+                        if( vertices[ k ] != indicies[ j ] )
+                            continue;
+
+                        Vertex3D& v = mesh.Vertices[ k ];
+                        uint      index;
+                        if( v.BlendIndices[ 0 ] < 0.0f )
+                            index = 0;
+                        else if( v.BlendIndices[ 1 ] < 0.0f )
+                            index = 1;
+                        else if( v.BlendIndices[ 2 ] < 0.0f )
+                            index = 2;
+                        else
+                            index = 3;
+
+                        v.BlendWeights[ index ] = (float) weights[ j ];
+                        v.BlendIndices[ index ] = (float) i;
+
+                        if( mesh.BoneInfluences <= index )
+                            mesh.BoneInfluences = index + 1;
+                    }
+                }
+            }
+
+            // Drop not filled indices
+            for( int i = 0; i < (int) mesh.Vertices.size(); i++ )
+            {
+                Vertex3D& v = mesh.Vertices[ i ];
+                if( v.BlendIndices[ 0 ] < 0.0f )
+                    v.BlendIndices[ 0 ] = 0.0f;
+                if( v.BlendIndices[ 1 ] < 0.0f )
+                    v.BlendIndices[ 1 ] = 0.0f;
+                if( v.BlendIndices[ 2 ] < 0.0f )
+                    v.BlendIndices[ 2 ] = 0.0f;
+                if( v.BlendIndices[ 3 ] < 0.0f )
+                    v.BlendIndices[ 3 ] = 0.0f;
+            }
+        }
+
+        // OGL buffers
+        mesh.CreateBuffers();
+    }
+
+    for( int i = 0; i < fbx_node->GetChildCount(); i++ )
+        FixFrameFbx( root_frame, frame->Children[ i ], fbx_scene, fbx_node->GetChild( i ) );
+}
+
+Matrix ConvertFbxMatrix( const FbxAMatrix& m )
+{
+    return Matrix( (float) m.Get( 0, 0 ), (float) m.Get( 1, 0 ), (float) m.Get( 2, 0 ), (float) m.Get( 3, 0 ),
+                   (float) m.Get( 0, 1 ), (float) m.Get( 1, 1 ), (float) m.Get( 2, 1 ), (float) m.Get( 3, 1 ),
+                   (float) m.Get( 0, 2 ), (float) m.Get( 1, 2 ), (float) m.Get( 2, 2 ), (float) m.Get( 3, 2 ),
+                   (float) m.Get( 0, 3 ), (float) m.Get( 1, 3 ), (float) m.Get( 2, 3 ), (float) m.Get( 3, 3 ) );
+}
+
+AnimSet* GraphicLoader::LoadAnimation( const char* anim_fname, const char* anim_name )
 {
     // Find in already loaded
+	bool take_first = Str::CompareCase(anim_name, "Base");
     for( uint i = 0, j = (uint) loadedAnimations.size(); i < j; i++ )
     {
         AnimSet* anim = (AnimSet*) loadedAnimations[ i ];
-        if( Str::CompareCase( loadedAnimationsFNames[ i ], anim_fname ) &&
-            Str::CompareCase( anim->GetName(), anim_name ) )
+        if( Str::CompareCase( anim->GetFileName(), anim_fname ) && ( Str::CompareCase( anim->GetName(), anim_name ) || take_first ) )
             return anim;
     }
 
@@ -741,66 +965,14 @@ AnimSet* GraphicLoader::LoadAnimation( Device_ device, const char* anim_fname, c
             return NULL;
 
     // File not processed, load and recheck animations
-    if( LoadModel( device, anim_fname ) )
-        return LoadAnimation( device, anim_fname, anim_name );
+    if( LoadModel( anim_fname ) )
+        return LoadAnimation( anim_fname, anim_name );
 
     return NULL;
 }
 
 void GraphicLoader::Free( Frame* frame )
 {
-    #ifdef FO_D3D
-    // Free frame
-    if( frame )
-    {
-        SAFEDELA( frame->Name );
-        MeshContainer* mesh_container = frame->DrawMesh;
-        if( mesh_container )
-        {
-            // Materials array
-            SAFEDELA( mesh_container->Materials );
-            // Release the textures before deleting the array
-            if( mesh_container->TextureNames )
-            {
-                for( uint i = 0; i < mesh_container->NumMaterials; i++ )
-                    SAFEDELA( mesh_container->TextureNames[ i ] );
-            }
-            SAFEDELA( mesh_container->TextureNames );
-            // Delete effect
-            if( mesh_container->Effects )
-            {
-                for( uint i = 0; i < mesh_container->NumMaterials; i++ )
-                {
-                    for( uint j = 0; j < mesh_container->Effects[ i ].DefaultsCount; j++ )
-                        SAFEDELA( mesh_container->Effects[ i ].Defaults[ j ].Data );
-                    SAFEDELA( mesh_container->Effects[ i ].Defaults );
-                }
-            }
-            SAFEDEL( mesh_container->Effects );
-            // Adjacency data
-            SAFEDELA( mesh_container->Adjacency );
-            // Bone parts
-            SAFEDELA( mesh_container->BoneOffsets );
-            // Frame matrices
-            SAFEDELA( mesh_container->FrameCombinedMatrixPointer );
-            // Release skin mesh
-            SAFEREL( mesh_container->InitMesh );
-            // Release the main mesh
-            SAFEREL( mesh_container->SkinMesh );
-            // Release blend mesh
-            SAFEREL( mesh_container->SkinMeshBlended );
-            // Release skin information
-            SAFEREL( mesh_container->Skin );
-            // Finally delete the mesh container itself
-            delete mesh_container;
-        }
-        if( frame->Sibling )
-            Free( frame->Sibling );
-        if( frame->FirstChild )
-            Free( frame->FirstChild );
-        delete frame;
-    }
-    #else
     for( auto it = frame->Mesh.begin(), end = frame->Mesh.end(); it != end; ++it )
     {
         MeshSubset& ms = *it;
@@ -811,16 +983,15 @@ void GraphicLoader::Free( Frame* frame )
     }
     for( auto it = frame->Children.begin(), end = frame->Children.end(); it != end; ++it )
         Free( *it );
-    #endif
 }
 
 bool GraphicLoader::IsExtensionSupported( const char* ext )
 {
     static const char* arr[] =
     {
-        "fo3d", "x", "3ds", "obj", "dae", "blend", "ase", "ply", "dxf", "lwo", "lxo", "stl", "ac", "ms3d",
+        "fo3d", "fbx", "x", "3ds", "obj", "dae", "blend", "ase", "ply", "dxf", "lwo", "lxo", "stl", "ms3d",
         "scn", "smd", "vta", "mdl", "md2", "md3", "pk3", "mdc", "md5", "bvh", "csm", "b3d", "q3d", "cob",
-        "q3s", "mesh", "xml", "irrmesh", "irr", "nff", "nff", "off", "raw", "ter", "mdl", "hmp", "ndo"
+        "q3s", "mesh", "xml", "irrmesh", "irr", "nff", "nff", "off", "raw", "ter", "mdl", "hmp", "ndo", "ac"
     };
 
     for( int i = 0, j = sizeof( arr ) / sizeof( arr[ 0 ] ); i < j; i++ )
@@ -834,7 +1005,7 @@ bool GraphicLoader::IsExtensionSupported( const char* ext )
 /************************************************************************/
 TextureVec GraphicLoader::loadedTextures;
 
-Texture* GraphicLoader::LoadTexture( Device_ device, const char* texture_name, const char* model_path )
+Texture* GraphicLoader::LoadTexture( const char* texture_name, const char* model_path )
 {
     if( !texture_name || !texture_name[ 0 ] )
         return NULL;
@@ -858,52 +1029,20 @@ Texture* GraphicLoader::LoadTexture( Device_ device, const char* texture_name, c
         fm.LoadFile( path, PT_DATA );
     }
 
-    #ifdef FO_D3D
-    // Create texture
-    LPDIRECT3DTEXTURE9 dxtex = NULL;
-    if( !fm.IsLoaded() || FAILED( D3DXCreateTextureFromFileInMemory( device, fm.GetBuf(), fm.GetFsize(), &dxtex ) ) )
+    // Load
+    uint        size, w, h;
+    uchar*      data;
+    const char* ext = FileManager::GetExtension( texture_name );
+
+    if( Str::CompareCase( ext, "png" ) )
+        data = LoadPNG( fm.GetBuf(), fm.GetFsize(), size, w, h );
+    else if( Str::CompareCase( ext, "tga" ) )
+        data = LoadTGA( fm.GetBuf(), fm.GetFsize(), size, w, h );
+    else
+        WriteLogF( _FUNC_, " - File format<%s> not supported, file<%s>.\n", ext, texture_name );
+
+    if( !data )
         return NULL;
-    Texture* texture = new Texture();
-    texture->Instance = dxtex;
-    #else
-    // Detect type
-    ILenum file_type = ilTypeFromExt( texture_name );
-    if( file_type == IL_TYPE_UNKNOWN )
-        return NULL;
-
-    // Load image from memory
-    ILuint img = 0;
-    ilGenImages( 1, &img );
-    ilBindImage( img );
-    if( !ilLoadL( file_type, fm.GetBuf(), fm.GetFsize() ) )
-    {
-        ilDeleteImage( img );
-        return NULL;
-    }
-
-    // Get image data
-    uint w = ilGetInteger( IL_IMAGE_WIDTH );
-    uint h = ilGetInteger( IL_IMAGE_HEIGHT );
-    int  format = ilGetInteger( IL_IMAGE_FORMAT );
-    int  type = ilGetInteger( IL_IMAGE_TYPE );
-
-    // Convert data
-    if( format != IL_BGRA || type != IL_UNSIGNED_BYTE )
-    {
-        if( !ilConvertImage( IL_BGRA, IL_UNSIGNED_BYTE ) )
-        {
-            ilDeleteImage( img );
-            return NULL;
-        }
-    }
-
-    // Copy data
-    uint   size = ilGetInteger( IL_IMAGE_SIZE_OF_DATA );
-    uchar* data = new uchar[ size ];
-    memcpy( data, ilGetData(), size );
-
-    // Delete image
-    ilDeleteImage( img );
 
     // Create texture
     Texture* texture = new Texture();
@@ -922,8 +1061,7 @@ Texture* GraphicLoader::LoadTexture( Device_ device, const char* texture_name, c
     GL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
     GL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT ) );
     GL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT ) );
-    GL( glTexImage2D( GL_TEXTURE_2D, 0, 4, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE, texture->Data ) );
-    #endif
+    GL( glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE, texture->Data ) );
     texture->Name = Str::Duplicate( texture_name );
     loadedTextures.push_back( texture );
     return loadedTextures.back();
@@ -931,7 +1069,6 @@ Texture* GraphicLoader::LoadTexture( Device_ device, const char* texture_name, c
 
 void GraphicLoader::FreeTexture( Texture* texture )
 {
-    #ifdef FO_D3D
     if( texture )
     {
         for( auto it = loadedTextures.begin(), end = loadedTextures.end(); it != end; ++it )
@@ -945,7 +1082,7 @@ void GraphicLoader::FreeTexture( Texture* texture )
         }
 
         SAFEDELA( texture->Name );
-        SAFEREL( texture->Instance );
+        SAFEDELA( texture->Data );
         SAFEDEL( texture );
     }
     else
@@ -954,45 +1091,15 @@ void GraphicLoader::FreeTexture( Texture* texture )
         for( auto it = textures.begin(), end = textures.end(); it != end; ++it )
             FreeTexture( *it );
     }
-    #endif
 }
 
 /************************************************************************/
 /* Effects                                                              */
 /************************************************************************/
-#ifdef FO_D3D
-class IncludeParser: public ID3DXInclude
-{
-public:
-    char* RootPath;
-
-    STDMETHOD( Open ) ( THIS_ D3DXINCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID * ppData, UINT * pBytes )
-    {
-        FileManager fm;
-        if( !fm.LoadFile( pFileName, PT_EFFECTS ) )
-        {
-            if( !RootPath ) return S_FALSE;
-            char path[ MAX_FOPATH ];
-            FileManager::ExtractPath( RootPath, path );
-            Str::Append( path, pFileName );
-            if( !fm.LoadFile( path, PT_DATA ) ) return S_FALSE;
-        }
-        *pBytes = fm.GetFsize();
-        *ppData = fm.ReleaseBuffer();
-        return S_OK;
-    }
-
-    STDMETHOD( Close ) ( THIS_ LPCVOID pData )
-    {
-        if( pData ) delete[] pData;
-        return S_OK;
-    }
-} includeParser;
-#endif
 
 EffectVec GraphicLoader::loadedEffects;
 
-Effect* GraphicLoader::LoadEffect( Device_ device, const char* effect_name, bool use_in_2d, const char* defines /* = NULL */, const char* model_path /* = NULL */, EffectDefault* defaults /* = NULL */, uint defaults_count /* = 0 */ )
+Effect* GraphicLoader::LoadEffect( const char* effect_name, bool use_in_2d, const char* defines /* = NULL */, const char* model_path /* = NULL */, EffectDefault* defaults /* = NULL */, uint defaults_count /* = 0 */ )
 {
     // Erase extension
     char fname[ MAX_FOPATH ];
@@ -1013,211 +1120,6 @@ Effect* GraphicLoader::LoadEffect( Device_ device, const char* effect_name, bool
             return effect;
     }
 
-    #ifdef FO_D3D
-    // Add extension
-    Str::Append( fname, ".fx" );
-
-    // First try load from effects folder
-    FileManager fm;
-    if( !fm.LoadFile( fname, PT_EFFECTS ) && model_path )
-    {
-        // After try load from file folder
-        char path[ MAX_FOPATH ];
-        FileManager::ExtractPath( model_path, path );
-        Str::Append( path, fname );
-        fm.LoadFile( path, PT_DATA );
-    }
-    if( !fm.IsLoaded() )
-        return NULL;
-
-    // Find already compiled effect in cache
-    char        cache_name[ MAX_FOPATH ];
-    Str::Format( cache_name, "%s.fxc", fname );
-    FileManager fm_cache;
-    if( fm_cache.LoadFile( cache_name, PT_CACHE ) )
-    {
-        uint64 last_write, last_write_cache;
-        fm.GetTime( NULL, NULL, &last_write );
-        fm_cache.GetTime( NULL, NULL, &last_write_cache );
-        if( last_write > last_write_cache )
-            fm_cache.UnloadFile();
-    }
-
-    // Load and cache effect
-    if( !fm_cache.IsLoaded() )
-    {
-        char*                buf = (char*) fm.GetBuf();
-        uint                 size = fm.GetFsize();
-
-        LPD3DXEFFECTCOMPILER ef_comp = NULL;
-        LPD3DXBUFFER         ef_buf = NULL;
-        LPD3DXBUFFER         errors = NULL;
-        LPD3DXBUFFER         errors31 = NULL;
-        HRESULT              hr = 0, hr31 = 0;
-
-        includeParser.RootPath = (char*) model_path;
-        hr = D3DXCreateEffectCompiler( buf, size, NULL, &includeParser, 0, &ef_comp, &errors );
-        if( FAILED( hr ) )
-            hr31 = D3DXCreateEffectCompiler( buf, size, NULL, &includeParser, D3DXSHADER_USE_LEGACY_D3DX9_31_DLL, &ef_comp, &errors31 );
-
-        if( SUCCEEDED( hr ) || SUCCEEDED( hr31 ) )
-        {
-            SAFEREL( errors );
-            if( SUCCEEDED( ef_comp->CompileEffect( 0, &ef_buf, &errors ) ) )
-            {
-                fm_cache.SetData( ef_buf->GetBufferPointer(), ef_buf->GetBufferSize() );
-                fm_cache.SaveOutBufToFile( cache_name, PT_CACHE );
-                fm_cache.SwitchToRead();
-            }
-            else
-            {
-                WriteLogF( _FUNC_, " - Unable to compile effect, effect<%s>, errors<\n%s>.\n", fname, errors ? errors->GetBufferPointer() : "nullptr\n" );
-            }
-        }
-        else
-        {
-            WriteLogF( _FUNC_, " - Unable to create effect compiler, effect<%s>, errors<%s\n%s>, legacy compiler errors<%s\n%s>.\n", fname,
-                       DXGetErrorString( hr ), errors ? errors->GetBufferPointer() : "", DXGetErrorString( hr31 ), errors31 ? errors31->GetBufferPointer() : "" );
-        }
-
-        SAFEREL( ef_comp );
-        SAFEREL( ef_buf );
-        SAFEREL( errors );
-        SAFEREL( errors31 );
-
-        if( !fm_cache.IsLoaded() )
-            return NULL;
-    }
-
-    // Create effect
-    LPD3DXEFFECT dxeffect = NULL;
-    LPD3DXBUFFER errors = NULL;
-    if( FAILED( D3DXCreateEffect( device, fm_cache.GetBuf(), fm_cache.GetFsize(), NULL, NULL, /*D3DXSHADER_SKIPVALIDATION|*/ D3DXFX_NOT_CLONEABLE, NULL, &dxeffect, &errors ) ) )
-    {
-        WriteLogF( _FUNC_, " - Unable to create effect, effect<%s>, errors<\n%s>.\n", fname, errors ? errors->GetBufferPointer() : "nullptr" );
-        SAFEREL( dxeffect );
-        SAFEREL( errors );
-        return NULL;
-    }
-    SAFEREL( errors );
-
-    Effect* effect = new Effect();
-    effect->Name = Str::Duplicate( loaded_fname );
-    effect->Defines = Str::Duplicate( "" );
-    effect->DXInstance = dxeffect;
-    effect->EffectFlags = D3DXFX_DONOTSAVESTATE;
-    effect->EffectParams = NULL;
-
-    effect->TechniqueSkinned = dxeffect->GetTechniqueByName( "Skinned" );
-    effect->TechniqueSkinnedWithShadow = dxeffect->GetTechniqueByName( "SkinnedWithShadow" );
-    effect->TechniqueSimple = dxeffect->GetTechniqueByName( "Simple" );
-    effect->TechniqueSimpleWithShadow = dxeffect->GetTechniqueByName( "SimpleWithShadow" );
-    effect->BoneInfluences = dxeffect->GetParameterByName( NULL, "BonesInfluences" );
-    effect->GroundPosition = dxeffect->GetParameterByName( NULL, "GroundPosition" );
-    effect->LightDir = dxeffect->GetParameterByName( NULL, "LightDir" );
-    effect->LightDiffuse = dxeffect->GetParameterByName( NULL, "LightDiffuse" );
-    effect->MaterialAmbient = dxeffect->GetParameterByName( NULL, "MaterialAmbient" );
-    effect->MaterialDiffuse = dxeffect->GetParameterByName( NULL, "MaterialDiffuse" );
-    effect->WorldMatrices = dxeffect->GetParameterByName( NULL, "WorldMatrices" );
-    effect->ProjectionMatrix = dxeffect->GetParameterByName( NULL, "ViewProjMatrix" );
-
-    if( !effect->TechniqueSimple )
-    {
-        WriteLogF( _FUNC_, " - Technique 'Simple' not founded, effect<%s>.\n", fname );
-        delete effect;
-        SAFEREL( dxeffect );
-        return NULL;
-    }
-
-    if( !effect->TechniqueSimpleWithShadow )
-        effect->TechniqueSimpleWithShadow = effect->TechniqueSimple;
-    if( !effect->TechniqueSkinned )
-        effect->TechniqueSkinned = effect->TechniqueSimple;
-    if( !effect->TechniqueSkinnedWithShadow )
-        effect->TechniqueSkinnedWithShadow = effect->TechniqueSkinned;
-
-    effect->PassIndex = dxeffect->GetParameterByName( NULL, "PassIndex" );
-    effect->Time = dxeffect->GetParameterByName( NULL, "Time" );
-    effect->TimeCurrent = 0.0f;
-    effect->TimeLastTick = Timer::AccurateTick();
-    effect->TimeGame = dxeffect->GetParameterByName( NULL, "TimeGame" );
-    effect->TimeGameCurrent = 0.0f;
-    effect->TimeGameLastTick = Timer::AccurateTick();
-    effect->IsTime = ( effect->Time || effect->TimeGame );
-    effect->Random1Pass = dxeffect->GetParameterByName( NULL, "Random1Pass" );
-    effect->Random2Pass = dxeffect->GetParameterByName( NULL, "Random2Pass" );
-    effect->Random3Pass = dxeffect->GetParameterByName( NULL, "Random3Pass" );
-    effect->Random4Pass = dxeffect->GetParameterByName( NULL, "Random4Pass" );
-    effect->IsRandomPass = ( effect->Random1Pass || effect->Random2Pass || effect->Random3Pass || effect->Random4Pass );
-    effect->Random1Effect = dxeffect->GetParameterByName( NULL, "Random1Effect" );
-    effect->Random2Effect = dxeffect->GetParameterByName( NULL, "Random2Effect" );
-    effect->Random3Effect = dxeffect->GetParameterByName( NULL, "Random3Effect" );
-    effect->Random4Effect = dxeffect->GetParameterByName( NULL, "Random4Effect" );
-    effect->IsRandomEffect = ( effect->Random1Effect || effect->Random2Effect || effect->Random3Effect || effect->Random4Effect );
-    effect->IsTextures = false;
-    for( int i = 0; i < EFFECT_TEXTURES; i++ )
-    {
-        char tex_name[ 32 ];
-        Str::Format( tex_name, "Texture%d", i );
-        effect->Textures[ i ] = dxeffect->GetParameterByName( NULL, tex_name );
-        if( effect->Textures[ i ] )
-            effect->IsTextures = true;
-    }
-    effect->IsScriptValues = false;
-    for( int i = 0; i < EFFECT_SCRIPT_VALUES; i++ )
-    {
-        char val_name[ 32 ];
-        Str::Format( val_name, "EffectValue%d", i );
-        effect->ScriptValues[ i ] = dxeffect->GetParameterByName( NULL, val_name );
-        if( effect->ScriptValues[ i ] )
-            effect->IsScriptValues = true;
-    }
-    effect->AnimPosProc = dxeffect->GetParameterByName( NULL, "AnimPosProc" );
-    effect->AnimPosTime = dxeffect->GetParameterByName( NULL, "AnimPosTime" );
-    effect->IsAnimPos = ( effect->AnimPosProc || effect->AnimPosTime );
-    effect->IsNeedProcess = ( effect->PassIndex || effect->IsTime || effect->IsRandomPass || effect->IsRandomEffect ||
-                              effect->IsTextures || effect->IsScriptValues || effect->IsAnimPos );
-
-    effect->Defaults = NULL;
-    if( defaults )
-    {
-        bool block_begin = false;
-        for( uint d = 0; d < defaults_count; d++ )
-        {
-            EffectDefault& def = defaults[ d ];
-            EffectValue_   param = dxeffect->GetParameterByName( NULL, def.Name );
-            if( !param )
-                continue;
-
-            if( !block_begin )
-            {
-                block_begin = true;
-                dxeffect->BeginParameterBlock();
-            }
-
-            switch( def.Type )
-            {
-            case EffectDefault::String:             // pValue points to a null terminated ASCII string
-                dxeffect->SetString( param, (LPCSTR) def.Data );
-                break;
-            case EffectDefault::Floats:             // pValue points to an array of floats - number of floats is NumBytes / sizeof(float)
-                dxeffect->SetFloatArray( param, (float*) def.Data, def.Size / sizeof( float ) );
-                break;
-            case EffectDefault::Dword:              // pValue points to a uint
-                dxeffect->SetInt( param, *(uint*) def.Data );
-                break;
-            default:
-                break;
-            }
-        }
-
-        if( block_begin )
-        {
-            effect->EffectParams = dxeffect->EndParameterBlock();
-            effect->Defaults = defaults;
-        }
-    }
-    #else
     // Shader program
     GLuint program = 0;
 
@@ -1242,7 +1144,7 @@ Effect* GraphicLoader::LoadEffect( Device_ device, const char* effect_name, bool
 
     // Make effect binary file name
     char binary_fname[ MAX_FOPATH ] = { 0 };
-    if( GLEW_ARB_get_program_binary )
+    if( GL_HAS( ARB_get_program_binary ) )
     {
         Str::Copy( binary_fname, fname );
         FileManager::EraseExtension( binary_fname );
@@ -1263,14 +1165,11 @@ Effect* GraphicLoader::LoadEffect( Device_ device, const char* effect_name, bool
 
     // Load from binary
     FileManager file_binary;
-    if( GLEW_ARB_get_program_binary )
+    if( GL_HAS( ARB_get_program_binary ) )
     {
         if( file_binary.LoadFile( binary_fname, PT_CACHE ) )
         {
-            uint64 last_write, last_write_binary;
-            file.GetTime( NULL, NULL, &last_write );
-            file_binary.GetTime( NULL, NULL, &last_write_binary );
-            if( last_write > last_write_binary )
+            if( file.GetWriteTime() > file_binary.GetWriteTime() )
                 file_binary.UnloadFile();      // Disable loading from this binary, because its outdated
         }
     }
@@ -1416,7 +1315,7 @@ Effect* GraphicLoader::LoadEffect( Device_ device, const char* effect_name, bool
             GL( glBindAttribLocation( program, 9, "InBlendIndices" ) );
         }
 
-        if( GLEW_ARB_get_program_binary )
+        if( GL_HAS( ARB_get_program_binary ) )
             GL( glProgramParameteri( program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE ) );
 
         GL( glLinkProgram( program ) );
@@ -1435,7 +1334,7 @@ Effect* GraphicLoader::LoadEffect( Device_ device, const char* effect_name, bool
         }
 
         // Save in binary
-        if( GLEW_ARB_get_program_binary )
+        if( GL_HAS( ARB_get_program_binary ) )
         {
             GLsizei  buf_size;
             GL( glGetProgramiv( program, GL_PROGRAM_BINARY_LENGTH, &buf_size ) );
@@ -1476,12 +1375,12 @@ Effect* GraphicLoader::LoadEffect( Device_ device, const char* effect_name, bool
     GL( effect->ColorMapSamples = glGetUniformLocation( program, "ColorMapSamples" ) );
     GL( effect->EggMap = glGetUniformLocation( program, "EggMap" ) );
     GL( effect->EggMapSize = glGetUniformLocation( program, "EggMapSize" ) );
-    # ifdef SHADOW_MAP
+    #ifdef SHADOW_MAP
     GL( effect->ShadowMap = glGetUniformLocation( program, "ShadowMap" ) );
     GL( effect->ShadowMapSize = glGetUniformLocation( program, "ShadowMapSize" ) );
     GL( effect->ShadowMapSamples = glGetUniformLocation( program, "ShadowMapSamples" ) );
     GL( effect->ShadowMapMatrix = glGetUniformLocation( program, "ShadowMapMatrix" ) );
-    # endif
+    #endif
     GL( effect->SpriteBorder = glGetUniformLocation( program, "SpriteBorder" ) );
 
     GL( effect->BoneInfluences = glGetUniformLocation( program, "BoneInfluences" ) );
@@ -1570,7 +1469,6 @@ Effect* GraphicLoader::LoadEffect( Device_ device, const char* effect_name, bool
         if( something_binded )
             effect->Defaults = defaults;
     }
-    #endif
 
     static int effect_id = 0;
     effect->Id = ++effect_id;
@@ -1632,9 +1530,6 @@ void GraphicLoader::EffectProcessVariables( Effect* effect, int pass,  float ani
             {
                 if( IS_EFFECT_VALUE( effect->Textures[ i ] ) )
                 {
-                    #ifdef FO_D3D
-                    effect->DXInstance->SetTexture( effect->Textures[ i ], textures && textures[ i ] ? textures[ i ]->Instance : NULL );
-                    #else
                     GLuint id = ( textures && textures[ i ] ? textures[ i ]->Id : 0 );
                     GL( glActiveTexture( GL_TEXTURE2 + i ) );
                     GL( glBindTexture( GL_TEXTURE_2D, id ) );
@@ -1642,7 +1537,6 @@ void GraphicLoader::EffectProcessVariables( Effect* effect, int pass,  float ani
                     GL( glUniform1i( effect->Textures[ i ], 2 + i ) );
                     if( effect->TexturesSize[ i ] != -1 && textures && textures[ i ] )
                         GL( glUniform4fv( effect->TexturesSize[ i ], 1, textures[ i ]->SizeData ) );
-                    #endif
                 }
             }
         }
@@ -1682,30 +1576,6 @@ void GraphicLoader::EffectProcessVariables( Effect* effect, int pass,  float ani
     }
 }
 
-bool GraphicLoader::EffectsPreRestore()
-{
-    #ifdef FO_D3D
-    for( auto it = loadedEffects.begin(), end = loadedEffects.end(); it != end; ++it )
-    {
-        Effect* effect = *it;
-        D3D_HR( effect->DXInstance->OnLostDevice() );
-    }
-    #endif
-    return true;
-}
-
-bool GraphicLoader::EffectsPostRestore()
-{
-    #ifdef FO_D3D
-    for( auto it = loadedEffects.begin(), end = loadedEffects.end(); it != end; ++it )
-    {
-        Effect* effect = *it;
-        D3D_HR( effect->DXInstance->OnResetDevice() );
-    }
-    #endif
-    return true;
-}
-
 /*
    Todo:
         if(Name) delete Name;
@@ -1736,14 +1606,14 @@ Effect* Effect::Skinned3d, * Effect::Skinned3dDefault;
 Effect* Effect::Simple3dShadow, * Effect::Simple3dShadowDefault;
 Effect* Effect::Skinned3dShadow, * Effect::Skinned3dShadowDefault;
 
-bool GraphicLoader::LoadDefaultEffects( Device_ device )
+bool GraphicLoader::LoadDefaultEffects()
 {
     // Default effects
-    #define LOAD_EFFECT( effect_handle, effect_name, use_in_2d, defines )                 \
-        effect_handle ## Default = LoadEffect( device, effect_name, use_in_2d, defines ); \
-        if( effect_handle ## Default )                                                    \
-            effect_handle = new Effect( *effect_handle ## Default );                      \
-        else                                                                              \
+    #define LOAD_EFFECT( effect_handle, effect_name, use_in_2d, defines )         \
+        effect_handle ## Default = LoadEffect( effect_name, use_in_2d, defines ); \
+        if( effect_handle ## Default )                                            \
+            effect_handle = new Effect( *effect_handle ## Default );              \
+        else                                                                      \
             effect_errors++
     uint effect_errors = 0;
     LOAD_EFFECT( Effect::Generic, "2D_Default", true, NULL );
@@ -1754,7 +1624,6 @@ bool GraphicLoader::LoadDefaultEffects( Device_ device )
     LOAD_EFFECT( Effect::Primitive, "Primitive_Default", true, NULL );
     LOAD_EFFECT( Effect::Light, "Primitive_Default", true, NULL );
     LOAD_EFFECT( Effect::Font, "Font_Default", true, NULL );
-    #ifndef FO_D3D
     LOAD_EFFECT( Effect::Contour, "Contour_Default", true, NULL );
     LOAD_EFFECT( Effect::Tile, "2D_WithoutEgg", true, NULL );
     LOAD_EFFECT( Effect::FlushRenderTarget, "Flush_RenderTarget", true, NULL );
@@ -1764,9 +1633,6 @@ bool GraphicLoader::LoadDefaultEffects( Device_ device )
     LOAD_EFFECT( Effect::Simple3dShadow, "3D_Simple", false, "#define SHADOW" );
     LOAD_EFFECT( Effect::Skinned3d, "3D_Skinned", false, NULL );
     LOAD_EFFECT( Effect::Skinned3dShadow, "3D_Skinned", false, "#define SHADOW" );
-    #else
-    LOAD_EFFECT( Effect::Tile, "2D_Default", true, NULL );
-    #endif
     if( effect_errors > 0 )
     {
         WriteLog( "Default effects not loaded.\n" );
@@ -1778,3 +1644,287 @@ bool GraphicLoader::LoadDefaultEffects( Device_ device )
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/
+
+uchar* GraphicLoader::LoadPNG( const uchar* data, uint data_size, uint& result_size, uint& result_width, uint& result_height )
+{
+    // Setup PNG reader
+    png_structp png_ptr = png_create_read_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL );
+    if( !png_ptr )
+        return NULL;
+
+    png_infop info_ptr = png_create_info_struct( png_ptr );
+    if( !info_ptr )
+    {
+        png_destroy_read_struct( &png_ptr, NULL, NULL );
+        return NULL;
+    }
+
+    if( setjmp( png_jmpbuf( png_ptr ) ) )
+    {
+        png_destroy_read_struct( &png_ptr, &info_ptr, NULL );
+        return NULL;
+    }
+
+    static const uchar* data_;
+    struct PNGReader
+    {
+        static void Read( png_structp png_ptr, png_bytep png_data, png_size_t length )
+        {
+            (void) png_ptr;
+            memcpy( png_data, data_, length );
+            data_ += length;
+        }
+    };
+    data_ = data;
+    png_set_read_fn( png_ptr, NULL, &PNGReader::Read );
+    png_read_info( png_ptr, info_ptr );
+
+    if( setjmp( png_jmpbuf( png_ptr ) ) )
+    {
+        png_destroy_read_struct( &png_ptr, &info_ptr, NULL );
+        return NULL;
+    }
+
+    // Get information
+    png_uint_32 width, height;
+    int         bit_depth;
+    int         color_type;
+    png_get_IHDR( png_ptr, info_ptr, (png_uint_32*) &width, (png_uint_32*) &height, &bit_depth, &color_type, NULL, NULL, NULL );
+
+    // Settings
+    png_set_strip_16( png_ptr );
+    png_set_packing( png_ptr );
+    if( color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8 )
+        png_set_expand( png_ptr );
+    if( color_type == PNG_COLOR_TYPE_PALETTE )
+        png_set_expand( png_ptr );
+    if( png_get_valid( png_ptr, info_ptr, PNG_INFO_tRNS ) )
+        png_set_expand( png_ptr );
+    png_set_filler( png_ptr, 0x000000ff, PNG_FILLER_AFTER );
+    png_read_update_info( png_ptr, info_ptr );
+
+    // Allocate row pointers
+    png_bytepp row_pointers = (png_bytepp) malloc( height * sizeof( png_bytep ) );
+    if( !row_pointers )
+    {
+        png_destroy_read_struct( &png_ptr, &info_ptr, NULL );
+        return NULL;
+    }
+
+    // Set the individual row_pointers to point at the correct offsets
+    uchar* result = new uchar[ width * height * 4 ];
+    for( uint i = 0; i < height; i++ )
+        row_pointers[ i ] = result + i * width * 4;
+
+    // Read image
+    png_read_image( png_ptr, row_pointers );
+
+    // Clean up
+    png_read_end( png_ptr, info_ptr );
+    png_destroy_read_struct( &png_ptr, &info_ptr, (png_infopp) NULL );
+    free( row_pointers );
+
+    // Swap Red and Blue
+    uint* result4 = (uint*) result;
+    for( uint i = 0, j = width * height; i < j; i++ )
+        result4[ i ] = COLOR_FIX( result4[ i ] );
+
+    // Convert to RGBA
+    result_size = width * height * 4;
+    result_width = width;
+    result_height = height;
+    return result;
+}
+
+void GraphicLoader::SavePNG( const char* fname, uchar* data, uint width, uint height )
+{
+    // Initialize stuff
+    png_structp png_ptr = png_create_write_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL );
+    if( !png_ptr )
+        return;
+    png_infop info_ptr = png_create_info_struct( png_ptr );
+    if( !info_ptr )
+        return;
+    if( setjmp( png_jmpbuf( png_ptr ) ) )
+        return;
+
+    static UCharVec result_png;
+    struct PNGWriter
+    {
+        static void Write( png_structp png_ptr, png_bytep png_data, png_size_t length )
+        {
+            (void) png_ptr;
+            for( png_size_t i = 0; i < length; i++ )
+                result_png.push_back( png_data[ i ] );
+        }
+        static void Flush( png_structp png_ptr )
+        {
+            (void) png_ptr;
+        }
+    };
+    result_png.clear();
+    png_set_write_fn( png_ptr, NULL, &PNGWriter::Write, &PNGWriter::Flush );
+
+    // Write header
+    if( setjmp( png_jmpbuf( png_ptr ) ) )
+        return;
+    png_byte color_type = PNG_COLOR_TYPE_RGB_ALPHA;
+    png_byte bit_depth = 8;
+    png_set_IHDR( png_ptr, info_ptr, width, height, bit_depth, color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE );
+    png_write_info( png_ptr, info_ptr );
+
+    // Swap Red and Blue
+    uchar* save_data = new uchar[ width * height * 4 ];
+    memcpy( save_data, data, width * height * 4 );
+    uint*  save_data4 = (uint*) save_data;
+    for( uint i = 0, j = width * height; i < j; i++ )
+        save_data4[ i ] = COLOR_FIX( save_data4[ i ] );
+
+    // Write pointers
+    uchar** row_pointers = new uchar*[ height ];
+    for( uint y = 0; y < height; y++ )
+        row_pointers[ y ] = &save_data[ y * width * 4 ];
+
+    // Write bytes
+    if( setjmp( png_jmpbuf( png_ptr ) ) )
+        return;
+    png_write_image( png_ptr, row_pointers );
+
+    // End write
+    if( setjmp( png_jmpbuf( png_ptr ) ) )
+        return;
+    png_write_end( png_ptr, NULL );
+
+    // Clean up
+    delete[] row_pointers;
+    delete[] save_data;
+
+    // Write to disk
+    FileManager fm;
+    fm.SetData( &result_png[ 0 ], result_png.size() );
+    fm.SaveOutBufToFile( fname, PT_ROOT );
+}
+
+uchar* GraphicLoader::LoadTGA( const uchar* data, uint data_size, uint& result_size, uint& result_width, uint& result_height )
+{
+    // Reading macros
+    bool read_error = false;
+    uint cur_pos = 0;
+    #define READ_TGA( x, len )                          \
+        if( !read_error && cur_pos + len <= data_size ) \
+        {                                               \
+            memcpy( x, data + cur_pos, len );           \
+            cur_pos += len;                             \
+        }                                               \
+        else                                            \
+        {                                               \
+            read_error = true;                          \
+        }
+
+    // Load header
+    unsigned char type, pixel_depth;
+    short int     width, height;
+    unsigned char unused_char;
+    short int     unused_short;
+    READ_TGA( &unused_char, 1 );
+    READ_TGA( &unused_char, 1 );
+    READ_TGA( &type, 1 );
+    READ_TGA( &unused_short, 2 );
+    READ_TGA( &unused_short, 2 );
+    READ_TGA( &unused_char, 1 );
+    READ_TGA( &unused_short, 2 );
+    READ_TGA( &unused_short, 2 );
+    READ_TGA( &width, 2 );
+    READ_TGA( &height, 2 );
+    READ_TGA( &pixel_depth, 1 );
+    READ_TGA( &unused_char, 1 );
+
+    // Check for errors when loading the header
+    if( read_error )
+        return NULL;
+
+    // Check if the image is color indexed
+    if( type == 1 )
+        return NULL;
+
+    // Check for TrueColor
+    if( type != 2 && type != 10 )
+        return NULL;
+
+    // Check for RGB(A)
+    if( pixel_depth != 24 && pixel_depth != 32 )
+        return NULL;
+
+    // Read
+    int    bpp = pixel_depth / 8;
+    uint   read_size = height * width * bpp;
+    uchar* read_data = new uchar[ read_size ];
+    if( type == 2 )
+    {
+        READ_TGA( read_data, read_size );
+    }
+    else
+    {
+        uint  bytes_read = 0, run_len, i, to_read;
+        uchar header, color[ 4 ];
+        int   c;
+        while( bytes_read < read_size )
+        {
+            READ_TGA( &header, 1 );
+            if( header & 0x00000080 )
+            {
+                header &= ~0x00000080;
+                READ_TGA( color, bpp );
+                if( read_error )
+                {
+                    delete[] read_data;
+                    return NULL;
+                }
+                run_len = ( header + 1 ) * bpp;
+                for( i = 0; i < run_len; i += bpp )
+                    for( c = 0; c < bpp && bytes_read + i + c < read_size; c++ )
+                        read_data[ bytes_read + i + c ] = color[ c ];
+                bytes_read += run_len;
+            }
+            else
+            {
+                run_len = ( header + 1 ) * bpp;
+                if( bytes_read + run_len > read_size )
+                    to_read = read_size - bytes_read;
+                else
+                    to_read = run_len;
+                READ_TGA( read_data + bytes_read, to_read );
+                if( read_error )
+                {
+                    delete[] read_data;
+                    return NULL;
+                }
+                bytes_read += run_len;
+                if( bytes_read + run_len > read_size )
+                    cur_pos += run_len - to_read;
+            }
+        }
+    }
+    if( read_error )
+    {
+        delete[] read_data;
+        return NULL;
+    }
+
+    // Copy data
+    result_size = width * height * 4;
+    uchar* result = new uchar[ result_size ];
+    for( int i = 0, j = width * height; i < j; i++ )
+    {
+        result[ i * 4 + 0 ] = read_data[ i * bpp + 0 ];
+        result[ i * 4 + 1 ] = read_data[ i * bpp + 1 ];
+        result[ i * 4 + 2 ] = read_data[ i * bpp + 2 ];
+        result[ i * 4 + 3 ] = ( bpp == 4 ? read_data[ i * bpp + 3 ] : 0xFF );
+    }
+    delete[] read_data;
+
+    // Return data
+    result_width = width;
+    result_height = height;
+    return result;
+}

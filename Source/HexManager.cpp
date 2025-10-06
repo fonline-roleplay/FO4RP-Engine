@@ -179,14 +179,12 @@ bool HexManager::Init()
         return false;
     }
 
-    #ifndef FO_D3D
     if( !SprMngr.CreateRenderTarget( rtMap, false ) )
     {
         WriteLog( "Can't create render target.\n" );
         return false;
     }
     rtMap.DrawEffect = Effect::FlushMap;
-    #endif
 
     isShowTrack = false;
 	isTileTrack = false;
@@ -2026,15 +2024,9 @@ void HexManager::GetHexCurrentPosition( ushort hx, ushort hy, int& x, int& y )
 
 void HexManager::DrawMap()
 {
-    #ifndef FO_D3D
     // Separate render target
     SprMngr.PushRenderTarget( rtMap );
     SprMngr.ClearCurrentRenderTarget( 0 );
-    #endif
-
-	#ifdef FO_D3D
-		Device_ device = SprMngr.GetDevice();
-	#endif
 
     // Rebuild light
     if( requestRebuildLight )
@@ -2046,30 +2038,22 @@ void HexManager::DrawMap()
     // Tiles
     if( GameOpt.ShowTile )
     {
-		#ifdef FO_D3D
-		device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
-		device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
-		#endif
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         SprMngr.DrawSprites( tilesTree, false, false, DRAW_ORDER_TILE, DRAW_ORDER_TILE_END );
-		#ifdef FO_D3D
-		device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-		device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-		#endif
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
 
     // Flat sprites
-	#ifdef FO_D3D
 	if (!GameOpt.SpritesFiltering)
 	{
-		device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
-		device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	}
-	#endif
     SprMngr.DrawSprites( mainTree, true, false, DRAW_ORDER_FLAT, DRAW_ORDER_LIGHT - 1 );
-	#ifdef FO_D3D
-	device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-	device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-	#endif
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // Light
     for( uint i = 0; i < lightPointsCount; i++ )
@@ -2080,31 +2064,23 @@ void HexManager::DrawMap()
     DrawCursor( cursorPrePic->GetCurSprId() );
 
     // Sprites
-	#ifdef FO_D3D
 	if (!GameOpt.SpritesFiltering)
 	{
-		device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
-		device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	}
-	#endif
     SprMngr.DrawSprites( mainTree, true, true, DRAW_ORDER_LIGHT, DRAW_ORDER_LAST );
-	#ifdef FO_D3D
-	device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-	device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-	#endif
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // Roof
     if( GameOpt.ShowRoof )
     {
-		#ifdef FO_D3D
-		device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
-		device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
-		#endif
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         SprMngr.DrawSprites( roofTree, false, true, 0, 0 );
-		#ifdef FO_D3D
-		device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-		device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-		#endif
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         if( rainCapacity )
             SprMngr.DrawSprites( roofRainTree, false, false, 0, 0 );
@@ -2120,13 +2096,11 @@ void HexManager::DrawMap()
     else if( drawCursorX > 0 )
         DrawCursor( Str::FormatBuf( "%u", drawCursorX ) );
 
-    #ifndef FO_D3D
     // Return render target
     SprMngr.PopRenderTarget();
 
     // Draw map
     SprMngr.DrawRenderTarget( rtMap, false );
-    #endif
 }
 
 bool HexManager::Scroll()
@@ -2442,14 +2416,6 @@ void HexManager::ScrollToHex( int hx, int hy, double speed, bool can_stop )
     AutoScroll.OffsXStep = 0.0;
     AutoScroll.OffsYStep = 0.0;
     AutoScroll.Speed = speed;
-}
-
-void HexManager::PreRestore()
-{}
-
-void HexManager::PostRestore()
-{
-    RefreshMap();
 }
 
 void HexManager::SetCrit( CritterCl* cr )

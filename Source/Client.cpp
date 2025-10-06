@@ -45,50 +45,12 @@ FOClient::FOClient(): Active( false )
     GmapCar.Car = NULL;
     Animations.resize( 10000 );
 
-    #ifndef FO_D3D
     CurVideo = NULL;
     MusicVolumeRestore = -1;
-    #endif
 
     UIDFail = false;
     MoveLastHx = -1;
     MoveLastHy = -1;
-
-    #ifdef FO_D3D
-    SaveLoadDraft = NULL;
-    #endif
-}
-
-void _PreRestore()
-{
-    FOClient::Self->HexMngr.PreRestore();
-
-    // Save/load surface
-    if( Singleplayer )
-    {
-        #ifdef FO_D3D
-        SAFEREL( FOClient::Self->SaveLoadDraft );
-        #endif
-        FOClient::Self->SaveLoadDraftValid = false;
-    }
-}
-
-void _PostRestore()
-{
-    FOClient::Self->HexMngr.PostRestore();
-    FOClient::Self->SetDayTime( true );
-
-    // Save/load surface
-    if( Singleplayer )
-    {
-        #ifdef FO_D3D
-        SAFEREL( FOClient::Self->SaveLoadDraft );
-        if( FAILED( SprMngr.GetDevice()->CreateRenderTarget( SAVE_LOAD_IMAGE_WIDTH, SAVE_LOAD_IMAGE_HEIGHT,
-                                                             D3DFMT_A8R8G8B8, D3DMULTISAMPLE_NONE, 0, FALSE, &FOClient::Self->SaveLoadDraft, NULL ) ) )
-            WriteLog( "Create save/load draft surface fail.\n" );
-        #endif
-        FOClient::Self->SaveLoadDraftValid = false;
-    }
 }
 
 uint* UID1;
@@ -125,6 +87,13 @@ bool FOClient::Init()
         # endif
     }
     #endif*/
+	
+	// SDL
+	if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_EVENTS ) )
+	{
+		WriteLogF( _FUNC_, " - SDL Initialization fail, error<%s>.\n", SDL_GetError() );
+		return false;
+	}
 
     // Register dll script data
     struct CritterChangeParameter_
@@ -272,10 +241,7 @@ bool FOClient::Init()
     UID_PREPARE_UID4_2;
 
     // Sprite manager
-    SpriteMngrParams params;
-    params.PreRestoreFunc = &_PreRestore;
-    params.PostRestoreFunc = &_PostRestore;
-    if( !SprMngr.Init( params ) )
+    if( !SprMngr.Init() )
         return false;
     GET_UID1( UID1 );
 
@@ -423,10 +389,6 @@ bool FOClient::Init()
 
     // Other
     SetGameColor( COLOR_IFACE );
-    #ifdef FO_D3D
-    if( GameOpt.FullScreen )
-        SetCurPos( GameOpt.ScreenWidth / 2, GameOpt.ScreenHeight / 2 );
-    #endif
     ScreenOffsX = 0;
     ScreenOffsY = 0;
     ScreenOffsXf = 0.0f;
@@ -462,7 +424,6 @@ bool FOClient::Init()
     {
         LogTryConnect();
     }
-    #ifndef FO_D3D
     // Intro
     else if( !Str::Substring( CommandLine, "-SkipIntro" ) )
     {
@@ -482,11 +443,6 @@ bool FOClient::Init()
             }
         }
     }
-    #else
-    ScreenFadeOut();
-    if( MsgGame->Count( STR_MUSIC_MAIN_THEME ) )
-        SndMngr.PlayMusic( MsgGame->GetStr( STR_MUSIC_MAIN_THEME ) );
-    #endif
 
     // Disable dumps if multiple window detected
     if( MulWndArray[ 11 ] )
@@ -498,10 +454,6 @@ bool FOClient::Init()
 void FOClient::Finish()
 {
     WriteLog( "Engine finish...\n" );
-
-    #ifdef FO_D3D
-    SAFEREL( SaveLoadDraft );
-    #endif
 
     Keyb::Finish();
     NetDisconnect();
@@ -692,6 +644,50 @@ int FOClient::MainLoop()
         call_counter++;
     }
 
+	// Input events
+    SDL_Event event, prev_event;
+    event.type = prev_event.type = SDL_FIRSTEVENT;
+    while( SDL_PollEvent( &event ) )
+    {
+        if( event.type == SDL_TEXTINPUT && prev_event.type == SDL_KEYDOWN )
+        {
+            MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
+            MainWindowKeyboardEvents.push_back( prev_event.key.keysym.scancode );
+            MainWindowKeyboardEventsText.push_back( event.text.text );
+        }
+        else if( event.type != SDL_KEYDOWN && prev_event.type == SDL_KEYDOWN )
+        {
+            MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
+            MainWindowKeyboardEvents.push_back( prev_event.key.keysym.scancode );
+            MainWindowKeyboardEventsText.push_back( "" );
+        }
+        else if( event.type == SDL_KEYUP )
+        {
+            MainWindowKeyboardEvents.push_back( SDL_KEYUP );
+            MainWindowKeyboardEvents.push_back( event.key.keysym.scancode );
+            MainWindowKeyboardEventsText.push_back( "" );
+        }
+        else if( event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP )
+        {
+            MainWindowMouseEvents.push_back( event.type );
+            MainWindowMouseEvents.push_back( event.button.button );
+            MainWindowMouseEvents.push_back( 0 );
+        }
+        else if( event.type == SDL_MOUSEWHEEL )
+        {
+            MainWindowMouseEvents.push_back( event.type );
+            MainWindowMouseEvents.push_back( SDL_BUTTON_MIDDLE );
+            MainWindowMouseEvents.push_back( -event.wheel.y );
+        }
+        prev_event = event;
+    }
+    if( event.type == SDL_KEYDOWN )
+    {
+        MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
+        MainWindowKeyboardEvents.push_back( event.key.keysym.scancode );
+        MainWindowKeyboardEventsText.push_back( "" );
+    }
+
     // Singleplayer data synchronization
     if( Singleplayer )
     {
@@ -818,20 +814,12 @@ int FOClient::MainLoop()
     }
     Script::ScriptGarbager();
 
-    #ifndef FO_D3D
     // Video
     if( IsVideoPlayed() )
     {
-        # ifdef FO_D3D
-        LONGLONG cur, stop;
-        if( !MediaSeeking || FAILED( MediaSeeking->GetPositions( &cur, &stop ) ) || cur >= stop )
-            NextVideo();
-        # else
         RenderVideo();
-        # endif
         return 1;
     }
-    #endif
 
     CHECK_MULTIPLY_WINDOWS3;
 
@@ -1077,11 +1065,10 @@ void FOClient::ProcessScreenEffectMirror()
 void FOClient::ParseKeyboard()
 {
     // Stop processing if window not active
-    if( !MainWindow->Focused )
+    if( !( SDL_GetWindowFlags( MainWindow ) & SDL_WINDOW_INPUT_FOCUS ) )
     {
-        MainWindow->KeyboardEvents.clear();
-        MainWindow->KeyboardEventsText.clear();
-		DropScroll();
+        MainWindowKeyboardEvents.clear();
+        MainWindowKeyboardEventsText.clear();
         Keyb::Lost();
         Timer::StartAccelerator( ACCELERATE_NONE );
         if( Script::PrepareContext( ClientFunctions.InputLost, _FUNC_, "Game" ) )
@@ -1099,12 +1086,12 @@ void FOClient::ParseKeyboard()
     }
 
     // Get buffered data
-    if( MainWindow->KeyboardEvents.empty() )
+    if( MainWindowKeyboardEvents.empty() )
         return;
-    IntVec events = MainWindow->KeyboardEvents;
-    StrVec events_text = MainWindow->KeyboardEventsText;
-    MainWindow->KeyboardEvents.clear();
-    MainWindow->KeyboardEventsText.clear();
+    IntVec events = MainWindowKeyboardEvents;
+    StrVec events_text = MainWindowKeyboardEventsText;
+    MainWindowKeyboardEvents.clear();
+    MainWindowKeyboardEventsText.clear();
 
     // Process events
     for( uint i = 0; i < events.size(); i += 2 )
@@ -1117,9 +1104,9 @@ void FOClient::ParseKeyboard()
         // Keys codes mapping
         uchar dikdw = 0;
         uchar dikup = 0;
-        if( event == FL_KEYDOWN )
+        if( event == SDL_KEYDOWN )
             dikdw = Keyb::MapKey( event_key );
-        else if( event == FL_KEYUP )
+        else if( event == SDL_KEYUP )
             dikup = Keyb::MapKey( event_key );
         if( !dikdw  && !dikup )
             continue;
@@ -1135,7 +1122,6 @@ void FOClient::ParseKeyboard()
         Keyb::KeyPressed[ dikdw ] = true;
 
         // Video
-        #ifndef FO_D3D
         if( IsVideoPlayed() )
         {
             if( IsCanStopVideo() && ( dikdw == DIK_ESCAPE || dikdw == DIK_SPACE || dikdw == DIK_RETURN || dikdw == DIK_NUMPADENTER ) )
@@ -1145,7 +1131,6 @@ void FOClient::ParseKeyboard()
             }
             continue;
         }
-        #endif
 
         // Key script event
         bool script_result = false;
@@ -1250,23 +1235,19 @@ void FOClient::ParseKeyboard()
             case DIK_F11:
                 if( !GameOpt.FullScreen )
                 {
-                    MainWindow->size_range( GameOpt.ScreenWidth, GameOpt.ScreenHeight );
-                    MainWindow->fullscreen();
-                    GameOpt.FullScreen = true;
+                    if( !SDL_SetWindowFullscreen( MainWindow, 1 ) )
+						GameOpt.FullScreen = true;
                 }
                 else
                 {
-                    MainWindow->fullscreen_off();
-                    MainWindow->size_range( GameOpt.ScreenWidth, GameOpt.ScreenHeight, GameOpt.ScreenWidth, GameOpt.ScreenHeight );
-                    GameOpt.FullScreen = false;
+                    if( !SDL_SetWindowFullscreen( MainWindow, 0 ) )
+						GameOpt.FullScreen = false;
                 }
-                #ifndef FO_D3D
                 SprMngr.RefreshViewPort();
-                #endif
                 continue;
             // Minimize
             case DIK_F12:
-                MainWindow->iconize();
+                SDL_MinimizeWindow( MainWindow );
                 continue;
 
             // Exit buttons
@@ -1486,23 +1467,18 @@ void FOClient::ParseMouse()
 {
     // Mouse position
     int mx = 0, my = 0;
-    Fl::get_mouse( mx, my );
-    #ifdef FO_D3D
-    GameOpt.MouseX = mx - ( !GameOpt.FullScreen ? MainWindow->x() : 0 );
-    GameOpt.MouseY = my - ( !GameOpt.FullScreen ? MainWindow->y() : 0 );
-    #else
-    GameOpt.MouseX = mx - MainWindow->x();
-    GameOpt.MouseY = my - MainWindow->y();
-    #endif
-    GameOpt.MouseX = GameOpt.MouseX * GameOpt.ScreenWidth / MainWindow->w();
-    GameOpt.MouseY = GameOpt.MouseY * GameOpt.ScreenHeight / MainWindow->h();
+    SDL_GetMouseState( &mx, &my );
+	int w = 0, h = 0;
+	SDL_GetWindowPosition( MainWindow, &w, &h );
+	GameOpt.MouseX = mx;
+	GameOpt.MouseY = my;
     GameOpt.MouseX = CLAMP( GameOpt.MouseX, 0, GameOpt.ScreenWidth - 1 );
     GameOpt.MouseY = CLAMP( GameOpt.MouseY, 0, GameOpt.ScreenHeight - 1 );
 
     // Stop processing if window not active
-    if( !MainWindow->Focused )
+    if( !( SDL_GetWindowFlags( MainWindow ) & SDL_WINDOW_INPUT_FOCUS ) )
     {
-        MainWindow->MouseEvents.clear();
+		MainWindowMouseEvents.clear();
         IfaceHold = IFACE_NONE;
         Timer::StartAccelerator( ACCELERATE_NONE );
         if( Script::PrepareContext( ClientFunctions.InputLost, _FUNC_, "Game" ) )
@@ -1683,10 +1659,10 @@ void FOClient::ParseMouse()
     }
 
     // Get buffered data
-    if( MainWindow->MouseEvents.empty() )
+    if( MainWindowMouseEvents.empty() )
         return;
-    IntVec events = MainWindow->MouseEvents;
-    MainWindow->MouseEvents.clear();
+    IntVec events = MainWindowMouseEvents;
+	MainWindowMouseEvents.clear();
 
     // Process events
     for( uint i = 0; i < events.size(); i += 3 )
@@ -1695,58 +1671,56 @@ void FOClient::ParseMouse()
         int event_button = events[ i + 1 ];
         int event_dy = -events[ i + 2 ];
 
-        #ifndef FO_D3D
         // Stop video
         if( IsVideoPlayed() )
         {
-            if( IsCanStopVideo() && ( event == FL_PUSH && ( event_button == FL_LEFT_MOUSE || event_button == FL_RIGHT_MOUSE ) ) )
+            if( IsCanStopVideo() && ( event == SDL_MOUSEBUTTONDOWN && ( event_button == SDL_BUTTON_LEFT || event_button == SDL_BUTTON_RIGHT ) ) )
             {
                 NextVideo();
                 return;
             }
             continue;
         }
-        #endif
 
         // Scripts
         bool script_result = false;
-        if( event == FL_MOUSEWHEEL && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEWHEEL && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( event_dy > 0 ? MOUSE_CLICK_WHEEL_UP : MOUSE_CLICK_WHEEL_DOWN );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_PUSH && event_button == FL_LEFT_MOUSE && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON_LEFT && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_LEFT );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_LEFT_MOUSE && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON_LEFT && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_LEFT );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_PUSH && event_button == FL_RIGHT_MOUSE && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON_RIGHT && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_RIGHT );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_RIGHT_MOUSE && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON_RIGHT && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_RIGHT );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_PUSH && event_button == FL_MIDDLE_MOUSE && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON_MIDDLE && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_MIDDLE );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_MIDDLE_MOUSE && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON_MIDDLE && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_MIDDLE );
             if( Script::RunPrepared() )
@@ -1763,61 +1737,61 @@ void FOClient::ParseMouse()
                 }
             }
         }
-        if( event == FL_PUSH && event_button == FL_BUTTON( 1 ) && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON( 4 ) && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT0 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_BUTTON( 1 ) && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON( 4 ) && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT0 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_PUSH && event_button == FL_BUTTON( 2 ) && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON( 5 ) && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT1 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_BUTTON( 2 ) && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON( 5 ) && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT1 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_PUSH && event_button == FL_BUTTON( 3 ) && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON( 6 ) && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT2 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_BUTTON( 3 ) && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON( 6 ) && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT2 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_PUSH && event_button == FL_BUTTON( 4 ) && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON( 7 ) && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT3 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_BUTTON( 4 ) && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON( 7 ) && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT3 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_PUSH && event_button == FL_BUTTON( 5 ) && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON( 8 ) && Script::PrepareContext( ClientFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT4 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_BUTTON( 5 ) && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON( 8 ) && Script::PrepareContext( ClientFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT4 );
             if( Script::RunPrepared() )
@@ -1830,14 +1804,14 @@ void FOClient::ParseMouse()
             continue;
 
         // Wheel
-        if( event == FL_MOUSEWHEEL )
+        if( event == SDL_MOUSEWHEEL )
         {
             ProcessMouseWheel( event_dy );
             continue;
         }
 
         // Left Button Down
-        if( event == FL_PUSH && event_button == FL_LEFT_MOUSE )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON_LEFT )
         {
             if( GetActiveScreen() )
             {
@@ -1953,7 +1927,7 @@ void FOClient::ParseMouse()
         }
 
         // Left Button Up
-        if( event == FL_RELEASE && event_button == FL_LEFT_MOUSE )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON_LEFT)
         {
             if( GetActiveScreen() )
             {
@@ -2062,7 +2036,7 @@ void FOClient::ParseMouse()
         }
 
         // Right Button Down
-        if( event == FL_PUSH && event_button == FL_RIGHT_MOUSE )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON_RIGHT )
         {
             if( GetActiveScreen() )
             {
@@ -2109,7 +2083,7 @@ void FOClient::ParseMouse()
         }
 
         // Right Button Up
-        if( event == FL_RELEASE && event_button == FL_RIGHT_MOUSE )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON_RIGHT )
         {
             if( !GetActiveScreen() )
             {
@@ -5671,14 +5645,10 @@ void FOClient::Net_OnLoadMap()
         GmapNullParams();
         ShowMainScreen( SCREEN_GLOBAL_MAP );
         Net_SendLoadMapOk();
-        #ifndef FO_D3D
         if( IsVideoPlayed() )
             MusicAfterVideo = MsgGM->GetStr( STR_MAP_MUSIC_( map_pid ) );
         else
             SndMngr.PlayMusic( MsgGM->GetStr( STR_MAP_MUSIC_( map_pid ) ) );
-        #else
-        SndMngr.PlayMusic( MsgGM->GetStr( STR_MAP_MUSIC_( map_pid ) ) );
-        #endif
         WriteLog( "Global map loaded.\n" );
         return;
     }
@@ -5707,14 +5677,10 @@ void FOClient::Net_OnLoadMap()
     Net_SendLoadMapOk();
     LookBorders.clear();
     ShootBorders.clear();
-    #ifndef FO_D3D
     if( IsVideoPlayed() )
         MusicAfterVideo = MsgGM->GetStr( STR_MAP_MUSIC_( map_pid ) );
     else
         SndMngr.PlayMusic( MsgGM->GetStr( STR_MAP_MUSIC_( map_pid ) ) );
-    #else
-    SndMngr.PlayMusic( MsgGM->GetStr( STR_MAP_MUSIC_( map_pid ) ) );
-    #endif
     WriteLog( "Local map loaded.\n" );
 }
 
@@ -8674,7 +8640,7 @@ void FOClient::DropScroll()
 
 bool FOClient::IsCurInWindow()
 {
-    if( !MainWindow->Focused )
+    if( !( SDL_GetWindowFlags( MainWindow ) & SDL_WINDOW_INPUT_FOCUS ) )
         return false;
 
     if( !GameOpt.FullScreen )
@@ -8683,25 +8649,26 @@ bool FOClient::IsCurInWindow()
             return true;
 
         int mx = 0, my = 0;
-        Fl::get_mouse( mx, my );
-        return mx >= MainWindow->x() && mx <= MainWindow->x() + MainWindow->w() &&
-               my >= MainWindow->y() && my <= MainWindow->y() + MainWindow->h();
+        SDL_GetMouseState( &mx, &my );
+		int w = 0, h = 0;
+		SDL_GetWindowPosition(MainWindow, &w, &h);
+		return mx >= 0 && mx <= w && my >= 0 && my <= h;
     }
     return true;
 }
 
 void FOClient::FlashGameWindow()
 {
-    if( MainWindow->Focused )
+    if( SDL_GetWindowFlags( MainWindow ) & SDL_WINDOW_INPUT_FOCUS )
         return;
 
     #ifdef FO_WINDOWS
-    if( GameOpt.MessNotify )
-        FlashWindow( fl_xid( MainWindow ), true );
+    //if( GameOpt.MessNotify )
+    //    FlashWindow( fl_xid( MainWindow ), true );
     if( GameOpt.SoundNotify )
         Beep( 100, 200 );
     #else
-    // Todo: linux
+    // Todo: Linux
     #endif
 }
 
@@ -9080,30 +9047,7 @@ bool FOClient::SaveScreenshot()
     FileManager::FormatPath( screen_path );
     FileManager::CreateDirectoryTree( FileManager::GetFullPath( screen_path, PT_ROOT ) );
 
-    #ifdef FO_D3D
-    LPDIRECT3DSURFACE9 surf = NULL;
-    if( FAILED( SprMngr.GetDevice()->GetBackBuffer( 0, 0, D3DBACKBUFFER_TYPE_MONO, &surf ) ) )
-        return false;
-
-    D3DXIMAGE_FILEFORMAT format = D3DXIFF_BMP;
-    char*                extension = (char*) FileManager::GetExtension( screen_path );
-    Str::Lower( extension );
-    if( Str::Compare( extension, "jpg" ) )
-        format = D3DXIFF_JPG;
-    else if( Str::Compare( extension, "tga" ) )
-        format = D3DXIFF_TGA;
-    else if( Str::Compare( extension, "png" ) )
-        format = D3DXIFF_PNG;
-
-    if( FAILED( D3DXSaveSurfaceToFile( screen_path, format, surf, NULL, NULL ) ) )
-    {
-        surf->Release();
-        return false;
-    }
-    surf->Release();
-    #else
-    SprMngr.SaveTexture( NULL, screen_path, false );
-    #endif
+    SprMngr.SaveTexture( NULL, screen_path, true );
 
     return true;
 }
@@ -9123,7 +9067,6 @@ void FOClient::SoundProcess()
     }
 }
 
-#ifndef FO_D3D
 void FOClient::AddVideo( const char* video_name, bool can_stop, bool clear_sequence )
 {
     // Stop current
@@ -9403,9 +9346,11 @@ void FOClient::RenderVideo()
     uint w = CurVideo->VideoInfo.pic_width;
     uint h = CurVideo->VideoInfo.pic_height;
     SprMngr.PushRenderTarget( CurVideo->RT );
-    GL( glMatrixMode( GL_PROJECTION ) );
-    GL( glLoadIdentity() );
-    GL( gluOrtho2D( 0, w, h, 0 ) );
+	Matrix m;
+	GL( gluStuffOrtho( m[ 0 ], 0.0f, (float) w, (float) h, 0.0f, -1.0f, 1.0f ) );
+	m.Transpose();             // Convert to column major order
+	GL( glMatrixMode( GL_PROJECTION ) );
+	GL( glLoadMatrixf( m[ 0 ] ) );
     GL( glMatrixMode( GL_MODELVIEW ) );
     GL( glLoadIdentity() );
     GL( glDisable( GL_TEXTURE_2D ) );
@@ -9513,7 +9458,6 @@ void FOClient::StopVideo()
         MusicVolumeRestore = -1;
     }
 }
-#endif
 
 uint FOClient::AnimLoad( uint name_hash, uchar dir, int res_type )
 {
@@ -10534,10 +10478,8 @@ bool FOClient::SScriptFunc::Global_PlayMusic( ScriptString& music_name, uint pos
 
 void FOClient::SScriptFunc::Global_PlayVideo( ScriptString& video_name, bool can_stop )
 {
-    #ifndef FO_D3D
     SndMngr.StopMusic();
     Self->AddVideo( video_name.c_str(), can_stop, true );
-    #endif
 }
 
 bool FOClient::SScriptFunc::Global_IsTurnBased()
@@ -11178,7 +11120,7 @@ bool FOClient::SScriptFunc::Global_SetEffect( int effect_type, int effect_subtyp
     if( effect_name && effect_name->length() )
     {
         bool use_in_2d = !( effect_type & ( EFFECT_3D_SIMPLE | EFFECT_3D_SKINNED ) );
-        effect = GraphicLoader::LoadEffect( SprMngr.GetDevice(), effect_name->c_str(), use_in_2d, effect_defines ? effect_defines->c_str() : NULL );
+        effect = GraphicLoader::LoadEffect( effect_name->c_str(), use_in_2d, effect_defines ? effect_defines->c_str() : NULL );
         if( !effect )
             SCRIPT_ERROR_R0( "Effect not found or have some errors, see log file." );
     }
@@ -11260,22 +11202,22 @@ void FOClient::SScriptFunc::Global_RefreshMap( bool only_tiles, bool only_roof, 
 
 void FOClient::SScriptFunc::Global_MouseClick( int x, int y, int button, int cursor )
 {
-    IntVec prev_events = MainWindow->MouseEvents;
-    MainWindow->MouseEvents.clear();
+    IntVec prev_events = MainWindowMouseEvents;
+	MainWindowMouseEvents.clear();
     int    prev_x = GameOpt.MouseX;
     int    prev_y = GameOpt.MouseY;
     int    prev_cursor = Self->CurMode;
     GameOpt.MouseX = x;
     GameOpt.MouseY = y;
     Self->CurMode = cursor;
-    MainWindow->MouseEvents.push_back( FL_PUSH );
-    MainWindow->MouseEvents.push_back( button );
-    MainWindow->MouseEvents.push_back( 0 );
-    MainWindow->MouseEvents.push_back( FL_RELEASE );
-    MainWindow->MouseEvents.push_back( button );
-    MainWindow->MouseEvents.push_back( 0 );
+	MainWindowMouseEvents.push_back( SDL_MOUSEBUTTONDOWN );
+	MainWindowMouseEvents.push_back( button );
+	MainWindowMouseEvents.push_back( 0 );
+	MainWindowMouseEvents.push_back( SDL_MOUSEBUTTONUP );
+	MainWindowMouseEvents.push_back( button );
+	MainWindowMouseEvents.push_back( 0 );
     Self->ParseMouse();
-    MainWindow->MouseEvents = prev_events;
+	MainWindowMouseEvents = prev_events;
     GameOpt.MouseX = prev_x;
     GameOpt.MouseY = prev_y;
     Self->CurMode = prev_cursor;
@@ -11283,24 +11225,24 @@ void FOClient::SScriptFunc::Global_MouseClick( int x, int y, int button, int cur
 
 void FOClient::SScriptFunc::Global_KeyboardPress( uchar key1, uchar key2, ScriptString* key1_text, ScriptString* key2_text )
 {
-    IntVec prev_events = MainWindow->KeyboardEvents;
-    StrVec prev_events_text = MainWindow->KeyboardEventsText;
-    MainWindow->KeyboardEvents.clear();
-    MainWindow->KeyboardEvents.push_back( FL_KEYDOWN );
-    MainWindow->KeyboardEvents.push_back( Keyb::UnmapKey( key1 ) );
-    MainWindow->KeyboardEventsText.push_back( key1_text ? key1_text->c_std_str() : "" );
-    MainWindow->KeyboardEvents.push_back( FL_KEYDOWN );
-    MainWindow->KeyboardEvents.push_back( Keyb::UnmapKey( key2 ) );
-    MainWindow->KeyboardEventsText.push_back( key2_text ? key2_text->c_std_str() : "" );
-    MainWindow->KeyboardEvents.push_back( FL_KEYUP );
-    MainWindow->KeyboardEvents.push_back( Keyb::UnmapKey( key2 ) );
-    MainWindow->KeyboardEventsText.push_back( key1_text ? key1_text->c_std_str() : "" );
-    MainWindow->KeyboardEvents.push_back( FL_KEYUP );
-    MainWindow->KeyboardEvents.push_back( Keyb::UnmapKey( key1 ) );
-    MainWindow->KeyboardEventsText.push_back( key2_text ? key2_text->c_std_str() : "" );
+    IntVec prev_events = MainWindowKeyboardEvents;
+    StrVec prev_events_text = MainWindowKeyboardEventsText;
+    MainWindowKeyboardEvents.clear();
+    MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
+    MainWindowKeyboardEvents.push_back( Keyb::UnmapKey( key1 ) );
+    MainWindowKeyboardEventsText.push_back( key1_text ? key1_text->c_std_str() : "" );
+    MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
+    MainWindowKeyboardEvents.push_back( Keyb::UnmapKey( key2 ) );
+    MainWindowKeyboardEventsText.push_back( key2_text ? key2_text->c_std_str() : "" );
+    MainWindowKeyboardEvents.push_back( SDL_KEYUP );
+    MainWindowKeyboardEvents.push_back( Keyb::UnmapKey( key2 ) );
+    MainWindowKeyboardEventsText.push_back( "" );
+    MainWindowKeyboardEvents.push_back( SDL_KEYUP );
+    MainWindowKeyboardEvents.push_back( Keyb::UnmapKey( key1 ) );
+    MainWindowKeyboardEventsText.push_back( "" );
     Self->ParseKeyboard();
-    MainWindow->KeyboardEvents = prev_events;
-    MainWindow->KeyboardEventsText = prev_events_text;
+    MainWindowKeyboardEvents = prev_events;
+    MainWindowKeyboardEventsText = prev_events_text;
 }
 
 void FOClient::SScriptFunc::Global_SetRainAnimation( ScriptString* fall_anim_name, ScriptString* drop_anim_name )
@@ -12252,17 +12194,15 @@ ScriptString* FOClient::SScriptFunc::Global_CustomCall( ScriptString& command, S
 
         if(newVal)
         {
-			MainWindow->size_range(GameOpt.ScreenWidth, GameOpt.ScreenHeight);
-			MainWindow->fullscreen();
-			GameOpt.FullScreen = true;
+			if( !SDL_SetWindowFullscreen( MainWindow, 1 ) )
+				GameOpt.FullScreen = true;
         }
         else
         {
-			MainWindow->fullscreen_off();
-			MainWindow->size_range(GameOpt.ScreenWidth, GameOpt.ScreenHeight, GameOpt.ScreenWidth, GameOpt.ScreenHeight);
-			GameOpt.FullScreen = false;
+			if( !SDL_SetWindowFullscreen( MainWindow, 0 ) )
+				GameOpt.FullScreen = false;
         }
-        //SprMngr.RefreshViewport();
+		SprMngr.RefreshViewPort();
     }
     else if( cmd == "SwitchLookBorders" )
     {

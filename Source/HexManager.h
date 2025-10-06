@@ -190,11 +190,9 @@ public:
 
     // Init, finish, restore
 private:
-    #ifndef FO_D3D
     RenderTarget rtMap;
-    #endif
     Sprites      mainTree;
-    ViewField* viewField;
+    ViewField*	 viewField;
 
     int        screenHexX, screenHexY;
     int        hTop, hBottom, wLeft, wRight;
@@ -217,9 +215,6 @@ public:
     bool Init();
     void Finish();
     void ReloadSprites();
-
-    void PreRestore();
-    void PostRestore();
 
     void     RebuildMap( int rx, int ry );
     void     DrawMap();

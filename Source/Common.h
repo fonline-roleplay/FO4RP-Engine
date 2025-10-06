@@ -48,17 +48,6 @@ const char* GetLastSocketError();
 # define SD_BOTH              SHUT_RDWR
 #endif
 
-// FLTK
-#if defined ( FO_MSVC )
-# if !defined ( FONLINE_NPCEDITOR ) && !defined ( FONLINE_MRFIXIT )
-#  pragma comment( lib, "fltk.lib" )
-#  pragma comment( lib, "fltkgl.lib" )
-# endif
-#elif defined ( FO_MACOSX )
-# define fl_display           glXGetCurrentDisplay()
-# define fl_window            ( (uint) fl_xid( MainWindow ) )
-#endif
-
 // DLL
 #ifdef FO_WINDOWS
 # define DLL_Load( name )                 (void*) LoadLibrary( name )
@@ -101,7 +90,7 @@ const char* GetLastSocketError();
     { if( x )         \
           delete[] ( x ); ( x ) = NULL; }
 
-#define STATIC_ASSERT( a )                static_assert( a, #a )
+#define STATIC_ASSERT( a )                static_assert( a, # a )
 
 #define PI_FLOAT              ( 3.14159265f )
 #define PIBY2_FLOAT           ( 1.5707963f )
@@ -177,93 +166,50 @@ struct ScoreType
 
 # define PI_VALUE             ( 3.141592654f )
 
-# include "FL/Fl.H"
-# include "FL/Fl_Window.H"
-# include "FL/x.H"
 
-class FOWindow: public Fl_Window
-{
-public:
-    FOWindow();
-    virtual ~FOWindow() {}
-    virtual int handle( int event );
-    bool   Focused;
-    IntVec KeyboardEvents;
-    StrVec KeyboardEventsText;
-    IntVec MouseEvents;
-};
-extern FOWindow* MainWindow; // Initialized and handled in MainClient.cpp / MainMapper.cpp
-
-# ifdef FO_D3D
-#  include <dxerr.h>
-#  include <d3dx9.h>
-#  ifndef D3D_DEBUG_INFO
-#   pragma comment(lib,"d3dx9.lib")
-#  else
-#   pragma comment(lib,"d3dx9d.lib")
-#  endif
-#  pragma comment(lib,"d3d9.lib")
-#  pragma comment(lib,"dxguid.lib")
-#  pragma comment(lib,"dxerr.lib")
-#  pragma comment(lib,"d3dxof.lib")
-#  define D3D_HR( expr )                  { HRESULT hr__ = expr; if( hr__ != D3D_OK ) { WriteLogF( _FUNC_, " - " # expr ", error<%s - %s>.\n", DXGetErrorString( hr__ ), DXGetErrorDescription( hr__ ) ); return 0; } }
+# include "SDL2/SDL.h"
+# if SDL_VIDEO_OPENGL
+#  define GLEW_NO_GLU
+#  include "GL/glew.h"
+#  include "SDL2/SDL_opengl.h"
+#  define GL_HAS( extension )             ( GLEW_ ## extension )
 # endif
-
-# include "GL/glew.h"
-# ifdef FO_WINDOWS
-#  include "GL/wglew.h"
+# include "GL/glu_stuff.h"
+# ifdef FO_MSVC
 #  pragma comment( lib, "opengl32.lib" )
 #  pragma comment( lib, "glu32.lib" )
-# else
-#  include "GL/glxew.h"
+#  pragma comment( lib, "SDL2.lib" )
+#  pragma comment( lib, "SDL2main.lib" )
+#  pragma comment( lib, "Version.lib" )
+#  pragma comment( lib, "Winmm.lib" )
+#  pragma comment( lib, "Imm32.lib" )
 # endif
-# include "FL/gl.h"
+# define GL( expr )                       { expr; if( GameOpt.OpenGLDebug ) { GLenum err__ = glGetError(); if( err__ != GL_NO_ERROR ) { WriteLogF( _FUNC_, " - " # expr ", error<0x%08X>.\n", err__ ); ExitProcess( 0 ); } } }
+
+extern SDL_Window*   MainWindow;
+extern SDL_Renderer* Renderer;
+extern SDL_GLContext GLContext;
+extern IntVec        MainWindowKeyboardEvents;
+extern StrVec        MainWindowKeyboardEventsText;
+extern IntVec        MainWindowMouseEvents;
+
 # include "Assimp/aiTypes.h"
-# define GL( expr )                       { expr; if( GameOpt.OpenGLDebug ) { GLenum err__ = glGetError(); if( err__ != GL_NO_ERROR ) { WriteLogF( _FUNC_, " - " # expr ", error<0x%08X - %s>.\n", err__, gluErrorString( err__ ) ); ExitProcess( 0 ); } } }
-# ifdef FO_WINDOWS
-#  define WGL( expr )                     { if( !( expr ) ) { if( GameOpt.OpenGLDebug ) { WriteLogF( _FUNC_, " - " # expr ", error<0x%08X>.\n", GetLastError() ); ExitProcess( 0 ); } } }
-# endif
 
-# define IL_STATIC_LIB
-# include "IL/il.h"
-# pragma comment( lib, "IL.lib" )
-# pragma comment( lib, "jpeg.lib" )
-# pragma comment( lib, "libpng15.lib" )
-
-# ifdef FO_D3D
-#  define COLOR_FIX( c )                  ( c )
-#  define Device_             LPDIRECT3DDEVICE9
-#  define Surface_            LPDIRECT3DSURFACE9
-#  define EffectValue_        D3DXHANDLE
-#  define Material_           D3DMATERIAL9
-#  define PresentParams_      D3DPRESENT_PARAMETERS
-#  define Caps_               D3DCAPS9
-#  define VertexBuffer_       LPDIRECT3DVERTEXBUFFER9
-#  define IndexBuffer_        LPDIRECT3DINDEXBUFFER9
-#  define PixelShader_        IDirect3DPixelShader9
-#  define ConstantTable_      ID3DXConstantTable
-#  define SkinInfo_           LPD3DXSKININFO
-#  define Light_              D3DLIGHT9
-#  define ViewPort_           D3DVIEWPORT9
-#  define LockRect_           D3DLOCKED_RECT
-# else
-#  define COLOR_FIX( c )                  COLOR_ARGB( ( (uchar*) &( c ) )[ 3 ], ( (uchar*) &( c ) )[ 0 ], ( (uchar*) &( c ) )[ 1 ], ( (uchar*) &( c ) )[ 2 ] )
-#  define Device_             GLuint
-#  define Surface_            GLuint
-#  define EffectValue_        GLint
-#  define Material_           GLuint
-#  define PresentParams_      GLuint
-#  define Caps_               GLuint
-#  define VertexBuffer_       GLuint
-#  define IndexBuffer_        GLuint
-#  define PixelShader_        GLuint
-#  define ConstantTable_      GLuint
-#  define SkinInfo_           GLuint
-#  define Light_              GLuint
-#  define ViewPort_           GLuint
-#  define LockRect_           GLuint
-# endif
-
+#define COLOR_FIX( c )      COLOR_ARGB( ( (uchar*) &( c ) )[ 3 ], ( (uchar*) &( c ) )[ 0 ], ( (uchar*) &( c ) )[ 1 ], ( (uchar*) &( c ) )[ 2 ] )
+#define Device_             GLuint
+#define Surface_            GLuint
+#define EffectValue_        GLint
+#define Material_           GLuint
+#define PresentParams_      GLuint
+#define Caps_               GLuint
+#define VertexBuffer_       GLuint
+#define IndexBuffer_        GLuint
+#define PixelShader_        GLuint
+#define ConstantTable_      GLuint
+#define SkinInfo_           GLuint
+#define Light_              GLuint
+#define ViewPort_           GLuint
+#define LockRect_           GLuint
 // Todo: Complete shadow maps
 // # define SHADOW_MAP
 

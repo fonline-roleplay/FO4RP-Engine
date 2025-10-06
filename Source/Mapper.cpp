@@ -1,17 +1,6 @@
 #include "StdAfx.h"
 #include "Mapper.h"
 
-void _PreRestore()
-{
-    FOMapper::Self->HexMngr.PreRestore();
-}
-
-void _PostRestore()
-{
-    FOMapper::Self->HexMngr.PostRestore();
-    FOMapper::Self->ChangeGameTime();
-}
-
 bool      FOMapper::SpritesCanDraw = false;
 FOMapper* FOMapper::Self = NULL;
 FOMapper::FOMapper()
@@ -38,6 +27,13 @@ bool FOMapper::Init()
 	STATIC_ASSERT( sizeof( bool ) == 1 );
 	STATIC_ASSERT( sizeof( size_t ) == 4 );
 	STATIC_ASSERT( sizeof( void* ) == 4 );
+
+	// SDL
+	if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_EVENTS ) )
+	{
+		WriteLogF( _FUNC_, " - SDL initialization fail, error<%s>.\n", SDL_GetError() );
+		return false;
+	}
 
     // Register dll script data
     struct CritterChangeParameter_
@@ -123,10 +119,7 @@ bool FOMapper::Init()
     FileManager::SetCacheName( cache_name );
 
     // Sprite manager
-    SpriteMngrParams params;
-    params.PreRestoreFunc = &_PreRestore;
-    params.PostRestoreFunc = &_PostRestore;
-    if( !SprMngr.Init( params ) )
+    if( !SprMngr.Init() )
         return false;
 
     // Fonts
@@ -733,10 +726,10 @@ void FOMapper::AnimFree( int res_type )
 void FOMapper::ParseKeyboard()
 {
     // Stop processing if window not active
-    if( !MainWindow->Focused )
+    if( !( SDL_GetWindowFlags( MainWindow ) & SDL_WINDOW_INPUT_FOCUS ) )
     {
-        MainWindow->KeyboardEvents.clear();
-        MainWindow->KeyboardEventsText.clear();
+		MainWindowKeyboardEvents.clear();
+		MainWindowKeyboardEventsText.clear();
         Keyb::Lost();
         IntHold = INT_NONE;
         if( MapperFunctions.InputLost && Script::PrepareContext( MapperFunctions.InputLost, _FUNC_, "Mapper" ) )
@@ -745,12 +738,12 @@ void FOMapper::ParseKeyboard()
     }
 
     // Get buffered data
-    if( MainWindow->KeyboardEvents.empty() )
+    if( MainWindowKeyboardEvents.empty() )
         return;
-    IntVec events = MainWindow->KeyboardEvents;
-    StrVec events_text = MainWindow->KeyboardEventsText;
-    MainWindow->KeyboardEvents.clear();
-    MainWindow->KeyboardEventsText.clear();
+    IntVec events = MainWindowKeyboardEvents;
+    StrVec events_text = MainWindowKeyboardEventsText;
+    MainWindowKeyboardEvents.clear();
+    MainWindowKeyboardEventsText.clear();
 
     // Process events
     for( uint i = 0; i < events.size(); i += 2 )
@@ -763,9 +756,9 @@ void FOMapper::ParseKeyboard()
         // Keys codes mapping
         uchar dikdw = 0;
         uchar dikup = 0;
-        if( event == FL_KEYDOWN )
+        if( event == SDL_KEYDOWN )
             dikdw = Keyb::MapKey( event_key );
-        else if( event == FL_KEYUP )
+        else if( event == SDL_KEYUP )
             dikup = Keyb::MapKey( event_key );
         if( !dikdw  && !dikup )
             continue;
@@ -869,23 +862,19 @@ void FOMapper::ParseKeyboard()
             case DIK_F11:
                 if( !GameOpt.FullScreen )
                 {
-                    MainWindow->size_range( GameOpt.ScreenWidth, GameOpt.ScreenHeight );
-                    MainWindow->fullscreen();
-                    GameOpt.FullScreen = true;
+                    if( !SDL_SetWindowFullscreen( MainWindow, 1 ) )
+						GameOpt.FullScreen = true;
                 }
                 else
                 {
-                    MainWindow->fullscreen_off();
-                    MainWindow->size_range( GameOpt.ScreenWidth, GameOpt.ScreenHeight, GameOpt.ScreenWidth, GameOpt.ScreenHeight );
-                    GameOpt.FullScreen = false;
+                    if( !SDL_SetWindowFullscreen( MainWindow, 0 ) )
+						GameOpt.FullScreen = false;
                 }
-                #ifndef FO_D3D
                 SprMngr.RefreshViewPort();
-                #endif
                 continue;
             // Minimize
             case DIK_F12:
-                MainWindow->iconize();
+                SDL_MinimizeWindow( MainWindow );
                 continue;
 
             case DIK_DELETE:
@@ -1022,31 +1011,6 @@ void FOMapper::ParseKeyboard()
             }
         }
 
-        // Switch fullscreen
-        if( Keyb::AltDwn && dikdw == DIK_RETURN )
-        {
-            if( !GameOpt.FullScreen )
-            {
-                #ifndef FO_WINDOWS
-                MainWindow->size_range( GameOpt.ScreenWidth, GameOpt.ScreenHeight );
-                #endif
-                MainWindow->fullscreen();
-                GameOpt.FullScreen = true;
-            }
-            else
-            {
-                MainWindow->fullscreen_off();
-                #ifndef FO_WINDOWS
-                MainWindow->size_range( GameOpt.ScreenWidth, GameOpt.ScreenHeight, GameOpt.ScreenWidth, GameOpt.ScreenHeight );
-                #endif
-                GameOpt.FullScreen = false;
-            }
-            #ifndef FO_D3D
-            SprMngr.RefreshViewPort();
-            #endif
-            continue;
-        }
-
         // Key down
         if( dikdw )
         {
@@ -1116,21 +1080,18 @@ void FOMapper::ParseMouse()
 {
     // Mouse position
     int mx = 0, my = 0;
-    Fl::get_mouse( mx, my );
-    #ifdef FO_D3D
-    GameOpt.MouseX = mx - ( !GameOpt.FullScreen ? MainWindow->x() : 0 );
-    GameOpt.MouseY = my - ( !GameOpt.FullScreen ? MainWindow->y() : 0 );
-    #else
-    GameOpt.MouseX = mx - MainWindow->x();
-    GameOpt.MouseY = my - MainWindow->y();
-    #endif
+    SDL_GetMouseState( &mx, &my );
+	int w = 0, h = 0;
+	SDL_GetWindowPosition( MainWindow, &w, &h );
+    GameOpt.MouseX = mx;
+	GameOpt.MouseY = my;
     GameOpt.MouseX = CLAMP( GameOpt.MouseX, 0, GameOpt.ScreenWidth - 1 );
     GameOpt.MouseY = CLAMP( GameOpt.MouseY, 0, GameOpt.ScreenHeight - 1 );
 
     // Stop processing if window not active
-    if( !MainWindow->Focused )
+    if( !( SDL_GetWindowFlags( MainWindow ) & SDL_WINDOW_INPUT_FOCUS ) )
     {
-        MainWindow->MouseEvents.clear();
+        MainWindowMouseEvents.clear();
         Keyb::Lost();
         IntHold = INT_NONE;
         if( MapperFunctions.InputLost && Script::PrepareContext( MapperFunctions.InputLost, _FUNC_, "Mapper" ) )
@@ -1182,10 +1143,10 @@ void FOMapper::ParseMouse()
     }
 
     // Get buffered data
-    if( MainWindow->MouseEvents.empty() )
+    if( MainWindowMouseEvents.empty() )
         return;
-    IntVec events = MainWindow->MouseEvents;
-    MainWindow->MouseEvents.clear();
+    IntVec events = MainWindowMouseEvents;
+    MainWindowMouseEvents.clear();
 
     // Process events
     for( uint i = 0; i < events.size(); i += 3 )
@@ -1196,103 +1157,103 @@ void FOMapper::ParseMouse()
 
         // Scripts
         bool script_result = false;
-        if( event == FL_MOUSEWHEEL && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEWHEEL && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( event_dy > 0 ? MOUSE_CLICK_WHEEL_UP : MOUSE_CLICK_WHEEL_DOWN );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_PUSH && event_button == FL_LEFT_MOUSE && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON_LEFT && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_LEFT );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_LEFT_MOUSE && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON_LEFT && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_LEFT );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_PUSH && event_button == FL_RIGHT_MOUSE && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON_RIGHT && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_RIGHT );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_RIGHT_MOUSE && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON_RIGHT && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_RIGHT );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_PUSH && event_button == FL_MIDDLE_MOUSE && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON_MIDDLE && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_MIDDLE );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_MIDDLE_MOUSE && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON_MIDDLE && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_MIDDLE );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_PUSH && event_button == FL_BUTTON( 1 ) && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON( 4 ) && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT0 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_BUTTON( 1 ) && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON( 4 ) && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT0 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_PUSH && event_button == FL_BUTTON( 2 ) && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON( 5 ) && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT1 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_BUTTON( 2 ) && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON( 5 ) && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT1 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_PUSH && event_button == FL_BUTTON( 3 ) && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON( 6 ) && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT2 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_BUTTON( 3 ) && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON( 6 ) && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT2 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_PUSH && event_button == FL_BUTTON( 4 ) && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON( 7 ) && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT3 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_BUTTON( 4 ) && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON( 7 ) && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT3 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_PUSH && event_button == FL_BUTTON( 5 ) && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON( 8 ) && Script::PrepareContext( MapperFunctions.MouseDown, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT4 );
             if( Script::RunPrepared() )
                 script_result = Script::GetReturnedBool();
         }
-        if( event == FL_RELEASE && event_button == FL_BUTTON( 5 ) && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON( 8 ) && Script::PrepareContext( MapperFunctions.MouseUp, _FUNC_, "Game" ) )
         {
             Script::SetArgUInt( MOUSE_CLICK_EXT4 );
             if( Script::RunPrepared() )
@@ -1303,7 +1264,7 @@ void FOMapper::ParseMouse()
             continue;
 
         // Wheel
-        if( event == FL_MOUSEWHEEL )
+        if( event == SDL_MOUSEWHEEL )
         {
             if( IntVisible && SubTabsActive && IsCurInRect( SubTabsRect, SubTabsX, SubTabsY ) )
             {
@@ -1390,28 +1351,28 @@ void FOMapper::ParseMouse()
         }
 
         // Middle down
-        if( event == FL_PUSH && event_button == FL_MIDDLE_MOUSE )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON_MIDDLE )
         {
             CurMMouseDown();
             continue;
         }
 
         // Left Button Down
-        if( event == FL_PUSH && event_button == FL_LEFT_MOUSE )
+        if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON_LEFT )
         {
             IntLMouseDown();
             continue;
         }
 
         // Left Button Up
-        if( event == FL_RELEASE && event_button == FL_LEFT_MOUSE )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON_LEFT )
         {
             IntLMouseUp();
             continue;
         }
 
         // Right Button Up
-        if( event == FL_RELEASE && event_button == FL_RIGHT_MOUSE )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON_RIGHT )
         {
             CurRMouseUp();
             continue;
@@ -1437,6 +1398,50 @@ void FOMapper::MainLoop()
     {
         call_counter++;
     }
+
+	// Input events
+	SDL_Event event, prev_event;
+	event.type = prev_event.type = SDL_FIRSTEVENT;
+	while( SDL_PollEvent( &event ) )
+	{
+		if( event.type == SDL_TEXTINPUT && prev_event.type == SDL_KEYDOWN )
+		{
+			MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
+			MainWindowKeyboardEvents.push_back( prev_event.key.keysym.scancode );
+			MainWindowKeyboardEventsText.push_back( event.text.text );
+		}
+		else if( event.type != SDL_KEYDOWN && prev_event.type == SDL_KEYDOWN )
+		{
+			MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
+			MainWindowKeyboardEvents.push_back( prev_event.key.keysym.scancode );
+			MainWindowKeyboardEventsText.push_back( "" );
+		}
+		else if( event.type == SDL_KEYUP )
+		{
+			MainWindowKeyboardEvents.push_back( SDL_KEYUP );
+			MainWindowKeyboardEvents.push_back( event.key.keysym.scancode );
+			MainWindowKeyboardEventsText.push_back( "" );
+		}
+		else if( event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP )
+		{
+			MainWindowMouseEvents.push_back( event.type );
+			MainWindowMouseEvents.push_back( event.button.button );
+			MainWindowMouseEvents.push_back( 0 );
+		}
+		else if( event.type == SDL_MOUSEWHEEL )
+		{
+			MainWindowMouseEvents.push_back( event.type );
+			MainWindowMouseEvents.push_back( SDL_BUTTON_MIDDLE );
+			MainWindowMouseEvents.push_back( -event.wheel.y );
+		}
+		prev_event = event;
+	}
+	if( event.type == SDL_KEYDOWN )
+	{
+		MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
+		MainWindowKeyboardEvents.push_back( event.key.keysym.scancode );
+		MainWindowKeyboardEventsText.push_back( "" );
+	}
 
     // Script loop
     static uint next_call = 0;
@@ -6727,22 +6732,22 @@ void FOMapper::SScriptFunc::Global_SetDefaultFont( int font, uint color )
 
 void FOMapper::SScriptFunc::Global_MouseClick( int x, int y, int button, int cursor )
 {
-    IntVec prev_events = MainWindow->MouseEvents;
-    MainWindow->MouseEvents.clear();
+    IntVec prev_events = MainWindowMouseEvents;
+    MainWindowMouseEvents.clear();
     int    prev_x = GameOpt.MouseX;
     int    prev_y = GameOpt.MouseY;
     int    prev_cursor = Self->CurMode;
     GameOpt.MouseX = x;
     GameOpt.MouseY = y;
     Self->CurMode = cursor;
-    MainWindow->MouseEvents.push_back( FL_PUSH );
-    MainWindow->MouseEvents.push_back( button );
-    MainWindow->MouseEvents.push_back( 0 );
-    MainWindow->MouseEvents.push_back( FL_RELEASE );
-    MainWindow->MouseEvents.push_back( button );
-    MainWindow->MouseEvents.push_back( 0 );
+    MainWindowMouseEvents.push_back( SDL_MOUSEBUTTONDOWN );
+    MainWindowMouseEvents.push_back( button );
+    MainWindowMouseEvents.push_back( 0 );
+    MainWindowMouseEvents.push_back( SDL_MOUSEBUTTONUP );
+    MainWindowMouseEvents.push_back( button );
+    MainWindowMouseEvents.push_back( 0 );
     Self->ParseMouse();
-    MainWindow->MouseEvents = prev_events;
+    MainWindowMouseEvents = prev_events;
     GameOpt.MouseX = prev_x;
     GameOpt.MouseY = prev_y;
     Self->CurMode = prev_cursor;
@@ -6750,26 +6755,26 @@ void FOMapper::SScriptFunc::Global_MouseClick( int x, int y, int button, int cur
 
 void FOMapper::SScriptFunc::Global_KeyboardPress( uchar key1, uchar key2, ScriptString* key1_text, ScriptString* key2_text )
 {
-    IntVec prev_events = MainWindow->KeyboardEvents;
-    StrVec prev_events_text = MainWindow->KeyboardEventsText;
-    MainWindow->KeyboardEvents.clear();
-    MainWindow->KeyboardEvents.push_back( FL_KEYDOWN );
-    MainWindow->KeyboardEvents.push_back( Keyb::UnmapKey( key1 ) );
-    MainWindow->KeyboardEventsText.push_back( key1_text ? key1_text->c_std_str() : "" );
-    MainWindow->KeyboardEvents.push_back( FL_KEYDOWN );
-    MainWindow->KeyboardEvents.push_back( Keyb::UnmapKey( key2 ) );
-    MainWindow->KeyboardEventsText.push_back( key2_text ? key2_text->c_std_str() : "" );
-    MainWindow->KeyboardEvents.push_back( FL_KEYUP );
-    MainWindow->KeyboardEvents.push_back( Keyb::UnmapKey( key2 ) );
-    MainWindow->KeyboardEventsText.push_back( key1_text ? key1_text->c_std_str() : "" );
-    MainWindow->KeyboardEvents.push_back( FL_KEYUP );
-    MainWindow->KeyboardEvents.push_back( Keyb::UnmapKey( key1 ) );
-    MainWindow->KeyboardEventsText.push_back( key2_text ? key2_text->c_std_str() : "" );
+    IntVec prev_events = MainWindowKeyboardEvents;
+    StrVec prev_events_text = MainWindowKeyboardEventsText;
+    MainWindowKeyboardEvents.clear();
+    MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
+    MainWindowKeyboardEvents.push_back( Keyb::UnmapKey( key1 ) );
+    MainWindowKeyboardEventsText.push_back( key1_text ? key1_text->c_std_str() : "" );
+    MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
+    MainWindowKeyboardEvents.push_back( Keyb::UnmapKey( key2 ) );
+    MainWindowKeyboardEventsText.push_back( key2_text ? key2_text->c_std_str() : "" );
+    MainWindowKeyboardEvents.push_back( SDL_KEYUP );
+    MainWindowKeyboardEvents.push_back( Keyb::UnmapKey( key2 ) );
+    MainWindowKeyboardEventsText.push_back( key1_text ? key1_text->c_std_str() : "" );
+    MainWindowKeyboardEvents.push_back( SDL_KEYUP );
+    MainWindowKeyboardEvents.push_back( Keyb::UnmapKey( key1 ) );
+    MainWindowKeyboardEventsText.push_back( key2_text ? key2_text->c_std_str() : "" );
     Self->ParseKeyboard();
-    MainWindow->KeyboardEvents = prev_events;
-    MainWindow->KeyboardEventsText = prev_events_text;
-    MainWindow->KeyboardEvents = prev_events;
-    MainWindow->KeyboardEventsText = prev_events_text;
+    MainWindowKeyboardEvents = prev_events;
+    MainWindowKeyboardEventsText = prev_events_text;
+    MainWindowKeyboardEvents = prev_events;
+    MainWindowKeyboardEventsText = prev_events_text;
 }
 
 void FOMapper::SScriptFunc::Global_SetRainAnimation( ScriptString* fall_anim_name, ScriptString* drop_anim_name )

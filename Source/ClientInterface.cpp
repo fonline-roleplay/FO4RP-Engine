@@ -956,14 +956,8 @@ int FOClient::InitIface()
     // Save/load surface creating
     if( Singleplayer )
     {
-        #ifdef FO_D3D
-        if( !SaveLoadDraft && FAILED( SprMngr.GetDevice()->CreateRenderTarget( SAVE_LOAD_IMAGE_WIDTH, SAVE_LOAD_IMAGE_HEIGHT,
-                                                                               D3DFMT_A8R8G8B8, D3DMULTISAMPLE_NONE, 0, FALSE, &SaveLoadDraft, NULL ) ) )
-            WriteLog( "Create save/load draft surface fail.\n" );
-        #else
         if( !SaveLoadDraft.FBO )
             SprMngr.CreateRenderTarget( SaveLoadDraft, false, false, SAVE_LOAD_IMAGE_WIDTH, SAVE_LOAD_IMAGE_HEIGHT, true );
-        #endif
     }
     SaveLoadProcessDraft = false;
     SaveLoadDraftValid = false;
@@ -5785,17 +5779,7 @@ void FOClient::SetCurPos( int x, int y )
 {
     GameOpt.MouseX = x;
     GameOpt.MouseY = y;
-    #ifdef FO_D3D
-    if( !GameOpt.FullScreen )
-    #endif
-    {
-        #ifdef FO_WINDOWS
-        WINDOWINFO wi;
-        wi.cbSize = sizeof( wi );
-        GetWindowInfo( fl_xid( MainWindow ), &wi );
-        SetCursorPos( wi.rcClient.left + GameOpt.MouseX, wi.rcClient.top + GameOpt.MouseY );
-        #endif
-    }
+	SDL_WarpMouseInWindow(MainWindow, x, y);
 }
 
 // ==============================================================================================================================
@@ -11637,37 +11621,11 @@ void FOClient::SaveLoadSaveGame( const char* name )
     UCharVec pic_data;
     if( SaveLoadDraftValid )
     {
-        #ifdef FO_D3D
-        LPD3DXBUFFER img = NULL;
-        if( SUCCEEDED( D3DXSaveSurfaceToFileInMemory( &img, D3DXIFF_BMP, SaveLoadDraft, NULL, NULL ) ) )
-        {
-            pic_data.resize( img->GetBufferSize() );
-            memcpy( &pic_data[ 0 ], img->GetBufferPointer(), img->GetBufferSize() );
-        }
-        SAFEREL( img );
-        #else
         // Get data
-        uchar* data = new uchar[ SAVE_LOAD_IMAGE_WIDTH * SAVE_LOAD_IMAGE_HEIGHT * 3 ];
+		pic_data.resize(SAVE_LOAD_IMAGE_WIDTH * SAVE_LOAD_IMAGE_HEIGHT * 3);
         GL( glBindTexture( GL_TEXTURE_2D, SaveLoadDraft.TargetTexture->Id ) );
-        GL( glGetTexImage( GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, data ) );
+        GL( glGetTexImage( GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, &pic_data[0] ) );
         GL( glBindTexture( GL_TEXTURE_2D, 0 ) );
-
-        // Load to DevIL
-        ILuint img = 0;
-        ilGenImages( 1, &img );
-        ilBindImage( img );
-        if( ilTexImage( SAVE_LOAD_IMAGE_WIDTH, SAVE_LOAD_IMAGE_HEIGHT, 1, 3, IL_RGB, IL_UNSIGNED_BYTE, data ) )
-        {
-            // Save to memory
-            uint size = ilSaveL( IL_BMP, NULL, 0 );
-            pic_data.resize( size );
-            ilSaveL( IL_BMP, &pic_data[ 0 ], size );
-        }
-
-        // Clean up
-        ilDeleteImages( 1, &img );
-        delete[] data;
-        #endif
     }
 
     // Send request
@@ -11681,19 +11639,13 @@ void FOClient::SaveLoadFillDraft()
 {
     SaveLoadProcessDraft = false;
     SaveLoadDraftValid = false;
-    #ifdef FO_D3D
-    // Fill game preview draft
-    Device_ device = SprMngr.GetDevice();
-    LPDIRECT3DSURFACE9 rt = NULL;
-    if( SUCCEEDED( device->GetRenderTarget( 0, &rt ) ) && SUCCEEDED( device->StretchRect( rt, NULL, SaveLoadDraft, NULL, D3DTEXF_LINEAR ) ) )
-        SaveLoadDraftValid = true;
-    SAFEREL( rt );
-    #else
+	int w = 0, h = 0;
+	SDL_GetWindowPosition(MainWindow, &w, &h);
     RenderTarget rt;
-    if( SprMngr.CreateRenderTarget( rt, false, false, MainWindow->w(), MainWindow->h(), true ) )
+    if( SprMngr.CreateRenderTarget( rt, false, false, w, h, true ) )
     {
         GL( glBindTexture( GL_TEXTURE_2D, rt.TargetTexture->Id ) );
-        GL( glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, MainWindow->w(), MainWindow->h() ) );
+        GL( glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, w, h ) );
         GL( glBindTexture( GL_TEXTURE_2D, 0 ) );
         SprMngr.PushRenderTarget( SaveLoadDraft );
         SprMngr.DrawRenderTarget( rt, false );
@@ -11701,7 +11653,6 @@ void FOClient::SaveLoadFillDraft()
         SprMngr.DeleteRenderTarget( rt );
         SaveLoadDraftValid = true;
     }
-    #endif
 }
 
 void FOClient::SaveLoadShowDraft()
@@ -11711,28 +11662,13 @@ void FOClient::SaveLoadShowDraft()
     {
         // Get surface from image data
         SaveLoadDataSlot& slot = SaveLoadDataSlots[ SaveLoadSlotIndex ];
-        if( !slot.PicData.empty() )
+        if( slot.PicData.size() == SAVE_LOAD_IMAGE_WIDTH * SAVE_LOAD_IMAGE_HEIGHT * 3 )
         {
-            #ifdef FO_D3D
-            if( SUCCEEDED( D3DXLoadSurfaceFromFileInMemory( SaveLoadDraft, NULL, NULL, &slot.PicData[ 0 ], (uint) slot.PicData.size(), NULL, D3DX_FILTER_LINEAR, 0, NULL ) ) )
-                SaveLoadDraftValid = true;
-            #else
-            // Load to DevIL
-            ILuint img = 0;
-            ilGenImages( 1, &img );
-            ilBindImage( img );
-            if( ilLoadL( IL_BMP, &slot.PicData[ 0 ], slot.PicData.size() ) )
-            {
-                // Copy to texture
-                GL( glBindTexture( GL_TEXTURE_2D, SaveLoadDraft.TargetTexture->Id ) );
-                GL( glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, SAVE_LOAD_IMAGE_WIDTH, SAVE_LOAD_IMAGE_HEIGHT, GL_BGR, GL_UNSIGNED_BYTE, ilGetData() ) );
-                GL( glBindTexture( GL_TEXTURE_2D, 0 ) );
-                SaveLoadDraftValid = true;
-            }
-
-            // Clean up
-            ilDeleteImages( 1, &img );
-            #endif
+			// Copy to texture
+			GL( glBindTexture( GL_TEXTURE_2D, SaveLoadDraft.TargetTexture->Id ) );
+			GL( glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, SAVE_LOAD_IMAGE_WIDTH, SAVE_LOAD_IMAGE_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, &slot.PicData[0] ) );
+			GL( glBindTexture( GL_TEXTURE_2D, 0 ) );
+			SaveLoadDraftValid = true;
         }
     }
     else if( SaveLoadSave && SaveLoadSlotIndex == (int) SaveLoadDataSlots.size() )
@@ -11784,11 +11720,7 @@ void FOClient::SaveLoadDraw()
 
     if( SaveLoadLoginScreen )
     {
-        #ifdef FO_D3D
-        SprMngr.GetDevice()->Clear( 0, NULL, D3DCLEAR_TARGET, 0xFF000000, 1.0f, 0 );
-        #else
         GL( glClear( GL_COLOR_BUFFER_BIT ) );
-        #endif
     }
     SprMngr.DrawSprite( SaveLoadMainPic, SaveLoadMain[ 0 ] + ox, SaveLoadMain[ 1 ] + oy );
 
@@ -11836,17 +11768,8 @@ void FOClient::SaveLoadDraw()
     // Draw preview draft
     if( SaveLoadDraftValid )
     {
-        #ifdef FO_D3D
-        RECT dst = { SaveLoadPic.L + ox, SaveLoadPic.T + oy, SaveLoadPic.R + ox, SaveLoadPic.B + oy };
-        SprMngr.Flush();
-        LPDIRECT3DSURFACE9 backbuf = NULL;
-        SprMngr.GetDevice()->GetBackBuffer( 0, 0, D3DBACKBUFFER_TYPE_MONO, &backbuf );
-        SprMngr.GetDevice()->StretchRect( SaveLoadDraft, NULL, backbuf, &dst, D3DTEXF_LINEAR );
-        backbuf->Release();
-        #else
         Rect dst( SaveLoadPic.L + ox, SaveLoadPic.T + oy, SaveLoadPic.R + ox, SaveLoadPic.B + oy );
         SprMngr.DrawRenderTarget( SaveLoadDraft, false, NULL, &dst );
-        #endif
     }
 }
 

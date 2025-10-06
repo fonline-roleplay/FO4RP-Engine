@@ -15,42 +15,39 @@ class GraphicLoader
 {
     // Models
 public:
-    static Frame*   LoadModel( Device_ device, const char* fname );
-    static AnimSet* LoadAnimation( Device_ device, const char* anim_fname, const char* anim_name );
+    static Frame*   LoadModel( const char* fname );
+    static AnimSet* LoadAnimation( const char* anim_fname, const char* anim_name );
     static void     Free( Frame* frame );
     static bool     IsExtensionSupported( const char* ext );
 
 private:
     static PCharVec processedFiles;
     static FrameVec loadedModels;
-    static PCharVec loadedAnimationsFNames;
-    static PtrVec   loadedAnimations;   // Pointers of AnimSet
-
-    #ifdef FO_D3D
-    static Frame* FillNode( Device_ device, const aiNode* node, const aiScene* scene );
-    #else
-    static Frame* FillNode( aiScene* scene, aiNode* node );
-    static void   FixFrame( Frame* root_frame, Frame* frame, aiScene* scene, aiNode* node );
-    #endif
+	static PtrVec   loadedAnimations;       // Pointers of AnimSet
 
     // Textures
 public:
-    static Texture* LoadTexture( Device_ device, const char* texture_name, const char* model_path );
-    static void     FreeTexture( Texture* texture );   // If texture is NULL than free all textures
+    static Texture* LoadTexture( const char* texture_name, const char* model_path );
+    static void     FreeTexture( Texture* texture );	// If texture is NULL than free all textures
 
 private:
     static TextureVec loadedTextures;
 
     // Effects
 public:
-    static Effect* LoadEffect( Device_ device, const char* effect_name, bool use_in_2d, const char* defines = NULL, const char* model_path = NULL, EffectDefault* defaults = NULL, uint defaults_count = 0 );
+    static Effect* LoadEffect( const char* effect_name, bool use_in_2d, const char* defines = NULL, const char* model_path = NULL, EffectDefault* defaults = NULL, uint defaults_count = 0 );
     static void    EffectProcessVariables( Effect* effect, int pass, float anim_proc = 0.0f, float anim_time = 0.0f, Texture** textures = NULL );
-    static bool    EffectsPreRestore();
-    static bool    EffectsPostRestore();
-    static bool    LoadDefaultEffects( Device_ device );
+    static bool    LoadDefaultEffects();
 
 private:
     static EffectVec loadedEffects;
+
+// Images
+// All input/output data is in RGBA format
+public:
+    static uchar* LoadPNG( const uchar* data, uint data_size, uint& result_size, uint& result_width, uint& result_height );
+    static void   SavePNG( const char* fname, uchar* data, uint width, uint height );
+    static uchar* LoadTGA( const uchar* data, uint data_size, uint& result_size, uint& result_width, uint& result_height );
 };
 
 #endif // __GRAPHIC_LOADER__
