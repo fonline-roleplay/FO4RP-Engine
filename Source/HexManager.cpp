@@ -242,6 +242,8 @@ void HexManager::ReloadSprites()
     curDataPrefix = GameOpt.MapDataPrefix.c_std_str();
 
     // Must be valid
+	bool oldSurfNear = SprMngr.SurfFilterNearest;
+	SprMngr.SurfFilterNearest = !GameOpt.SpritesFiltering;
     picHex[ 0 ] = SprMngr.LoadAnimation( ( curDataPrefix + "hex1.png" ).c_str(), PT_DATA, ANIM_USE_DUMMY );
     picHex[ 1 ] = SprMngr.LoadAnimation( ( curDataPrefix + "hex2.png" ).c_str(), PT_DATA, ANIM_USE_DUMMY );
     picHex[ 2 ] = SprMngr.LoadAnimation( ( curDataPrefix + "hex3.png" ).c_str(), PT_DATA, ANIM_USE_DUMMY );
@@ -259,6 +261,7 @@ void HexManager::ReloadSprites()
 
     // May be null
     picHexMask = SprMngr.LoadAnimation( ( curDataPrefix + "hex_mask.png" ).c_str(), PT_DATA );
+	SprMngr.SurfFilterNearest = oldSurfNear;
 
     // Rain
     SetRainAnimation( NULL, NULL );
@@ -2033,22 +2036,22 @@ void HexManager::DrawMap()
     // Tiles
     if( GameOpt.ShowTile )
     {
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         SprMngr.DrawSprites( tilesTree, false, false, DRAW_ORDER_TILE, DRAW_ORDER_TILE_END );
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
 
     // Flat sprites
 	if (!GameOpt.SpritesFiltering)
 	{
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	}
     SprMngr.DrawSprites( mainTree, true, false, DRAW_ORDER_FLAT, DRAW_ORDER_LIGHT - 1 );
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // Light
     for( uint i = 0; i < lightPointsCount; i++ )
@@ -2061,21 +2064,21 @@ void HexManager::DrawMap()
     // Sprites
 	if (!GameOpt.SpritesFiltering)
 	{
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	}
     SprMngr.DrawSprites( mainTree, true, true, DRAW_ORDER_LIGHT, DRAW_ORDER_LAST );
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // Roof
     if( GameOpt.ShowRoof )
     {
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         SprMngr.DrawSprites( roofTree, false, true, 0, 0 );
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         if( rainCapacity )
             SprMngr.DrawSprites( roofRainTree, false, false, 0, 0 );
@@ -3653,7 +3656,6 @@ bool HexManager::LoadMap( ushort map_pid )
     curHashTiles = maxhx * maxhy;
     Crypt.Crc32( fm.GetCurBuf(), tiles_len, curHashTiles );
 
-    SprMngr.SurfFilterNearest = true;
     for( uint i = 0; i < tiles_count; i++ )
     {
         ProtoMap::Tile tile;
@@ -3677,7 +3679,6 @@ bool HexManager::LoadMap( ushort map_pid )
             CheckTilesBorder( tile.IsRoof ? f.Roofs.back() : f.Tiles.back(), tile.IsRoof );
         }
     }
-    SprMngr.SurfFilterNearest = false;
 
     // Roof indexes
     int roof_num = 1;
