@@ -89,7 +89,7 @@ bool FOClient::Init()
     #endif*/
 	
 	// SDL
-	if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_EVENTS ) )
+	if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS ) )
 	{
 		WriteLogF( _FUNC_, " - SDL Initialization fail, error<%s>.\n", SDL_GetError() );
 		return false;
@@ -645,27 +645,32 @@ int FOClient::MainLoop()
     }
 
 	// Input events
-    SDL_Event event, prev_event;
-    event.type = prev_event.type = SDL_FIRSTEVENT;
+    SDL_Event event;
     while( SDL_PollEvent( &event ) )
     {
-        if( event.type == SDL_TEXTINPUT && prev_event.type == SDL_KEYDOWN )
+        if( event.type == SDL_MOUSEMOTION )
         {
-            MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
-            MainWindowKeyboardEvents.push_back( prev_event.key.keysym.scancode );
-            MainWindowKeyboardEventsText.push_back( event.text.text );
+            int sw = 0, sh = 0;
+            SDL_GetWindowSize( MainWindow, &sw, &sh );
+            int x = (int) ( event.motion.x / (float) sw * (float) GameOpt.ScreenWidth );
+            int y = (int) ( event.motion.y / (float) sh * (float) GameOpt.ScreenHeight );
+            GameOpt.MouseX = CLAMP( x, 0, GameOpt.ScreenWidth - 1 );
+            GameOpt.MouseY = CLAMP( y, 0, GameOpt.ScreenHeight - 1 );
         }
-        else if( event.type != SDL_KEYDOWN && prev_event.type == SDL_KEYDOWN )
+        else if( event.type == SDL_KEYDOWN || event.type == SDL_KEYUP )
         {
-            MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
-            MainWindowKeyboardEvents.push_back( prev_event.key.keysym.scancode );
-            MainWindowKeyboardEventsText.push_back( "" );
-        }
-        else if( event.type == SDL_KEYUP )
-        {
-            MainWindowKeyboardEvents.push_back( SDL_KEYUP );
+            MainWindowKeyboardEvents.push_back( event.type );
             MainWindowKeyboardEvents.push_back( event.key.keysym.scancode );
             MainWindowKeyboardEventsText.push_back( "" );
+        }
+        else if( event.type == SDL_TEXTINPUT )
+        {
+            MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
+            MainWindowKeyboardEvents.push_back( 510 );
+            MainWindowKeyboardEventsText.push_back( event.text.text );
+            MainWindowKeyboardEvents.push_back( SDL_KEYUP );
+            MainWindowKeyboardEvents.push_back( 510 );
+            MainWindowKeyboardEventsText.push_back( event.text.text );
         }
         else if( event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP )
         {
@@ -673,19 +678,24 @@ int FOClient::MainLoop()
             MainWindowMouseEvents.push_back( event.button.button );
             MainWindowMouseEvents.push_back( 0 );
         }
+        else if( event.type == SDL_FINGERDOWN || event.type == SDL_FINGERUP )
+        {
+            MainWindowMouseEvents.push_back( event.type == SDL_FINGERDOWN ? SDL_MOUSEBUTTONDOWN : SDL_MOUSEBUTTONUP );
+            MainWindowMouseEvents.push_back( SDL_BUTTON_LEFT );
+            MainWindowMouseEvents.push_back( 0 );
+            GameOpt.MouseX = (int) ( event.tfinger.x * (float) GameOpt.ScreenWidth );
+            GameOpt.MouseY = (int) ( event.tfinger.y * (float) GameOpt.ScreenHeight );
+        }
         else if( event.type == SDL_MOUSEWHEEL )
         {
             MainWindowMouseEvents.push_back( event.type );
             MainWindowMouseEvents.push_back( SDL_BUTTON_MIDDLE );
             MainWindowMouseEvents.push_back( -event.wheel.y );
         }
-        prev_event = event;
-    }
-    if( event.type == SDL_KEYDOWN )
-    {
-        MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
-        MainWindowKeyboardEvents.push_back( event.key.keysym.scancode );
-        MainWindowKeyboardEventsText.push_back( "" );
+        else if( event.type == SDL_QUIT )
+        {
+            GameOpt.Quit = true;
+        }
     }
 
     // Singleplayer data synchronization
@@ -4400,8 +4410,6 @@ void FOClient::Net_OnCritterMove()
     if( !cr )
         return;
 
-    ushort last_hx = cr->GetHexX();
-    ushort last_hy = cr->GetHexY();
     cr->IsRunning = FLAG( move_params, MOVE_PARAM_RUN );
 
     if( cr != Chosen )
@@ -9054,9 +9062,6 @@ bool FOClient::SaveScreenshot()
 
 void FOClient::SoundProcess()
 {
-    // Manager
-    SndMngr.Process();
-
     // Ambient
     static uint next_ambient = 0;
     if( Timer::GameTick() > next_ambient )
@@ -9183,6 +9188,7 @@ void FOClient::PlayVideo()
         NextVideo();
         return;
     }
+	CurVideo->RT.TargetTexture->Data = new uchar[ CurVideo->RT.TargetTexture->Size ];
 
     // Start sound
     if( video.SoundName != "" )
@@ -9342,20 +9348,9 @@ void FOClient::RenderVideo()
         return;
     }
 
-    // Render
+	// Fill render texture
     uint w = CurVideo->VideoInfo.pic_width;
     uint h = CurVideo->VideoInfo.pic_height;
-    SprMngr.PushRenderTarget( CurVideo->RT );
-	Matrix m;
-	GL( gluStuffOrtho( m[ 0 ], 0.0f, (float) w, (float) h, 0.0f, -1.0f, 1.0f ) );
-	m.Transpose();             // Convert to column major order
-	GL( glMatrixMode( GL_PROJECTION ) );
-	GL( glLoadMatrixf( m[ 0 ] ) );
-    GL( glMatrixMode( GL_MODELVIEW ) );
-    GL( glLoadIdentity() );
-    GL( glDisable( GL_TEXTURE_2D ) );
-    GL( glDisable( GL_POINT_SMOOTH ) );
-    glBegin( GL_POINTS );
     for( uint y = 0; y < h; y++ )
     {
         for( uint x = 0; x < w; x++ )
@@ -9371,15 +9366,18 @@ void FOClient::RenderVideo()
             float cg = cy - 0.344f * ( cu - 127 ) - 0.714f * ( cv - 127 );
             float cb = cy + 1.722f * ( cu - 127 );
 
-            // Draw
-            glColor3f( cr / 255.0f, cg / 255.0f, cb / 255.0f );
-            glVertex2f( (float) x, (float) y + 1.0f );
+			// Set on texture
+            uchar* data = CurVideo->RT.TargetTexture->Data + ( ( h - y - 1 ) * w * 4 + x * 4 );
+			data[ 0 ] = (uchar) cr;
+			data[ 1 ] = (uchar) cg;
+			data[ 2 ] = (uchar) cb;
+			data[ 3 ] = 0xFF;
         }
     }
-    GL( glEnd() );
-    GL( glEnable( GL_TEXTURE_2D ) );
-    GL( glEnable( GL_POINT_SMOOTH ) );
-    SprMngr.PopRenderTarget();
+
+	// Update texture and draw it
+	CurVideo->RT.TargetTexture->Update();
+	SprMngr.DrawRenderTarget(CurVideo->RT, false);
 
     // Render to window
     float mw = (float) GameOpt.ScreenWidth;
@@ -9657,7 +9655,7 @@ bool FOClient::ReloadScripts()
     #define BIND_ASSERT( x )    if( ( x ) < 0 ) { WriteLog( "Bind error, line<%d>.\n", __LINE__ ); bind_errors++; }
     asIScriptEngine* engine = Script::GetEngine();
     int              bind_errors = 0;
-    #include <ScriptBind.h>
+    #include "ScriptBind.h"
 
     if( bind_errors )
     {
@@ -11676,7 +11674,6 @@ void FOClient::SScriptFunc::Global_DrawMapSprite( ushort hx, ushort hy, ushort p
     ProtoItem* proto_item = ItemMngr.GetProtoItem( proto_id );
     bool       is_flat = ( proto_item ? FLAG( proto_item->Flags, ITEM_FLAT ) : false );
     bool       is_item = ( proto_item ? proto_item->IsItem() : false );
-    bool       is_wall = ( proto_item ? proto_item->IsWall() : false );
     bool       no_light = ( is_flat && !is_item );
 
     Field&     f = Self->HexMngr.GetField( hx, hy );

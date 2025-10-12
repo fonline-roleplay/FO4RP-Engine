@@ -91,6 +91,9 @@ const char* GetLastSocketError();
           delete[] ( x ); ( x ) = NULL; }
 
 #define STATIC_ASSERT( a )                static_assert( a, # a )
+#define OFFSETOF( s, m )                  ( (size_t) ( &reinterpret_cast< s* >( 100000 )->m ) - 100000 )
+#define UNUSED_VARIABLE( x )              (void) ( x )
+#define memzero( ptr, size )              memset( ptr, 0, size )
 
 #define PI_FLOAT              ( 3.14159265f )
 #define PIBY2_FLOAT           ( 1.5707963f )
@@ -102,17 +105,13 @@ const char* GetLastSocketError();
 #define MAX( a, b )                       ( ( ( a ) > ( b ) ) ? ( a ) : ( b ) )
 #define MIN( a, b )                       ( ( ( a ) < ( b ) ) ? ( a ) : ( b ) )
 
-#define OFFSETOF( type, member )          ( (int) offsetof( type, member ) )
-#define memzero( ptr, size )              memset( ptr, 0, size )
 #define PACKUINT64( u32hi, u32lo )        ( ( (uint64) u32hi << 32 ) | ( (uint64) u32lo ) )
 #define MAKEUINT( ch0, ch1, ch2, ch3 )    ( (uint) (uchar) ( ch0 ) | ( (uint) (uchar) ( ch1 ) << 8 ) | ( (uint) (uchar) ( ch2 ) << 16 ) | ( (uint) (uchar) ( ch3 ) << 24 ) )
 
 typedef vector< Rect >  IntRectVec;
 typedef vector< RectF > FltRectVec;
 
-extern char   CommandLine[ MAX_FOTEXT ];
-extern char** CommandLineArgValues;
-extern uint   CommandLineArgCount;
+extern char CommandLine[ MAX_FOTEXT ];
 void SetCommandLine( uint argc, char** argv );
 
 extern Randomizer DefaultRandomizer;
@@ -173,6 +172,35 @@ struct ScoreType
 #  include "GL/glew.h"
 #  include "SDL2/SDL_opengl.h"
 #  define GL_HAS( extension )             ( GLEW_ ## extension )
+# else
+#  include "SDL/SDL_opengles2.h"
+#  define GL_HAS( extension )             ( true )
+#  define glGenVertexArrays               glGenVertexArraysOES
+#  define glBindVertexArray               glBindVertexArrayOES
+#  define glBindVertexArray               glBindVertexArrayOES
+#  define glDeleteVertexArrays            glDeleteVertexArraysOES
+#  define glGenFramebuffersEXT            glGenFramebuffers
+#  define glBindFramebufferEXT            glBindFramebuffer
+#  define glFramebufferTexture2DEXT       glFramebufferTexture2D
+#  define glRenderbufferStorageEXT        glRenderbufferStorage
+#  define glGenRenderbuffersEXT           glGenRenderbuffers
+#  define glBindRenderbufferEXT           glBindRenderbuffer
+#  define glFramebufferRenderbufferEXT    glFramebufferRenderbuffer
+#  define glCheckFramebufferStatusEXT     glCheckFramebufferStatus
+#  define glDeleteRenderbuffersEXT        glDeleteRenderbuffers
+#  define glDeleteFramebuffersEXT         glDeleteFramebuffers
+#  define GL_FRAMEBUFFER_COMPLETE_EXT     GL_FRAMEBUFFER_COMPLETE
+#  define GL_FRAMEBUFFER_EXT              GL_FRAMEBUFFER
+#  define GL_COLOR_ATTACHMENT0_EXT        GL_COLOR_ATTACHMENT0
+#  define GL_RENDERBUFFER_EXT             GL_RENDERBUFFER
+#  define GL_DEPTH_ATTACHMENT_EXT         GL_DEPTH_ATTACHMENT
+#  define GL_CLAMP                        GL_CLAMP_TO_EDGE
+#  define GL_DEPTH24_STENCIL8             GL_DEPTH24_STENCIL8_OES
+#  define GL_DEPTH24_STENCIL8_EXT         GL_DEPTH24_STENCIL8_OES
+#  define GL_STENCIL_ATTACHMENT_EXT       GL_STENCIL_ATTACHMENT
+#  define glGetTexImage( a, b, c, d, e )
+#  define glDrawBuffer( a )
+#  define GL_BGR                          GL_BGRA
 # endif
 # include "GL/glu_stuff.h"
 # ifdef FO_MSVC

@@ -667,7 +667,7 @@ void FileManager::SetStr( const char* fmt, ... )
     vsprintf( str, fmt, list );
     va_end( list );
 
-    SetData( str, Str::Length( str ) + 1 );
+    SetData( str, Str::Length( str ) );
 }
 
 void FileManager::SetUChar( uchar data )

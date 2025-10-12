@@ -179,7 +179,7 @@ bool HexManager::Init()
         return false;
     }
 
-    if( !SprMngr.CreateRenderTarget( rtMap, false ) )
+    if( !SprMngr.CreateRenderTarget( rtMap, true ) )
     {
         WriteLog( "Can't create render target.\n" );
         return false;
@@ -283,7 +283,6 @@ void HexManager::ReplaceItemBlocks( ushort hx, ushort hy, ProtoItem* proto_item 
     if( !proto_item )
         return;
 
-    bool raked = FLAG( proto_item->Flags, ITEM_SHOOT_THRU );
     FOREACH_PROTO_ITEM_LINES( proto_item->BlockLines, hx, hy, GetMaxHexX(), GetMaxHexY(),
 	                          GetField( hx, hy ).IsMultihex = false;
                               GetField( hx, hy ).ProcessCache();
@@ -391,7 +390,6 @@ void HexManager::ChangeItem( uint id, const Item::ItemData& data )
 
     item->RefreshAlpha();
     item->SetSprite( NULL );   // Refresh
-    CritterCl* chosen = GetChosen();
     if( item->IsLight() || FLAG( old_data.Flags, ITEM_LIGHT_THRU ) != FLAG( data.Flags, ITEM_LIGHT_THRU ) )
         RebuildLight();
     GetField( item->GetHexX(), item->GetHexY() ).ProcessCache();
@@ -422,7 +420,6 @@ void HexManager::FinishItem( uint id, bool is_deleted )
 
 auto HexManager::DeleteItem( ItemHex * item, bool with_delete /* = true */ )->ItemHexVec::iterator
 {
-    ushort pid = item->GetProtoId();
     ushort hx = item->GetHexX();
     ushort hy = item->GetHexY();
 
@@ -1257,8 +1254,6 @@ void HexManager::TraceLight( ushort from_hx, ushort from_hy, ushort& hx, ushort&
     int   cury1i = from_hy;
     int   old_curx1i = curx1i;
     int   old_cury1i = cury1i;
-    bool  right_barr = false;
-    bool  left_barr = false;
     uint  inten_sub = inten / dist;
 
     for( ; ;)
@@ -2116,7 +2111,7 @@ bool HexManager::Scroll()
         static uint last_tick = tick;
         if( tick - last_tick < GameOpt.ScrollDelay / 2 )
             return false;
-        float time_k = (float) ( tick - last_tick ) / (float) GameOpt.ScrollDelay;
+        time_k = (float) ( tick - last_tick ) / (float) GameOpt.ScrollDelay;
         last_tick = tick;
     }
 
@@ -2274,8 +2269,6 @@ bool HexManager::Scroll()
 
         if( GameOpt.ScrollCheck )
         {
-            int old_ox = GameOpt.ScrOx;
-            int old_oy = GameOpt.ScrOy;
             if( GameOpt.ScrOx > 0 && ScrollCheck( 1, 0 ) )
                 GameOpt.ScrOx = 0;
             else if( GameOpt.ScrOx < 0 && ScrollCheck( -1, 0 ) )

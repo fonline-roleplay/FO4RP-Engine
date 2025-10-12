@@ -1400,48 +1400,58 @@ void FOMapper::MainLoop()
     }
 
 	// Input events
-	SDL_Event event, prev_event;
-	event.type = prev_event.type = SDL_FIRSTEVENT;
-	while( SDL_PollEvent( &event ) )
-	{
-		if( event.type == SDL_TEXTINPUT && prev_event.type == SDL_KEYDOWN )
-		{
-			MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
-			MainWindowKeyboardEvents.push_back( prev_event.key.keysym.scancode );
-			MainWindowKeyboardEventsText.push_back( event.text.text );
-		}
-		else if( event.type != SDL_KEYDOWN && prev_event.type == SDL_KEYDOWN )
-		{
-			MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
-			MainWindowKeyboardEvents.push_back( prev_event.key.keysym.scancode );
-			MainWindowKeyboardEventsText.push_back( "" );
-		}
-		else if( event.type == SDL_KEYUP )
-		{
-			MainWindowKeyboardEvents.push_back( SDL_KEYUP );
-			MainWindowKeyboardEvents.push_back( event.key.keysym.scancode );
-			MainWindowKeyboardEventsText.push_back( "" );
-		}
-		else if( event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP )
-		{
-			MainWindowMouseEvents.push_back( event.type );
-			MainWindowMouseEvents.push_back( event.button.button );
-			MainWindowMouseEvents.push_back( 0 );
-		}
-		else if( event.type == SDL_MOUSEWHEEL )
-		{
-			MainWindowMouseEvents.push_back( event.type );
-			MainWindowMouseEvents.push_back( SDL_BUTTON_MIDDLE );
-			MainWindowMouseEvents.push_back( -event.wheel.y );
-		}
-		prev_event = event;
-	}
-	if( event.type == SDL_KEYDOWN )
-	{
-		MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
-		MainWindowKeyboardEvents.push_back( event.key.keysym.scancode );
-		MainWindowKeyboardEventsText.push_back( "" );
-	}
+    SDL_Event event;
+    while( SDL_PollEvent( &event ) )
+    {
+        if( event.type == SDL_MOUSEMOTION )
+        {
+            int sw = 0, sh = 0;
+            SDL_GetWindowSize( MainWindow, &sw, &sh );
+            int x = (int) ( event.motion.x / (float) sw * (float) GameOpt.ScreenWidth );
+            int y = (int) ( event.motion.y / (float) sh * (float) GameOpt.ScreenHeight );
+            GameOpt.MouseX = CLAMP( x, 0, GameOpt.ScreenWidth - 1 );
+            GameOpt.MouseY = CLAMP( y, 0, GameOpt.ScreenHeight - 1 );
+        }
+        else if( event.type == SDL_KEYDOWN || event.type == SDL_KEYUP )
+        {
+            MainWindowKeyboardEvents.push_back( event.type );
+            MainWindowKeyboardEvents.push_back( event.key.keysym.scancode );
+            MainWindowKeyboardEventsText.push_back( "" );
+        }
+        else if( event.type == SDL_TEXTINPUT )
+        {
+            MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
+            MainWindowKeyboardEvents.push_back( 510 );
+            MainWindowKeyboardEventsText.push_back( event.text.text );
+            MainWindowKeyboardEvents.push_back( SDL_KEYUP );
+            MainWindowKeyboardEvents.push_back( 510 );
+            MainWindowKeyboardEventsText.push_back( event.text.text );
+        }
+        else if( event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP )
+        {
+            MainWindowMouseEvents.push_back( event.type );
+            MainWindowMouseEvents.push_back( event.button.button );
+            MainWindowMouseEvents.push_back( 0 );
+        }
+        else if( event.type == SDL_FINGERDOWN || event.type == SDL_FINGERUP )
+        {
+            MainWindowMouseEvents.push_back( event.type == SDL_FINGERDOWN ? SDL_MOUSEBUTTONDOWN : SDL_MOUSEBUTTONUP );
+            MainWindowMouseEvents.push_back( SDL_BUTTON_LEFT );
+            MainWindowMouseEvents.push_back( 0 );
+            GameOpt.MouseX = (int) ( event.tfinger.x * (float) GameOpt.ScreenWidth );
+            GameOpt.MouseY = (int) ( event.tfinger.y * (float) GameOpt.ScreenHeight );
+        }
+        else if( event.type == SDL_MOUSEWHEEL )
+        {
+            MainWindowMouseEvents.push_back( event.type );
+            MainWindowMouseEvents.push_back( SDL_BUTTON_MIDDLE );
+            MainWindowMouseEvents.push_back( -event.wheel.y );
+        }
+        else if( event.type == SDL_QUIT )
+        {
+            GameOpt.Quit = true;
+        }
+    }
 
     // Script loop
     static uint next_call = 0;
@@ -6967,7 +6977,6 @@ void FOMapper::SScriptFunc::Global_DrawMapSprite( ushort hx, ushort hy, ushort p
     ProtoItem* proto_item = ItemMngr.GetProtoItem( proto_id );
     bool       is_flat = ( proto_item ? FLAG( proto_item->Flags, ITEM_FLAT ) : false );
     bool       is_item = ( proto_item ? proto_item->IsItem() : false );
-    bool       is_wall = ( proto_item ? proto_item->IsWall() : false );
     bool       no_light = ( is_flat && !is_item );
 
     Field&     f = Self->HexMngr.GetField( hx, hy );

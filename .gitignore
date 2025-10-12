@@ -24,3 +24,5 @@ Mapper/Release/
 ASCompiler/Release/
 Mapper/ReleaseD3D/
 */.vs/
+Source/AngelScript/old/
+Source/AngelScript/new/

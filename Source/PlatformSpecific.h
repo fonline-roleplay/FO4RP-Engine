@@ -5,7 +5,8 @@
 // Operating system
 // FO_WINDOWS
 // FO_LINUX
-// FO_MACOSX
+// FO_OSX
+// FO_OSX_IOS
 //
 // CPU
 // FO_X86
@@ -38,7 +39,11 @@
 #elif defined ( __linux__ )
 # define FO_LINUX
 #elif defined ( __APPLE__ )
-# define FO_MACOSX
+# include <TargetConditionals.h>
+# define FO_OSX
+# if defined ( TARGET_OS_IPHONE ) && TARGET_OS_IPHONE == 1
+#  define FO_OSX_IOS
+# endif
 #else
 # error "Unknown operating system."
 #endif
@@ -63,10 +68,14 @@
 #endif
 
 // TLS
-#if defined ( FO_MSVC )
-# define THREAD    __declspec( thread )
-#elif defined ( FO_GCC )
-# define THREAD    __thread
+#if !defined ( FO_OSX_IOS )
+# if defined ( FO_MSVC )
+#  define THREAD    __declspec( thread )
+# elif defined ( FO_GCC )
+#  define THREAD    __thread
+# endif
+#else
+# define THREAD
 #endif
 
 // Function name

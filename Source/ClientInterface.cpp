@@ -6373,8 +6373,6 @@ void FOClient::GmapTownDraw()
         return;
     }
 
-    ushort loc_pid = GmapTownLoc.LocPid;
-
     if( DistSqrt( GmapTownLoc.LocWx, GmapTownLoc.LocWy, GmapGroupCurX, GmapGroupCurY ) > GmapTownLoc.Radius )
     {
         ShowScreen( SCREEN_NONE );
@@ -6475,11 +6473,9 @@ void FOClient::GmapLMouseDown()
     }
     else
     {
-        int pos = 0;
-        for( auto it = HexMngr.GetCritters().begin(); it != HexMngr.GetCritters().end(); it++, pos++ )
+        for( int i = 0; i < (int)HexMngr.GetCritters().size(); i++ )
         {
-            CritterCl* cr = ( *it ).second;
-            if( !IsCurInRect( Rect( GmapWName, GmapWNameStepX * pos, GmapWNameStepY * pos ) ) )
+            if( !IsCurInRect( Rect( GmapWName, GmapWNameStepX * i, GmapWNameStepY * i ) ) )
                 continue;
             LMenuTryActivate();
             return;
@@ -7309,7 +7305,6 @@ void FOClient::ChaDraw( bool is_reg )
     if( !is_reg )
     {
         int sw = ( ChaBSwitch[ 2 ] - ChaBSwitch[ 0 ] ) / 3;
-        int sh = ChaBSwitch[ 3 ] - ChaBSwitch[ 1 ];
         SprMngr.DrawStr( Rect( Rect( ChaBSwitch[ 0 ], ChaBSwitch[ 1 ], ChaBSwitch[ 0 ] + sw, ChaBSwitch[ 3 ] ), ChaX, ChaY - ( ChaCurSwitch == CHA_SWITCH_PERKS ? 2 : 0 ) ), MsgGame->GetStr( STR_SWITCH_PERKS_NAME ), FT_CENTERX | FT_CENTERY, COLOR_TEXT_SAND, FONT_FAT );
         SprMngr.DrawStr( Rect( Rect( ChaBSwitch[ 0 ] + sw, ChaBSwitch[ 1 ], ChaBSwitch[ 0 ] + sw + sw, ChaBSwitch[ 3 ] ), ChaX, ChaY - ( ChaCurSwitch == CHA_SWITCH_KARMA ? 2 : 0 ) ), MsgGame->GetStr( STR_SWITCH_KARMA_NAME ), FT_CENTERX | FT_CENTERY, COLOR_TEXT_SAND, FONT_FAT );
         SprMngr.DrawStr( Rect( Rect( ChaBSwitch[ 0 ] + sw + sw, ChaBSwitch[ 1 ], ChaBSwitch[ 2 ], ChaBSwitch[ 3 ] ), ChaX, ChaY - ( ChaCurSwitch == CHA_SWITCH_KILLS ? 2 : 0 ) ), MsgGame->GetStr( STR_SWITCH_KILLS_NAME ), FT_CENTERX | FT_CENTERY, COLOR_TEXT_SAND, FONT_FAT );

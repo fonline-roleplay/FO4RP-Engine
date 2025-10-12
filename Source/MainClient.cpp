@@ -9,7 +9,7 @@
 # include <signal.h>
 #endif
 
-int main( int argc, char** argv )
+extern "C" int main( int argc, char** argv ) // Handled by SDL
 {
     RestoreMainDirectory();
 
@@ -30,9 +30,11 @@ int main( int argc, char** argv )
     // Make command line
     SetCommandLine( argc, argv );
 
-    // Stuff
+    // Timer
     Timer::Init();
+	// Logging
     LogToFile( "FOnline.log" );
+	LogToDebugOutput( true );
 
     // Singleplayer mode initialization
     #ifdef FO_WINDOWS
@@ -152,12 +154,3 @@ int main( int argc, char** argv )
 
     return 0;
 }
-
-#ifdef FO_WINDOWS
-int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prev_instance, char* cmd_line, int cmd_show)
-{
-	char** argv = new char*[ 1 ];
-	argv[ 0 ] = cmd_line;
-	return main( 1, argv );
-}
-#endif

@@ -1031,7 +1031,7 @@ Texture* GraphicLoader::LoadTexture( const char* texture_name, const char* model
 
     // Load
     uint        size, w, h;
-    uchar*      data;
+    uchar*      data = NULL;
     const char* ext = FileManager::GetExtension( texture_name );
 
     if( Str::CompareCase( ext, "png" ) )
@@ -1142,6 +1142,7 @@ Effect* GraphicLoader::LoadEffect( const char* effect_name, bool use_in_2d, cons
         return NULL;
     }
 
+	#ifndef FO_OSX_IOS
     // Make effect binary file name
     char binary_fname[ MAX_FOPATH ] = { 0 };
     if( GL_HAS( ARB_get_program_binary ) )
@@ -1209,7 +1210,8 @@ Effect* GraphicLoader::LoadEffect( const char* effect_name, bool use_in_2d, cons
 
     // Load from text
     if( !file_binary.IsLoaded() )
-    {
+    #endif
+	{
         char* str = (char*) file.GetBuf();
 
         // Get version
@@ -1315,8 +1317,10 @@ Effect* GraphicLoader::LoadEffect( const char* effect_name, bool use_in_2d, cons
             GL( glBindAttribLocation( program, 9, "InBlendIndices" ) );
         }
 
+		#ifndef FO_OSX_IOS
         if( GL_HAS( ARB_get_program_binary ) )
             GL( glProgramParameteri( program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE ) );
+		#endif
 
         GL( glLinkProgram( program ) );
         GLint linked;
@@ -1333,6 +1337,7 @@ Effect* GraphicLoader::LoadEffect( const char* effect_name, bool use_in_2d, cons
             return NULL;
         }
 
+		#ifndef FO_OSX_IOS
         // Save in binary
         if( GL_HAS( ARB_get_program_binary ) )
         {
@@ -1351,6 +1356,7 @@ Effect* GraphicLoader::LoadEffect( const char* effect_name, bool use_in_2d, cons
             if( !file_binary.SaveOutBufToFile( binary_fname, PT_CACHE ) )
                 WriteLogF( _FUNC_, " - Can't save effect<%s> in binary<%s>.\n", fname, binary_fname );
         }
+		#endif
     }
 
     // Create effect instance
@@ -1670,7 +1676,7 @@ uchar* GraphicLoader::LoadPNG( const uchar* data, uint data_size, uint& result_s
     {
         static void Read( png_structp png_ptr, png_bytep png_data, png_size_t length )
         {
-            (void) png_ptr;
+            UNUSED_VARIABLE( png_ptr );
             memcpy( png_data, data_, length );
             data_ += length;
         }
@@ -1753,13 +1759,13 @@ void GraphicLoader::SavePNG( const char* fname, uchar* data, uint width, uint he
     {
         static void Write( png_structp png_ptr, png_bytep png_data, png_size_t length )
         {
-            (void) png_ptr;
+            UNUSED_VARIABLE( png_ptr );
             for( png_size_t i = 0; i < length; i++ )
                 result_png.push_back( png_data[ i ] );
         }
         static void Flush( png_structp png_ptr )
         {
-            (void) png_ptr;
+            UNUSED_VARIABLE( png_ptr );
         }
     };
     result_png.clear();
