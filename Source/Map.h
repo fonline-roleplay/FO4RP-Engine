@@ -7,19 +7,24 @@
 #include "Critter.h"
 
 // Script events
-#define MAP_EVENT_FINISH                ( 0 )
-#define MAP_EVENT_LOOP_0                ( 1 )
-#define MAP_EVENT_LOOP_1                ( 2 )
-#define MAP_EVENT_LOOP_2                ( 3 )
-#define MAP_EVENT_LOOP_3                ( 4 )
-#define MAP_EVENT_LOOP_4                ( 5 )
-#define MAP_EVENT_IN_CRITTER            ( 6 )
-#define MAP_EVENT_OUT_CRITTER           ( 7 )
-#define MAP_EVENT_CRITTER_DEAD          ( 8 )
-#define MAP_EVENT_TURN_BASED_BEGIN      ( 9 )
-#define MAP_EVENT_TURN_BASED_END        ( 10 )
-#define MAP_EVENT_TURN_BASED_PROCESS    ( 11 )
-#define MAP_EVENT_MAX                   ( 12 )
+enum MAP_EVENT_TYPES
+{
+	MAP_EVENT_FINISH = 0,
+	MAP_EVENT_LOOP_0,
+	MAP_EVENT_LOOP_1,
+	MAP_EVENT_LOOP_2,
+	MAP_EVENT_LOOP_3,
+	MAP_EVENT_LOOP_4,
+	MAP_EVENT_IN_CRITTER,
+	MAP_EVENT_OUT_CRITTER,
+	MAP_EVENT_CRITTER_DEAD,
+	MAP_EVENT_TURN_BASED_BEGIN,
+	MAP_EVENT_TURN_BASED_END,
+	MAP_EVENT_TURN_BASED_PROCESS,
+	
+	MAP_EVENT_MAX
+};
+
 extern const char* MapEventFuncName[ MAP_EVENT_MAX ];
 
 // Loop times
@@ -267,9 +272,13 @@ public:
 typedef vector< ProtoLocation > ProtoLocVec;
 
 // Script events
-#define LOCATION_EVENT_FINISH    ( 0 )
-#define LOCATION_EVENT_ENTER     ( 1 )
-#define LOCATION_EVENT_MAX       ( 2 )
+enum LOCATION_EVENT_TYPES
+{
+	LOCATION_EVENT_FINISH = 0,
+	LOCATION_EVENT_ENTER,
+	LOCATION_EVENT_MAX
+};
+
 extern const char* LocationEventFuncName[ LOCATION_EVENT_MAX ];
 
 class Location

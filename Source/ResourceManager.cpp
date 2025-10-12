@@ -606,61 +606,73 @@ AnyFrames* ResourceManager::LoadFalloutAnimSpr( uint crtype, uint anim1, uint an
         } while( 0 )
 // ////////////////////////////////////////////////////////////////////////
     // Fallout animations
-    #define ANIM1_FALLOUT_UNARMED               ( 1 )
-    #define ANIM1_FALLOUT_DEAD                  ( 2 )
-    #define ANIM1_FALLOUT_KNOCKOUT              ( 3 )
-    #define ANIM1_FALLOUT_KNIFE                 ( 4 )
-    #define ANIM1_FALLOUT_CLUB                  ( 5 )
-    #define ANIM1_FALLOUT_HAMMER                ( 6 )
-    #define ANIM1_FALLOUT_SPEAR                 ( 7 )
-    #define ANIM1_FALLOUT_PISTOL                ( 8 )
-    #define ANIM1_FALLOUT_UZI                   ( 9 )
-    #define ANIM1_FALLOUT_SHOOTGUN              ( 10 )
-    #define ANIM1_FALLOUT_RIFLE                 ( 11 )
-    #define ANIM1_FALLOUT_MINIGUN               ( 12 )
-    #define ANIM1_FALLOUT_ROCKET_LAUNCHER       ( 13 )
-    #define ANIM1_FALLOUT_AIM                   ( 14 )
-    #define ANIM2_FALLOUT_STAY                  ( 1 )
-    #define ANIM2_FALLOUT_WALK                  ( 2 )
-    #define ANIM2_FALLOUT_SHOW                  ( 3 )
-    #define ANIM2_FALLOUT_HIDE                  ( 4 )
-    #define ANIM2_FALLOUT_DODGE_WEAPON          ( 5 )
-    #define ANIM2_FALLOUT_THRUST                ( 6 )
-    #define ANIM2_FALLOUT_SWING                 ( 7 )
-    #define ANIM2_FALLOUT_PREPARE_WEAPON        ( 8 )
-    #define ANIM2_FALLOUT_TURNOFF_WEAPON        ( 9 )
-    #define ANIM2_FALLOUT_SHOOT                 ( 10 )
-    #define ANIM2_FALLOUT_BURST                 ( 11 )
-    #define ANIM2_FALLOUT_FLAME                 ( 12 )
-    #define ANIM2_FALLOUT_THROW_WEAPON          ( 13 )
-    #define ANIM2_FALLOUT_DAMAGE_FRONT          ( 15 )
-    #define ANIM2_FALLOUT_DAMAGE_BACK           ( 16 )
-    #define ANIM2_FALLOUT_KNOCK_FRONT           ( 1 )  // Only with ANIM1_FALLOUT_DEAD
-    #define ANIM2_FALLOUT_KNOCK_BACK            ( 2 )
-    #define ANIM2_FALLOUT_STANDUP_BACK          ( 8 )  // Only with ANIM1_FALLOUT_KNOCKOUT
-    #define ANIM2_FALLOUT_STANDUP_FRONT         ( 10 )
-    #define ANIM2_FALLOUT_PICKUP                ( 11 ) // Only with ANIM1_FALLOUT_UNARMED
-    #define ANIM2_FALLOUT_USE                   ( 12 )
-    #define ANIM2_FALLOUT_DODGE_EMPTY           ( 14 )
-    #define ANIM2_FALLOUT_PUNCH                 ( 17 )
-    #define ANIM2_FALLOUT_KICK                  ( 18 )
-    #define ANIM2_FALLOUT_THROW_EMPTY           ( 19 )
-    #define ANIM2_FALLOUT_RUN                   ( 20 )
-    #define ANIM2_FALLOUT_DEAD_FRONT            ( 1 ) // Only with ANIM1_FALLOUT_DEAD
-    #define ANIM2_FALLOUT_DEAD_BACK             ( 2 )
-    #define ANIM2_FALLOUT_DEAD_BLOODY_SINGLE    ( 4 )
-    #define ANIM2_FALLOUT_DEAD_BURN             ( 5 )
-    #define ANIM2_FALLOUT_DEAD_BLOODY_BURST     ( 6 )
-    #define ANIM2_FALLOUT_DEAD_BURST            ( 7 )
-    #define ANIM2_FALLOUT_DEAD_PULSE            ( 8 )
-    #define ANIM2_FALLOUT_DEAD_LASER            ( 9 )
-    #define ANIM2_FALLOUT_DEAD_BURN2            ( 10 )
-    #define ANIM2_FALLOUT_DEAD_PULSE_DUST       ( 11 )
-    #define ANIM2_FALLOUT_DEAD_EXPLODE          ( 12 )
-    #define ANIM2_FALLOUT_DEAD_FUSED            ( 13 )
-    #define ANIM2_FALLOUT_DEAD_BURN_RUN         ( 14 )
-    #define ANIM2_FALLOUT_DEAD_FRONT2           ( 15 )
-    #define ANIM2_FALLOUT_DEAD_BACK2            ( 16 )
+	enum FALLOUT_ANIM1_TYPES
+	{
+		ANIM1_FALLOUT_UNARMED = 1,
+		ANIM1_FALLOUT_DEAD,
+		ANIM1_FALLOUT_KNOCKOUT,
+		ANIM1_FALLOUT_KNIFE,
+		ANIM1_FALLOUT_CLUB,
+		ANIM1_FALLOUT_HAMMER,
+		ANIM1_FALLOUT_SPEAR,
+		ANIM1_FALLOUT_PISTOL,
+		ANIM1_FALLOUT_UZI,
+		ANIM1_FALLOUT_SHOOTGUN,
+		ANIM1_FALLOUT_RIFLE,
+		ANIM1_FALLOUT_MINIGUN,
+		ANIM1_FALLOUT_ROCKET_LAUNCHER,
+		ANIM1_FALLOUT_AIM
+	};
+	enum FALLOUT_ANIM2_TYPES1
+	{
+		ANIM2_FALLOUT_STAY = 1,
+		ANIM2_FALLOUT_WALK,
+		ANIM2_FALLOUT_SHOW,
+		ANIM2_FALLOUT_HIDE,
+		ANIM2_FALLOUT_DODGE_WEAPON,
+		ANIM2_FALLOUT_THRUST,
+		ANIM2_FALLOUT_SWING,
+		ANIM2_FALLOUT_PREPARE_WEAPON,
+		ANIM2_FALLOUT_TURNOFF_WEAPON,
+		ANIM2_FALLOUT_SHOOT,
+		ANIM2_FALLOUT_BURST,
+		ANIM2_FALLOUT_FLAME,
+		ANIM2_FALLOUT_THROW_WEAPON,
+		ANIM2_FALLOUT_DAMAGE_FRONT = 15,
+		ANIM2_FALLOUT_DAMAGE_BACK
+	};
+	enum FALLOUT_ANIM2_TYPES2
+	{
+		ANIM2_FALLOUT_KNOCK_FRONT = 1,	// Only with ANIM1_FALLOUT_DEAD
+		ANIM2_FALLOUT_KNOCK_BACK,
+		ANIM2_FALLOUT_STANDUP_BACK = 8,	// Only with ANIM1_FALLOUT_KNOCKOUT
+		ANIM2_FALLOUT_STANDUP_FRONT = 10,
+		ANIM2_FALLOUT_PICKUP,			// Only with ANIM1_FALLOUT_UNARMED
+		ANIM2_FALLOUT_USE,
+		ANIM2_FALLOUT_DODGE_EMPTY = 14,
+		ANIM2_FALLOUT_PUNCH = 17,
+		ANIM2_FALLOUT_KICK,
+		ANIM2_FALLOUT_THROW_EMPTY,
+		ANIM2_FALLOUT_RUN
+	};
+	enum FALLOUT_ANIM2_DEAD_TYPES
+	{
+		ANIM2_FALLOUT_DEAD_FRONT = 1,	// Only with ANIM1_FALLOUT_DEAD
+		ANIM2_FALLOUT_DEAD_BACK,
+		ANIM2_FALLOUT_DEAD_BLOODY_SINGLE = 4,
+		ANIM2_FALLOUT_DEAD_BURN,
+		ANIM2_FALLOUT_DEAD_BLOODY_BURST,
+		ANIM2_FALLOUT_DEAD_BURST,
+		ANIM2_FALLOUT_DEAD_PULSE,
+		ANIM2_FALLOUT_DEAD_LASER,
+		ANIM2_FALLOUT_DEAD_BURN2,
+		ANIM2_FALLOUT_DEAD_PULSE_DUST,
+		ANIM2_FALLOUT_DEAD_EXPLODE,
+		ANIM2_FALLOUT_DEAD_FUSED,
+		ANIM2_FALLOUT_DEAD_BURN_RUN,
+		ANIM2_FALLOUT_DEAD_FRONT2,
+		ANIM2_FALLOUT_DEAD_BACK2
+	};
 // ////////////////////////////////////////////////////////////////////////
 
     if( anim1 == ANIM1_FALLOUT_AIM )

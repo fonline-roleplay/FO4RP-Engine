@@ -10,8 +10,13 @@
 #define DIALOG_FILE_EXT            ".fodlg"
 
 // Special script
-#define NOT_ANSWER_CLOSE_DIALOG    ( 0 )
-#define NOT_ANSWER_BEGIN_BATTLE    ( 1 )
+enum SPECIAL_SCRIPT_DLG
+{
+	NOT_ANSWER_CLOSE_DIALOG = 0,
+	NOT_ANSWER_BEGIN_BATTLE,
+
+	NOT_ANSWER_MAX
+};
 
 // Dialog flags
 #define DIALOG_FLAG_NO_SHUFFLE     ( 1 )
@@ -23,14 +28,19 @@
 #define DIALOG_ATTACK              ( 0xFFE3 )
 
 // Types
-#define DR_NONE                    ( 0 )
-#define DR_PARAM                   ( 1 )
-#define DR_ITEM                    ( 2 )
-#define DR_VAR                     ( 3 )
-#define DR_SCRIPT                  ( 4 )
-#define DR_LOCK                    ( 5 )
-#define DR_NO_RECHECK              ( 6 )
-#define DR_OR                      ( 7 )
+enum DR_TYPE
+{
+	DR_NONE = 0,
+	DR_PARAM,
+	DR_ITEM,
+	DR_VAR,
+	DR_SCRIPT,
+	DR_LOCK,
+	DR_NO_RECHECK,
+	DR_OR,
+
+	DR_MAX
+};
 
 class DemandResult
 {
@@ -141,9 +151,14 @@ typedef map< uint, DialogPack* > DialogPackMap;
 struct Talking
 {
     int    TalkType;
-    #define TALK_NONE        ( 0 )
-    #define TALK_WITH_NPC    ( 1 )
-    #define TALK_WITH_HEX    ( 2 )
+	enum TALK_TYPE
+	{
+		TALK_NONE = 0,
+		TALK_WITH_NPC,
+		TALK_WITH_HEX,
+
+		TALK_MAX
+	};
     uint   TalkNpc;
     uint   TalkHexMap;
     ushort TalkHexX, TalkHexY;

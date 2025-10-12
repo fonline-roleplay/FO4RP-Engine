@@ -68,18 +68,22 @@ struct TraceData
 // Path
 #define FPATH_DATA_SIZE              ( 10000 )
 #define FPATH_MAX_PATH               ( 400 )
-#define FPATH_OK                     ( 0 )
-#define FPATH_ALREADY_HERE           ( 2 )
-#define FPATH_MAP_NOT_FOUND          ( 5 )
-#define FPATH_HEX_BUSY               ( 6 )
-#define FPATH_HEX_BUSY_RING          ( 7 )
-#define FPATH_TOOFAR                 ( 8 )
-#define FPATH_DEADLOCK               ( 9 )
-#define FPATH_ERROR                  ( 10 )
-#define FPATH_INVALID_HEXES          ( 11 )
-#define FPATH_TRACE_FAIL             ( 12 )
-#define FPATH_TRACE_TARG_NULL_PTR    ( 13 )
-#define FPATH_ALLOC_FAIL             ( 14 )
+
+enum FPATH_ERRORS
+{
+	FPATH_OK = 0,
+	FPATH_ALREADY_HERE = 2,
+	FPATH_MAP_NOT_FOUND = 5,
+	FPATH_HEX_BUSY,
+	FPATH_HEX_BUSY_RING,
+	FPATH_TOOFAR,
+	FPATH_DEADLOCK,
+	FPATH_ERROR,
+	FPATH_INVALID_HEXES,
+	FPATH_TRACE_FAIL,
+	FPATH_TRACE_TARG_NULL_PTR,
+	FPATH_ALLOC_FAIL
+};
 
 struct PathFindData
 {

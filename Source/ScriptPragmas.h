@@ -7,10 +7,15 @@
 #include <string>
 using namespace std;
 
-#define PRAGMA_UNKNOWN    ( 0 )
-#define PRAGMA_SERVER     ( 1 )
-#define PRAGMA_CLIENT     ( 2 )
-#define PRAGMA_MAPPER     ( 3 )
+enum PRAGMA_TYPES
+{
+	PRAGMA_UNKNOWN = 0,
+	PRAGMA_SERVER,
+	PRAGMA_CLIENT,
+	PRAGMA_MAPPER,
+
+	PRAGMA_TYPE_MAX
+};
 
 class IgnorePragma;
 class GlobalVarPragma;

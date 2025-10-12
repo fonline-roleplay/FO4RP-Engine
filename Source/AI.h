@@ -8,12 +8,17 @@
 #define MAX_NPC_BAGS_PACKS           ( 20 )
 #define NPC_GO_HOME_WAIT_TICK        ( Random( 4000, 6000 ) )
 
-#define AI_PLANE_MISC                ( 0 )
-#define AI_PLANE_ATTACK              ( 1 )
-#define AI_PLANE_WALK                ( 2 )
-#define AI_PLANE_PICK                ( 3 )
-#define AI_PLANE_PATROL              ( 4 )
-#define AI_PLANE_COURIER             ( 5 )
+enum AI_PLANE_TYPES
+{
+	AI_PLANE_MISC = 0,
+	AI_PLANE_ATTACK,
+	AI_PLANE_WALK,
+	AI_PLANE_PICK,
+	AI_PLANE_PATROL,
+	AI_PLANE_COURIER,
+
+	AI_PLANE_TYPE_MAX
+};
 
 #define AI_PLANE_MISC_PRIORITY       ( 10 )
 #define AI_PLANE_ATTACK_PRIORITY     ( 50 )
@@ -179,31 +184,34 @@ extern NpcAIMngr AIMngr;
 
 
 // Plane begin/end/run reasons
-// Begin
-#define REASON_GO_HOME                 ( 10 )
-#define REASON_FOUND_IN_ENEMY_STACK    ( 11 )
-#define REASON_FROM_DIALOG             ( 12 )
-#define REASON_FROM_SCRIPT             ( 13 )
-#define REASON_RUN_AWAY                ( 14 )
-// End
-#define REASON_SUCCESS                 ( 30 )
-#define REASON_HEX_TOO_FAR             ( 31 )
-#define REASON_HEX_BUSY                ( 32 )
-#define REASON_HEX_BUSY_RING           ( 33 )
-#define REASON_DEADLOCK                ( 34 )
-#define REASON_TRACE_FAIL              ( 35 )
-#define REASON_POSITION_NOT_FOUND      ( 36 )
-#define REASON_FIND_PATH_ERROR         ( 37 )
-#define REASON_CANT_WALK               ( 38 )
-#define REASON_TARGET_DISAPPEARED      ( 39 )
-#define REASON_USE_ITEM_NOT_FOUND      ( 40 )
-#define REASON_GAG_CRITTER             ( 41 )
-#define REASON_GAG_ITEM                ( 42 )
-#define REASON_NO_UNARMED              ( 43 )
-// Run
-#define REASON_ATTACK_TARGET           ( 50 )
-#define REASON_ATTACK_WEAPON           ( 51 )
-#define REASON_ATTACK_DISTANTION       ( 52 )
-#define REASON_ATTACK_USE_AIM          ( 53 )
+enum PLANE_REASONS
+{
+	// Begin
+	REASON_GO_HOME = 10,
+	REASON_FOUND_IN_ENEMY_STACK,
+	REASON_FROM_DIALOG,
+	REASON_FROM_SCRIPT,
+	REASON_RUN_AWAY,
+	// End
+	REASON_SUCCESS = 30,
+	REASON_HEX_TOO_FAR,
+	REASON_HEX_BUSY,
+	REASON_HEX_BUSY_RING,
+	REASON_DEADLOCK,
+	REASON_TRACE_FAIL,
+	REASON_POSITION_NOT_FOUND,
+	REASON_FIND_PATH_ERROR,
+	REASON_CANT_WALK,
+	REASON_TARGET_DISAPPEARED,
+	REASON_USE_ITEM_NOT_FOUND,
+	REASON_GAG_CRITTER,
+	REASON_GAG_ITEM,
+	REASON_NO_UNARMED,
+	// Run
+	REASON_ATTACK_TARGET = 50,
+	REASON_ATTACK_WEAPON,
+	REASON_ATTACK_DISTANTION,
+	REASON_ATTACK_USE_AIM,
+};
 
 #endif // __AI__

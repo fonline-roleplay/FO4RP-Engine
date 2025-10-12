@@ -2,24 +2,28 @@
 #define __JOBS__
 
 // Server job types
-#define JOB_NOP                   ( 0 )
-#define JOB_CLIENT                ( 1 )
-#define JOB_CRITTER               ( 2 )
-#define JOB_MAP                   ( 3 )
-#define JOB_TIME_EVENTS           ( 4 )
-#define JOB_GARBAGE_ITEMS         ( 5 )
-#define JOB_GARBAGE_CRITTERS      ( 6 )
-#define JOB_GARBAGE_LOCATIONS     ( 7 )
-#define JOB_GARBAGE_SCRIPT        ( 8 )
-#define JOB_GARBAGE_VARS          ( 9 )
-#define JOB_DEFERRED_RELEASE      ( 10 )
-#define JOB_GAME_TIME             ( 11 )
-#define JOB_BANS                  ( 12 )
-#define JOB_LOOP_SCRIPT           ( 13 )
-#define JOB_THREAD_LOOP           ( 14 )
-#define JOB_THREAD_SYNCHRONIZE    ( 15 )
-#define JOB_THREAD_FINISH         ( 16 )
-#define JOB_COUNT                 ( 17 )
+enum JOB_TYPES
+{
+	JOB_NOP = 0,
+	JOB_CLIENT,
+	JOB_CRITTER,
+	JOB_MAP,
+	JOB_TIME_EVENTS,
+	JOB_GARBAGE_ITEMS,
+	JOB_GARBAGE_CRITTERS,
+	JOB_GARBAGE_LOCATIONS,
+	JOB_GARBAGE_SCRIPT,
+	JOB_GARBAGE_VARS,
+	JOB_DEFERRED_RELEASE,
+	JOB_GAME_TIME,
+	JOB_BANS,
+	JOB_LOOP_SCRIPT,
+	JOB_THREAD_LOOP,
+	JOB_THREAD_SYNCHRONIZE,
+	JOB_THREAD_FINISH,
+	
+	JOB_COUNT
+};
 
 class Critter;
 class Map;

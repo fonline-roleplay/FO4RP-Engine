@@ -1463,16 +1463,22 @@ void FOClient::ParseKeyboard()
     }
 }
 
-#define MOUSE_CLICK_LEFT          ( 0 )
-#define MOUSE_CLICK_RIGHT         ( 1 )
-#define MOUSE_CLICK_MIDDLE        ( 2 )
-#define MOUSE_CLICK_WHEEL_UP      ( 3 )
-#define MOUSE_CLICK_WHEEL_DOWN    ( 4 )
-#define MOUSE_CLICK_EXT0          ( 5 )
-#define MOUSE_CLICK_EXT1          ( 6 )
-#define MOUSE_CLICK_EXT2          ( 7 )
-#define MOUSE_CLICK_EXT3          ( 8 )
-#define MOUSE_CLICK_EXT4          ( 9 )
+enum MOUSE_CLICK_TYPES
+{
+	MOUSE_CLICK_LEFT = 0,
+	MOUSE_CLICK_RIGHT,
+	MOUSE_CLICK_MIDDLE,
+	MOUSE_CLICK_WHEEL_UP,
+	MOUSE_CLICK_WHEEL_DOWN,
+	MOUSE_CLICK_EXT0,
+	MOUSE_CLICK_EXT1,
+	MOUSE_CLICK_EXT2,
+	MOUSE_CLICK_EXT3,
+	MOUSE_CLICK_EXT4,
+
+	MOUSE_CLICK_MAX
+};
+
 void FOClient::ParseMouse()
 {
     // Mouse position
@@ -10720,32 +10726,35 @@ void FOClient::SScriptFunc::Global_RefreshItemsCollection( int collection )
     }
 }
 
-#define SCROLL_MESSBOX                  ( 0 )
-#define SCROLL_INVENTORY                ( 1 )
-#define SCROLL_INVENTORY_ITEM_INFO      ( 2 )
-#define SCROLL_PICKUP                   ( 3 )
-#define SCROLL_PICKUP_FROM              ( 4 )
-#define SCROLL_USE                      ( 5 )
-#define SCROLL_BARTER                   ( 6 )
-#define SCROLL_BARTER_OFFER             ( 7 )
-#define SCROLL_BARTER_OPPONENT          ( 8 )
-#define SCROLL_BARTER_OPPONENT_OFFER    ( 9 )
-#define SCROLL_GLOBAL_MAP_CITIES_X      ( 10 )
-#define SCROLL_GLOBAL_MAP_CITIES_Y      ( 11 )
-#define SCROLL_SPLIT_VALUE              ( 12 )
-#define SCROLL_TIMER_VALUE              ( 13 )
-#define SCROLL_PERK                     ( 14 )
-#define SCROLL_DIALOG_TEXT              ( 15 )
-#define SCROLL_MAP_ZOOM_VALUE           ( 16 )
-#define SCROLL_CHARACTER_PERKS          ( 17 )
-#define SCROLL_CHARACTER_KARMA          ( 18 )
-#define SCROLL_CHARACTER_KILLS          ( 19 )
-#define SCROLL_PIPBOY_STATUS            ( 20 )
-#define SCROLL_PIPBOY_STATUS_QUESTS     ( 21 )
-#define SCROLL_PIPBOY_STATUS_SCORES     ( 22 )
-#define SCROLL_PIPBOY_AUTOMAPS          ( 23 )
-#define SCROLL_PIPBOY_ARCHIVES          ( 24 )
-#define SCROLL_PIPBOY_ARCHIVES_INFO     ( 25 )
+enum SCROLL_TYPES
+{
+	SCROLL_MESSBOX = 0,
+	SCROLL_INVENTORY,
+	SCROLL_INVENTORY_ITEM_INFO,
+	SCROLL_PICKUP,
+	SCROLL_PICKUP_FROM,
+	SCROLL_USE,
+	SCROLL_BARTER,
+	SCROLL_BARTER_OFFER,
+	SCROLL_BARTER_OPPONENT,
+	SCROLL_BARTER_OPPONENT_OFFER,
+	SCROLL_GLOBAL_MAP_CITIES_X,
+	SCROLL_GLOBAL_MAP_CITIES_Y,
+	SCROLL_SPLIT_VALUE,
+	SCROLL_TIMER_VALUE,
+	SCROLL_PERK,
+	SCROLL_DIALOG_TEXT,
+	SCROLL_MAP_ZOOM_VALUE,
+	SCROLL_CHARACTER_PERKS,
+	SCROLL_CHARACTER_KARMA,
+	SCROLL_CHARACTER_KILLS,
+	SCROLL_PIPBOY_STATUS,
+	SCROLL_PIPBOY_STATUS_QUESTS,
+	SCROLL_PIPBOY_STATUS_SCORES,
+	SCROLL_PIPBOY_AUTOMAPS,
+	SCROLL_PIPBOY_ARCHIVES,
+	SCROLL_PIPBOY_ARCHIVES_INFO
+};
 
 int FOClient::SScriptFunc::Global_GetScroll( int scroll_element )
 {

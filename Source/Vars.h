@@ -10,12 +10,16 @@
 #define VAR_CALC_QUEST( tid, val )    ( ( tid ) * 1000 + ( val ) )
 
 // Types
-#define VAR_GLOBAL            ( 0 )
-#define VAR_LOCAL             ( 1 )
-#define VAR_UNICUM            ( 2 )
-#define VAR_LOCAL_LOCATION    ( 3 )
-#define VAR_LOCAL_MAP         ( 4 )
-#define VAR_LOCAL_ITEM        ( 5 )
+enum VAR_TYPES
+{
+	VAR_GLOBAL = 0,
+	VAR_LOCAL,
+	VAR_UNICUM,
+	VAR_LOCAL_LOCATION,
+	VAR_LOCAL_MAP,
+	VAR_LOCAL_ITEM,
+	VAR_MAX
+};
 
 // Flags
 #define VAR_FLAG_QUEST        ( 0x1 )
