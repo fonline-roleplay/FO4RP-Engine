@@ -19,77 +19,63 @@
 #endif
 
 // Events
-enum CRITTER_EVENTS
-{
-	CRITTER_EVENT_IDLE = 0,
-	CRITTER_EVENT_FINISH,
-	CRITTER_EVENT_DEAD,
-	CRITTER_EVENT_RESPAWN,
-	CRITTER_EVENT_SHOW_CRITTER,
-	CRITTER_EVENT_SHOW_CRITTER_1,
-	CRITTER_EVENT_SHOW_CRITTER_2,
-	CRITTER_EVENT_SHOW_CRITTER_3,
-	CRITTER_EVENT_HIDE_CRITTER,
-	CRITTER_EVENT_HIDE_CRITTER_1,
-	CRITTER_EVENT_HIDE_CRITTER_2,
-	CRITTER_EVENT_HIDE_CRITTER_3,
-	CRITTER_EVENT_SHOW_ITEM_ON_MAP,
-	CRITTER_EVENT_CHANGE_ITEM_ON_MAP,
-	CRITTER_EVENT_HIDE_ITEM_ON_MAP,
-	CRITTER_EVENT_ATTACK,
-	CRITTER_EVENT_ATTACKED,
-	CRITTER_EVENT_STEALING,
-	CRITTER_EVENT_MESSAGE,
-	CRITTER_EVENT_USE_ITEM,
-	CRITTER_EVENT_USE_ITEM_ON_ME,
-	CRITTER_EVENT_USE_SKILL,
-	CRITTER_EVENT_USE_SKILL_ON_ME,
-	CRITTER_EVENT_DROP_ITEM,
-	CRITTER_EVENT_MOVE_ITEM,
-	CRITTER_EVENT_KNOCKOUT,
-	CRITTER_EVENT_SMTH_DEAD,
-	CRITTER_EVENT_SMTH_STEALING,
-	CRITTER_EVENT_SMTH_ATTACK,
-	CRITTER_EVENT_SMTH_ATTACKED,
-	CRITTER_EVENT_SMTH_USE_ITEM,
-	CRITTER_EVENT_SMTH_USE_SKILL,
-	CRITTER_EVENT_SMTH_DROP_ITEM,
-	CRITTER_EVENT_SMTH_MOVE_ITEM,
-	CRITTER_EVENT_SMTH_KNOCKOUT,
-	CRITTER_EVENT_PLANE_BEGIN,
-	CRITTER_EVENT_PLANE_END,
-	CRITTER_EVENT_PLANE_RUN,
-	CRITTER_EVENT_BARTER,
-	CRITTER_EVENT_TALK,
-	CRITTER_EVENT_GLOBAL_PROCESS,
-	CRITTER_EVENT_GLOBAL_INVITE,
-	CRITTER_EVENT_TURN_BASED_PROCESS,
-	CRITTER_EVENT_SMTH_TURN_BASED_PROCESS,
-	
-	CRITTER_EVENT_MAX
-};
+#define CRITTER_EVENT_IDLE                       ( 0 )
+#define CRITTER_EVENT_FINISH                     ( 1 )
+#define CRITTER_EVENT_DEAD                       ( 2 )
+#define CRITTER_EVENT_RESPAWN                    ( 3 )
+#define CRITTER_EVENT_SHOW_CRITTER               ( 4 )
+#define CRITTER_EVENT_SHOW_CRITTER_1             ( 5 )
+#define CRITTER_EVENT_SHOW_CRITTER_2             ( 6 )
+#define CRITTER_EVENT_SHOW_CRITTER_3             ( 7 )
+#define CRITTER_EVENT_HIDE_CRITTER               ( 8 )
+#define CRITTER_EVENT_HIDE_CRITTER_1             ( 9 )
+#define CRITTER_EVENT_HIDE_CRITTER_2             ( 10 )
+#define CRITTER_EVENT_HIDE_CRITTER_3             ( 11 )
+#define CRITTER_EVENT_SHOW_ITEM_ON_MAP           ( 12 )
+#define CRITTER_EVENT_CHANGE_ITEM_ON_MAP         ( 13 )
+#define CRITTER_EVENT_HIDE_ITEM_ON_MAP           ( 14 )
+#define CRITTER_EVENT_ATTACK                     ( 15 )
+#define CRITTER_EVENT_ATTACKED                   ( 16 )
+#define CRITTER_EVENT_STEALING                   ( 17 )
+#define CRITTER_EVENT_MESSAGE                    ( 18 )
+#define CRITTER_EVENT_USE_ITEM                   ( 19 )
+#define CRITTER_EVENT_USE_ITEM_ON_ME             ( 20 )
+#define CRITTER_EVENT_USE_SKILL                  ( 21 )
+#define CRITTER_EVENT_USE_SKILL_ON_ME            ( 22 )
+#define CRITTER_EVENT_DROP_ITEM                  ( 23 )
+#define CRITTER_EVENT_MOVE_ITEM                  ( 24 )
+#define CRITTER_EVENT_KNOCKOUT                   ( 25 )
+#define CRITTER_EVENT_SMTH_DEAD                  ( 26 )
+#define CRITTER_EVENT_SMTH_STEALING              ( 27 )
+#define CRITTER_EVENT_SMTH_ATTACK                ( 28 )
+#define CRITTER_EVENT_SMTH_ATTACKED              ( 29 )
+#define CRITTER_EVENT_SMTH_USE_ITEM              ( 30 )
+#define CRITTER_EVENT_SMTH_USE_SKILL             ( 31 )
+#define CRITTER_EVENT_SMTH_DROP_ITEM             ( 32 )
+#define CRITTER_EVENT_SMTH_MOVE_ITEM             ( 33 )
+#define CRITTER_EVENT_SMTH_KNOCKOUT              ( 34 )
+#define CRITTER_EVENT_PLANE_BEGIN                ( 35 )
+#define CRITTER_EVENT_PLANE_END                  ( 36 )
+#define CRITTER_EVENT_PLANE_RUN                  ( 37 )
+#define CRITTER_EVENT_BARTER                     ( 38 )
+#define CRITTER_EVENT_TALK                       ( 39 )
+#define CRITTER_EVENT_GLOBAL_PROCESS             ( 40 )
+#define CRITTER_EVENT_GLOBAL_INVITE              ( 41 )
+#define CRITTER_EVENT_TURN_BASED_PROCESS         ( 42 )
+#define CRITTER_EVENT_SMTH_TURN_BASED_PROCESS    ( 43 )
+#define CRITTER_EVENT_MAX                        ( 44 )
 extern const char* CritterEventFuncName[ CRITTER_EVENT_MAX ];
 
 // Plane results
-enum AI_PLAN_RESULTS
-{
-	PLANE_RUN_GLOBAL = 0,
-	PLANE_KEEP,
-	PLANE_DISCARD,
-	
-	PLANE_RESULTS_MAX
-};
+#define PLANE_RUN_GLOBAL                         ( 0 )
+#define PLANE_KEEP                               ( 1 )
+#define PLANE_DISCARD                            ( 2 )
 
 // Client game states
-enum GAME_STATES
-{
-	STATE_NONE = 0,
-	STATE_CONNECTED,
-	STATE_PLAYING,
-	STATE_TRANSFERRING,
-
-	STATE_MAX
-};
+#define STATE_NONE                               ( 0 )
+#define STATE_CONNECTED                          ( 1 )
+#define STATE_PLAYING                            ( 2 )
+#define STATE_TRANSFERRING                       ( 3 )
 
 class Critter;
 class Client;

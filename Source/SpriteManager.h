@@ -79,49 +79,36 @@
 #define DRAW_ORDER_CRIT_AUTO( c )     ( c->IsDead() && !c->IsRawParam( MODE_NO_FLATTEN ) ? DRAW_ORDER_DEAD_CRITTER : DRAW_ORDER_CRITTER )
 
 // Sprites cutting
-enum SPRITE_CUT_TYPES
-{
-	SPRITE_CUT_HORIZONTAL = 1,
-	SPRITE_CUT_VERTICAL,
-	SPRITE_CUT_CUSTOM,
-
-	SPRITE_CUT_TYPE_MAX
-};
+#define SPRITE_CUT_HORIZONTAL        ( 1 )
+#define SPRITE_CUT_VERTICAL          ( 2 )
+#define SPRITE_CUT_CUSTOM            ( 3 )             // Todo
 
 // Egg types
-enum EGG_TYPES
-{
-	EGG_ALWAYS = 1,
-	EGG_X,
-	EGG_Y,
-	EGG_X_AND_Y,
-	EGG_X_OR_Y,
+#define EGG_ALWAYS                   ( 1 )
+#define EGG_X                        ( 2 )
+#define EGG_Y                        ( 3 )
+#define EGG_X_AND_Y                  ( 4 )
+#define EGG_X_OR_Y                   ( 5 )
 
-	EGG_TYPE_MAX
-};
+// Egg types
+#define EGG_ALWAYS                   ( 1 )
+#define EGG_X                        ( 2 )
+#define EGG_Y                        ( 3 )
+#define EGG_X_AND_Y                  ( 4 )
+#define EGG_X_OR_Y                   ( 5 )
 
 // Contour types
-enum CONTOUR_TYPES
-{
-	CONTOUR_RED = 1,
-	CONTOUR_YELLOW,
-	CONTOUR_CUSTOM,
-
-	CONTOUR_TYPE_MAX
-};
+#define CONTOUR_RED                  ( 1 )
+#define CONTOUR_YELLOW               ( 2 )
+#define CONTOUR_CUSTOM               ( 3 )
 
 // Primitives
-enum PRIMITIVE_TYPES
-{
-	PRIMITIVE_POINTLIST = 1,
-	PRIMITIVE_LINELIST,
-	PRIMITIVE_LINESTRIP,
-	PRIMITIVE_TRIANGLELIST,
-	PRIMITIVE_TRIANGLESTRIP,
-	PRIMITIVE_TRIANGLEFAN,
-
-	PRIMITIVE_TYPE_MAX
-};
+#define PRIMITIVE_POINTLIST          ( 1 )
+#define PRIMITIVE_LINELIST           ( 2 )
+#define PRIMITIVE_LINESTRIP          ( 3 )
+#define PRIMITIVE_TRIANGLELIST       ( 4 )
+#define PRIMITIVE_TRIANGLESTRIP      ( 5 )
+#define PRIMITIVE_TRIANGLEFAN        ( 6 )
 
 struct Surface
 {

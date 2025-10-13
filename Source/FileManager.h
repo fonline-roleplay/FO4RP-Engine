@@ -7,58 +7,49 @@
 #include "DataFile.h"
 
 // Client and mapper paths
-enum PATH_SHARED_TYPES
-{
-	PT_ROOT = 0,
-	PT_DATA,
-	PT_ART,
-	PT_ART_CRITTERS,
-	PT_ART_INTRFACE,
-	PT_ART_INVEN,
-	PT_ART_ITEMS,
-	PT_ART_MISC,
-	PT_ART_SCENERY,
-	PT_ART_SKILLDEX,
-	PT_ART_SPLASH,
-	PT_ART_TILES,
-	PT_ART_WALLS,
-	PT_TEXTURES,
-	PT_EFFECTS,
-	PT_SND_MUSIC = 16,
-	PT_SND_SFX,
-	PT_SCRIPTS,
-	PT_VIDEO,
-	PT_TEXTS,
-	PT_SAVE,
-	PT_FONTS,
-	PT_CACHE
-};
+#define PT_ROOT                   ( 0 )
+#define PT_DATA                   ( 1 )
+#define PT_ART                    ( 2 )
+#define PT_ART_CRITTERS           ( 3 )
+#define PT_ART_INTRFACE           ( 4 )
+#define PT_ART_INVEN              ( 5 )
+#define PT_ART_ITEMS              ( 6 )
+#define PT_ART_MISC               ( 7 )
+#define PT_ART_SCENERY            ( 8 )
+#define PT_ART_SKILLDEX           ( 9 )
+#define PT_ART_SPLASH             ( 10 )
+#define PT_ART_TILES              ( 11 )
+#define PT_ART_WALLS              ( 12 )
+#define PT_TEXTURES               ( 13 )
+#define PT_EFFECTS                ( 14 )
+#define PT_SND_MUSIC              ( 16 )
+#define PT_SND_SFX                ( 17 )
+#define PT_SCRIPTS                ( 18 )
+#define PT_VIDEO                  ( 19 )
+#define PT_TEXTS                  ( 20 )
+#define PT_SAVE                   ( 21 )
+#define PT_FONTS                  ( 22 )
+#define PT_CACHE                  ( 23 )
 
 // Server paths
-enum PATH_SERVER_TYPES
-{
-	PT_SERVER_ROOT = 30,
-	PT_SERVER_DATA,
-	PT_SERVER_TEXTS,
-	PT_SERVER_DIALOGS,
-	PT_SERVER_MAPS,
-	PT_SERVER_PRO_ITEMS,
-	PT_SERVER_PRO_CRITTERS,
-	PT_SERVER_SCRIPTS,
-	PT_SERVER_SAVE,
-	PT_SERVER_CLIENTS,
-	PT_SERVER_BANS,
-	PT_SERVER_LOGS,
-	PT_SERVER_DUMPS,
-	PT_SERVER_PROFILER
-};
+#define PT_SERVER_ROOT            ( 30 )
+#define PT_SERVER_DATA            ( 31 )
+#define PT_SERVER_TEXTS           ( 32 )
+#define PT_SERVER_DIALOGS         ( 33 )
+#define PT_SERVER_MAPS            ( 34 )
+#define PT_SERVER_PRO_ITEMS       ( 35 )
+#define PT_SERVER_PRO_CRITTERS    ( 36 )
+#define PT_SERVER_SCRIPTS         ( 37 )
+#define PT_SERVER_SAVE            ( 38 )
+#define PT_SERVER_CLIENTS         ( 39 )
+#define PT_SERVER_BANS            ( 40 )
+#define PT_SERVER_LOGS            ( 41 )
+#define PT_SERVER_DUMPS           ( 42 )
+#define PT_SERVER_PROFILER        ( 43 )
 
 // Other
-enum PATH_MAPPER_TYPES
-{
-	PT_MAPPER_ROOT = 45,
-	PT_MAPPER_DATA
-};
+#define PT_MAPPER_ROOT            ( 45 )
+#define PT_MAPPER_DATA            ( 46 )
 
 #define PATH_LIST_COUNT           ( 50 )
 extern const char* PathList[ PATH_LIST_COUNT ];

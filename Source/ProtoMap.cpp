@@ -23,13 +23,10 @@
 #define FO_MAP_VERSION_V8       ( 0xFF100000 )
 #define FO_MAP_VERSION_V9       ( 0xFF200000 )
 
-enum FO_MAP_VERSION
-{
-	FO_MAP_VERSION_TEXT1 = 1,
-	FO_MAP_VERSION_TEXT2,
-	FO_MAP_VERSION_TEXT3,
-	FO_MAP_VERSION_TEXT4
-}
+#define FO_MAP_VERSION_TEXT1    ( 1 )
+#define FO_MAP_VERSION_TEXT2    ( 2 )
+#define FO_MAP_VERSION_TEXT3    ( 3 )
+#define FO_MAP_VERSION_TEXT4    ( 4 )
 
 #define APP_HEADER              "Header"
 #define APP_TILES               "Tiles"
@@ -37,15 +34,10 @@ enum FO_MAP_VERSION
 
 // Deprecated
 #define PMAP_OBJECT_SIZE_V5     ( 132 )
-enum DEPRECATED_MAP_OBJECT_TYPES
-{
-	MAPOBJ_CRITTER = 1,
-	MAPOBJ_WALL,
-	MAPOBJ_ITEM,
-	MAPOBJ_SCENERY,
-
-	MAPOBJ_MAX
-};
+#define MAPOBJ_CRITTER          ( 1 )
+#define MAPOBJ_WALL             ( 2 ) // Deprecated
+#define MAPOBJ_ITEM             ( 3 )
+#define MAPOBJ_SCENERY          ( 4 )
 
 class MapObjectV5
 {

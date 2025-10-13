@@ -9,19 +9,15 @@
 class Critter;
 class MapObject;
 
-enum ITEM_EVENT_TYPES
-{
-	ITEM_EVENT_FINISH = 0,
-	ITEM_EVENT_ATTACK,
-	ITEM_EVENT_USE,
-	ITEM_EVENT_USE_ON_ME,
-	ITEM_EVENT_SKILL,
-	ITEM_EVENT_DROP,
-	ITEM_EVENT_MOVE,
-	ITEM_EVENT_WALK,
-
-	ITEM_EVENT_MAX
-};
+#define ITEM_EVENT_FINISH             ( 0 )
+#define ITEM_EVENT_ATTACK             ( 1 )
+#define ITEM_EVENT_USE                ( 2 )
+#define ITEM_EVENT_USE_ON_ME          ( 3 )
+#define ITEM_EVENT_SKILL              ( 4 )
+#define ITEM_EVENT_DROP               ( 5 )
+#define ITEM_EVENT_MOVE               ( 6 )
+#define ITEM_EVENT_WALK               ( 7 )
+#define ITEM_EVENT_MAX                ( 8 )
 extern const char* ItemEventFuncName[ ITEM_EVENT_MAX ];
 
 // Prototypes
@@ -31,89 +27,62 @@ extern const char* ItemEventFuncName[ ITEM_EVENT_MAX ];
 #define ITEM_MAX_SCRIPT_VALUES        ( 10 )
 
 // Types
-enum ITEM_TYPES
-{
-	ITEM_TYPE_OTHER = 0,
-	ITEM_TYPE_ARMOR,
-	ITEM_TYPE_DRUG,			// stacked
-	ITEM_TYPE_WEAPON,		// combined
-	ITEM_TYPE_AMMO,			// stacked
-	ITEM_TYPE_MISC,			// combined
-	ITEM_TYPE_KEY = 7,
-	ITEM_TYPE_CONTAINER,
-	ITEM_TYPE_DOOR,
-	ITEM_TYPE_GRID,
-	ITEM_TYPE_GENERIC,
-	ITEM_TYPE_WALL,
-	ITEM_TYPE_CAR,
-	ITEM_TYPE_EFFECT,
-	
-	ITEM_MAX_TYPES
-};
+#define ITEM_TYPE_OTHER               ( 0 )
+#define ITEM_TYPE_ARMOR               ( 1 )
+#define ITEM_TYPE_DRUG                ( 2 ) // stacked
+#define ITEM_TYPE_WEAPON              ( 3 ) // combined
+#define ITEM_TYPE_AMMO                ( 4 ) // stacked
+#define ITEM_TYPE_MISC                ( 5 ) // combined
+#define ITEM_TYPE_KEY                 ( 7 )
+#define ITEM_TYPE_CONTAINER           ( 8 )
+#define ITEM_TYPE_DOOR                ( 9 )
+#define ITEM_TYPE_GRID                ( 10 )
+#define ITEM_TYPE_GENERIC             ( 11 )
+#define ITEM_TYPE_WALL                ( 12 )
+#define ITEM_TYPE_CAR                 ( 13 )
+#define ITEM_TYPE_EFFECT			  ( 14 )
+#define ITEM_MAX_TYPES                ( 15 )
 
 // Grid Types
-enum GRID_TYPES
-{
-	GRID_EXITGRID = 1,
-	GRID_STAIRS,
-	GRID_LADDERBOT,
-	GRID_LADDERTOP,
-	GRID_ELEVATOR,
-
-	GRID_TYPE_MAX
-};
+#define GRID_EXITGRID                 ( 1 )
+#define GRID_STAIRS                   ( 2 )
+#define GRID_LADDERBOT                ( 3 )
+#define GRID_LADDERTOP                ( 4 )
+#define GRID_ELEVATOR                 ( 5 )
 
 // Accessory
-enum ITEM_ACCESSORY_TYPES
-{
-	ITEM_ACCESSORY_NONE = 0,
-	ITEM_ACCESSORY_CRITTER,
-	ITEM_ACCESSORY_HEX,
-	ITEM_ACCESSORY_CONTAINER,
-
-	ITEM_ACCESSORY_MAX
-};
+#define ITEM_ACCESSORY_NONE           ( 0 )
+#define ITEM_ACCESSORY_CRITTER        ( 1 )
+#define ITEM_ACCESSORY_HEX            ( 2 )
+#define ITEM_ACCESSORY_CONTAINER      ( 3 )
 
 // Damage types
-enum DAMAGE_TYPES
-{
-	DAMAGE_TYPE_UNCALLED = 0,
-	DAMAGE_TYPE_NORMAL,
-	DAMAGE_TYPE_LASER,
-	DAMAGE_TYPE_FIRE,
-	DAMAGE_TYPE_PLASMA,
-	DAMAGE_TYPE_ELECTR,
-	DAMAGE_TYPE_EMP,
-	DAMAGE_TYPE_EXPLODE,
-
-	DAMAGE_TYPE_MAX
-};
+#define DAMAGE_TYPE_UNCALLED          ( 0 )
+#define DAMAGE_TYPE_NORMAL            ( 1 )
+#define DAMAGE_TYPE_LASER             ( 2 )
+#define DAMAGE_TYPE_FIRE              ( 3 )
+#define DAMAGE_TYPE_PLASMA            ( 4 )
+#define DAMAGE_TYPE_ELECTR            ( 5 )
+#define DAMAGE_TYPE_EMP               ( 6 )
+#define DAMAGE_TYPE_EXPLODE           ( 7 )
 
 // Uses
-enum USE_TYPES
-{
-	USE_PRIMARY = 0,
-	USE_SECONDARY,
-	USE_THIRD,
-	USE_RELOAD,
-	USE_USE
-};
+#define USE_PRIMARY                   ( 0 )
+#define USE_SECONDARY                 ( 1 )
+#define USE_THIRD                     ( 2 )
+#define USE_RELOAD                    ( 3 )
+#define USE_USE                       ( 4 )
 #define MAX_USES                      ( 3 )
 #define USE_NONE                      ( 15 )
 #define MAKE_ITEM_MODE( use, aim )    ( ( ( ( aim ) << 4 ) | ( ( use ) & 0xF ) ) & 0xFF )
 
 // Corner type
-enum CORNER_TYPES
-{
-	CORNER_NORTH_SOUTH = 0,
-	CORNER_WEST,
-	CORNER_EAST,
-	CORNER_SOUTH,
-	CORNER_NORTH,
-	CORNER_EAST_WEST,
-
-	CORNER_TYPE_MAX
-};
+#define CORNER_NORTH_SOUTH            ( 0 )
+#define CORNER_WEST                   ( 1 )
+#define CORNER_EAST                   ( 2 )
+#define CORNER_SOUTH                  ( 3 )
+#define CORNER_NORTH                  ( 4 )
+#define CORNER_EAST_WEST              ( 5 )
 
 // Flags
 #define ITEM_HIDDEN                   ( 0x00000001 )
@@ -150,19 +119,14 @@ enum CORNER_TYPES
 #define ITEM_CACHED                   ( 0x80000000 ) // Not used
 
 // Material
-enum MATERIAL_TYPES
-{
-	MATERIAL_GLASS = 0,
-	MATERIAL_METAL,
-	MATERIAL_PLASTIC,
-	MATERIAL_WOOD,
-	MATERIAL_DIRT,
-	MATERIAL_STONE,
-	MATERIAL_CEMENT,
-	MATERIAL_LEATHER,
-
-	MATERIAL_TYPE_MAX
-};
+#define MATERIAL_GLASS                ( 0 )
+#define MATERIAL_METAL                ( 1 )
+#define MATERIAL_PLASTIC              ( 2 )
+#define MATERIAL_WOOD                 ( 3 )
+#define MATERIAL_DIRT                 ( 4 )
+#define MATERIAL_STONE                ( 5 )
+#define MATERIAL_CEMENT               ( 6 )
+#define MATERIAL_LEATHER              ( 7 )
 
 // Item deterioration info
 #define MAX_DETERIORATION             ( 10000 )
@@ -190,16 +154,12 @@ enum MATERIAL_TYPES
 #define LIGHT_INVERSE                 ( 0x80 )
 
 // Item data masks
-enum ITEM_DATA_MASKS
-{
-	ITEM_DATA_MASK_CHOSEN = 0,
-	ITEM_DATA_MASK_CRITTER,
-	ITEM_DATA_MASK_CRITTER_EXT,
-	ITEM_DATA_MASK_CONTAINER,
-	ITEM_DATA_MASK_MAP,
-
-	ITEM_DATA_MASK_MAX
-};
+#define ITEM_DATA_MASK_CHOSEN         ( 0 )
+#define ITEM_DATA_MASK_CRITTER        ( 1 )
+#define ITEM_DATA_MASK_CRITTER_EXT    ( 2 )
+#define ITEM_DATA_MASK_CONTAINER      ( 3 )
+#define ITEM_DATA_MASK_MAP            ( 4 )
+#define ITEM_DATA_MASK_MAX            ( 5 )
 
 // Special item pids
 #define SP_SCEN_LIGHT                 ( 2141 )         // Light Source

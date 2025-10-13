@@ -20,20 +20,15 @@
 #include "IniParser.h"
 
 // Fonts
-enum FONT_TYPES
-{
-	FONT_FO = 0,
-	FONT_NUM,
-	FONT_BIG_NUM,
-	FONT_SAND_NUM,
-	FONT_SPECIAL,
-	FONT_DEFAULT,
-	FONT_THIN,
-	FONT_FAT,
-	FONT_BIG,
-
-	FONT_MAX
-};
+#define FONT_FO                        ( 0 )
+#define FONT_NUM                       ( 1 )
+#define FONT_BIG_NUM                   ( 2 )
+#define FONT_SAND_NUM                  ( 3 )
+#define FONT_SPECIAL                   ( 4 )
+#define FONT_DEFAULT                   ( 5 )
+#define FONT_THIN                      ( 6 )
+#define FONT_FAT                       ( 7 )
+#define FONT_BIG                       ( 8 )
 
 typedef vector< CritData* > CritDataVec;
 
@@ -132,44 +127,34 @@ public:
     bool GetCurHex( ushort& hx, ushort& hy, bool ignore_interface );
 
     int IntMode;
-	enum INT_MODE_TYPE
-	{
-		INT_MODE_CUSTOM0 = 0,
-		INT_MODE_CUSTOM1,
-		INT_MODE_CUSTOM2,
-		INT_MODE_CUSTOM3,
-		INT_MODE_CUSTOM4,
-		INT_MODE_CUSTOM5,
-		INT_MODE_CUSTOM6,
-		INT_MODE_CUSTOM7,
-		INT_MODE_CUSTOM8,
-		INT_MODE_CUSTOM9,
-		INT_MODE_ITEM,
-		INT_MODE_TILE,
-		INT_MODE_CRIT,
-		INT_MODE_FAST,
-		INT_MODE_IGNORE,
-		INT_MODE_INCONT,
-		INT_MODE_MESS,
-		INT_MODE_LIST,
-
-		INT_MODE_COUNT
-	};
-
+    #define INT_MODE_CUSTOM0           ( 0 )
+    #define INT_MODE_CUSTOM1           ( 1 )
+    #define INT_MODE_CUSTOM2           ( 2 )
+    #define INT_MODE_CUSTOM3           ( 3 )
+    #define INT_MODE_CUSTOM4           ( 4 )
+    #define INT_MODE_CUSTOM5           ( 5 )
+    #define INT_MODE_CUSTOM6           ( 6 )
+    #define INT_MODE_CUSTOM7           ( 7 )
+    #define INT_MODE_CUSTOM8           ( 8 )
+    #define INT_MODE_CUSTOM9           ( 9 )
+    #define INT_MODE_ITEM              ( 10 )
+    #define INT_MODE_TILE              ( 11 )
+    #define INT_MODE_CRIT              ( 12 )
+    #define INT_MODE_FAST              ( 13 )
+    #define INT_MODE_IGNORE            ( 14 )
+    #define INT_MODE_INCONT            ( 15 )
+    #define INT_MODE_MESS              ( 16 )
+    #define INT_MODE_LIST              ( 17 )
+    #define INT_MODE_COUNT             ( 18 )
     #define TAB_COUNT                  ( 15 )
 
     int IntHold;
-	enum INT_HOLD_TYPE
-	{
-		INT_NONE = 0,
-		INT_BUTTON,
-		INT_MAIN,
-		INT_SELECT,
-		INT_OBJECT,
-		INT_SUB_TAB,
-
-		INT_HOLD_MAX
-	};
+    #define INT_NONE                   ( 0 )
+    #define INT_BUTTON                 ( 1 )
+    #define INT_MAIN                   ( 2 )
+    #define INT_SELECT                 ( 3 )
+    #define INT_OBJECT                 ( 4 )
+    #define INT_SUB_TAB                ( 5 )
 
     AnyFrames* IntMainPic, * IntPTab, * IntPSelect, * IntPShow;
     int        IntX, IntY;

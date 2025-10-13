@@ -4,14 +4,9 @@
 
 #define FONT_BUF_LEN          ( 0x5000 )
 #define FONT_MAX_LINES        ( 1000 )
-enum FONT_FORMAT_TYPES
-{
-	FORMAT_TYPE_DRAW = 0,
-	FORMAT_TYPE_SPLIT,
-	FORMAT_TYPE_LCOUNT,
-
-	FORMAT_TYPE_MAX
-};
+#define FORMAT_TYPE_DRAW      ( 0 )
+#define FORMAT_TYPE_SPLIT     ( 1 )
+#define FORMAT_TYPE_LCOUNT    ( 2 )
 
 struct Letter
 {

@@ -1066,22 +1066,16 @@ void FOMapper::ParseKeyboard()
     }
 }
 
-enum MOUSE_CLICK_TYPES
-{
-	MOUSE_CLICK_LEFT = 0,
-	MOUSE_CLICK_RIGHT,
-	MOUSE_CLICK_MIDDLE,
-	MOUSE_CLICK_WHEEL_UP,
-	MOUSE_CLICK_WHEEL_DOWN,
-	MOUSE_CLICK_EXT0,
-	MOUSE_CLICK_EXT1,
-	MOUSE_CLICK_EXT2,
-	MOUSE_CLICK_EXT3,
-	MOUSE_CLICK_EXT4,
-
-	MOUSE_CLICK_MAX
-};
-
+#define MOUSE_CLICK_LEFT          ( 0 )
+#define MOUSE_CLICK_RIGHT         ( 1 )
+#define MOUSE_CLICK_MIDDLE        ( 2 )
+#define MOUSE_CLICK_WHEEL_UP      ( 3 )
+#define MOUSE_CLICK_WHEEL_DOWN    ( 4 )
+#define MOUSE_CLICK_EXT0          ( 5 )
+#define MOUSE_CLICK_EXT1          ( 6 )
+#define MOUSE_CLICK_EXT2          ( 7 )
+#define MOUSE_CLICK_EXT3          ( 8 )
+#define MOUSE_CLICK_EXT4          ( 9 )
 void FOMapper::ParseMouse()
 {
     // Mouse position

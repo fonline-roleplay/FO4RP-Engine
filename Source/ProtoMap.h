@@ -9,14 +9,9 @@
 #define MAPOBJ_CRITTER_PARAMS    ( 40 )
 
 // Map object types
-enum MAP_OBJECT_TYPES
-{
-	MAP_OBJECT_CRITTER = 0,
-	MAP_OBJECT_ITEM,
-	MAP_OBJECT_SCENERY,
-
-	MAP_OBJECT_MAX
-};
+#define MAP_OBJECT_CRITTER       ( 0 )
+#define MAP_OBJECT_ITEM          ( 1 )
+#define MAP_OBJECT_SCENERY       ( 2 )
 
 class ProtoMap;
 class MapObject // Available in fonline.h

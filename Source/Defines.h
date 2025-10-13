@@ -118,92 +118,71 @@ const char ClientSaveSignature[ 4 ] = { 'F', 'O', 0, CLIENT_SAVE_LAST };
 #define SENDMAP_SCENERY              BIN8( 00000100 )
 
 // Ping
-enum PING_TYPES
-{
-	PING_PING = 0,
-	PING_WAIT,
-	PING_CLIENT,
-	PING_UID_FAIL
-};
+#define PING_PING                    ( 0 )
+#define PING_WAIT                    ( 1 )
+#define PING_CLIENT                  ( 2 )
+#define PING_UID_FAIL                ( 3 )
 
 // Say types
-enum SAY_TYPES
-{
-	SAY_NORM = 1,
-	SAY_NORM_ON_HEAD,
-	SAY_SHOUT,
-	SAY_SHOUT_ON_HEAD,
-	SAY_EMOTE,
-	SAY_EMOTE_ON_HEAD,
-	SAY_WHISP,
-	SAY_WHISP_ON_HEAD,
-	SAY_SOCIAL,
-	SAY_RADIO,
-	SAY_NETMSG,
-	SAY_DIALOG,
-	SAY_APPEND,
-	SAY_ENCOUNTER_ANY,
-	SAY_ENCOUNTER_RT,
-	SAY_ENCOUNTER_TB,
-	SAY_FIX_RESULT,
-	SAY_DIALOGBOX_TEXT,
-	SAY_SAY_TITLE = 39,
-	SAY_SAY_TEXT,
-	SAY_FLASH_WINDOW
-};
+#define SAY_NORM                     ( 1 )
+#define SAY_NORM_ON_HEAD             ( 2 )
+#define SAY_SHOUT                    ( 3 )
+#define SAY_SHOUT_ON_HEAD            ( 4 )
+#define SAY_EMOTE                    ( 5 )
+#define SAY_EMOTE_ON_HEAD            ( 6 )
+#define SAY_WHISP                    ( 7 )
+#define SAY_WHISP_ON_HEAD            ( 8 )
+#define SAY_SOCIAL                   ( 9 )
+#define SAY_RADIO                    ( 10 )
+#define SAY_NETMSG                   ( 11 )
+#define SAY_DIALOG                   ( 12 )
+#define SAY_APPEND                   ( 13 )
+#define SAY_ENCOUNTER_ANY            ( 14 )
+#define SAY_ENCOUNTER_RT             ( 15 )
+#define SAY_ENCOUNTER_TB             ( 16 )
+#define SAY_FIX_RESULT               ( 17 )
+#define SAY_DIALOGBOX_TEXT           ( 18 )
 #define SAY_DIALOGBOX_BUTTON( b )             ( 19 + ( b ) ) // Max 20 buttons (0..19)
+#define SAY_SAY_TITLE                ( 39 )
+#define SAY_SAY_TEXT                 ( 40 )
+#define SAY_FLASH_WINDOW             ( 41 )
 
 #define MAX_DLGBOX_BUTTONS           ( 20 )
 
 // Transfer types
-enum TRANSFER_TYPES
-{
-	TRANSFER_CLOSE = 0,
-	TRANSFER_HEX_CONT_UP,
-	TRANSFER_HEX_CONT_DOWN,
-	TRANSFER_SELF_CONT,
-	TRANSFER_CRIT_LOOT,
-	TRANSFER_CRIT_STEAL,
-	TRANSFER_CRIT_BARTER,
-	TRANSFER_FAR_CONT,
-	TRANSFER_FAR_CRIT
-};
+#define TRANSFER_CLOSE               ( 0 )
+#define TRANSFER_HEX_CONT_UP         ( 1 )
+#define TRANSFER_HEX_CONT_DOWN       ( 2 )
+#define TRANSFER_SELF_CONT           ( 3 )
+#define TRANSFER_CRIT_LOOT           ( 4 )
+#define TRANSFER_CRIT_STEAL          ( 5 )
+#define TRANSFER_CRIT_BARTER         ( 6 )
+#define TRANSFER_FAR_CONT            ( 7 )
+#define TRANSFER_FAR_CRIT            ( 8 )
 
 // Take flags
-enum TAKE_FLAGS
-{
-	CONT_GET = 1,
-	CONT_PUT,
-	CONT_GETALL,
-	CONT_PUTALL
-};
+#define CONT_GET                     ( 1 )
+#define CONT_PUT                     ( 2 )
+#define CONT_GETALL                  ( 3 )
+#define CONT_PUTALL                  ( 4 )
 
 // Target types
-enum TARGET_TYPES
-{
-	TARGET_SELF = 0,
-	TARGET_SELF_ITEM,
-	TARGET_CRITTER,
-	TARGET_ITEM,
-	TARGET_SCENERY,
-	TARGET_HEX			// Todo:
-};
+#define TARGET_SELF                  ( 0 )
+#define TARGET_SELF_ITEM             ( 1 )
+#define TARGET_CRITTER               ( 2 )
+#define TARGET_ITEM                  ( 3 )
+#define TARGET_SCENERY               ( 4 )
+#define TARGET_HEX                   ( 5 ) // Todo:
 
 // Pick types
-enum PICK_TYPES
-{
-	PICK_CRIT_LOOT = 0,
-	PICK_CRIT_PUSH
-};
+#define PICK_CRIT_LOOT               ( 0 )
+#define PICK_CRIT_PUSH               ( 1 )
 
 // Craft results
-enum CRAFT_RESULTS
-{
-	CRAFT_RESULT_NONE = 0,
-	CRAFT_RESULT_SUCC,
-	CRAFT_RESULT_FAIL,
-	CRAFT_RESULT_TIMEOUT
-};
+#define CRAFT_RESULT_NONE            ( 0 )
+#define CRAFT_RESULT_SUCC            ( 1 )
+#define CRAFT_RESULT_FAIL            ( 2 )
+#define CRAFT_RESULT_TIMEOUT         ( 3 )
 
 // Critters
 #define CRITTER_INV_VOLUME           ( 1000 )
@@ -213,21 +192,17 @@ enum CRAFT_RESULTS
 #define LOCKER_NOOPEN                ( 0x10 )
 
 // Hit locations
-enum HIT_LOCATION_TYPES
-{
-	HIT_LOCATION_NONE = 0,
-	HIT_LOCATION_HEAD,
-	HIT_LOCATION_LEFT_ARM,
-	HIT_LOCATION_RIGHT_ARM,
-	HIT_LOCATION_TORSO,
-	HIT_LOCATION_RIGHT_LEG,
-	HIT_LOCATION_LEFT_LEG,
-	HIT_LOCATION_EYES,
-	HIT_LOCATION_GROIN,
-	HIT_LOCATION_UNCALLED,
-
-	MAX_HIT_LOCATION
-};
+#define HIT_LOCATION_NONE            ( 0 )
+#define HIT_LOCATION_HEAD            ( 1 )
+#define HIT_LOCATION_LEFT_ARM        ( 2 )
+#define HIT_LOCATION_RIGHT_ARM       ( 3 )
+#define HIT_LOCATION_TORSO           ( 4 )
+#define HIT_LOCATION_RIGHT_LEG       ( 5 )
+#define HIT_LOCATION_LEFT_LEG        ( 6 )
+#define HIT_LOCATION_EYES            ( 7 )
+#define HIT_LOCATION_GROIN           ( 8 )
+#define HIT_LOCATION_UNCALLED        ( 9 )
+#define MAX_HIT_LOCATION             ( 10 )
 
 // Locations
 #define MAX_PROTO_LOCATIONS          ( 30000 )
@@ -239,13 +214,10 @@ enum HIT_LOCATION_TYPES
 #define GM__MAXZONEX                 ( 100 )
 #define GM__MAXZONEY                 ( 100 )
 #define GM_ZONES_FOG_SIZE            ( ( ( GM__MAXZONEX / 4 ) + ( ( GM__MAXZONEX % 4 ) ? 1 : 0 ) ) * GM__MAXZONEY )
-enum GM_FOG_TYPES
-{
-	GM_FOG_FULL = 0,
-	GM_FOG_HALF,
-	GM_FOG_HALF_EX,
-	GM_FOG_NONE
-};
+#define GM_FOG_FULL                  ( 0 )
+#define GM_FOG_HALF                  ( 1 )
+#define GM_FOG_HALF_EX               ( 2 )
+#define GM_FOG_NONE                  ( 3 )
 #define GM_MAX_GROUP_COUNT           ( GameOpt.GlobalMapMaxGroupCount )
 #define GM_ANSWER_WAIT_TIME          ( 20000 )
 #define GM_LIGHT_TIME                ( 5000 )
@@ -268,40 +240,31 @@ enum GM_FOG_TYPES
 #define GM_INFO_LOCATION             ( 0x20 )
 
 // Global process types
-enum GLOBAL_PROCESS_TYPES
-{
-	GLOBAL_PROCESS_MOVE = 0,
-	GLOBAL_PROCESS_ENTER,
-	GLOBAL_PROCESS_START_FAST,
-	GLOBAL_PROCESS_START,
-	GLOBAL_PROCESS_SET_MOVE,
-	GLOBAL_PROCESS_STOPPED,
-	GLOBAL_PROCESS_NPC_IDLE,
-	GLOBAL_PROCESS_KICK
-};
+#define GLOBAL_PROCESS_MOVE          ( 0 )
+#define GLOBAL_PROCESS_ENTER         ( 1 )
+#define GLOBAL_PROCESS_START_FAST    ( 2 )
+#define GLOBAL_PROCESS_START         ( 3 )
+#define GLOBAL_PROCESS_SET_MOVE      ( 4 )
+#define GLOBAL_PROCESS_STOPPED       ( 5 )
+#define GLOBAL_PROCESS_NPC_IDLE      ( 6 )
+#define GLOBAL_PROCESS_KICK          ( 7 )
 
 // GM Rule command
-enum GM_CMD_TYPES
-{
-	GM_CMD_SETMOVE = 1,
-	GM_CMD_STOP,
-	GM_CMD_TOLOCAL,
-	GM_CMD_KICKCRIT,
-	GM_CMD_FOLLOW_CRIT,
-	GM_CMD_FOLLOW,
-	GM_CMD_GIVE_RULE,
-	GM_CMD_ANSWER,
-	GM_CMD_ENTRANCES,
-	GM_CMD_VIEW_MAP
-};
+#define GM_CMD_SETMOVE               ( 1 ) // +r-a*x,y
+#define GM_CMD_STOP                  ( 2 ) // +r-a
+#define GM_CMD_TOLOCAL               ( 3 ) // +r-a*num_city,num_map
+#define GM_CMD_KICKCRIT              ( 4 ) // +r-a*cr_id
+#define GM_CMD_FOLLOW_CRIT           ( 5 ) // +r+a*cr_id
+#define GM_CMD_FOLLOW                ( 6 )
+#define GM_CMD_GIVE_RULE             ( 7 )
+#define GM_CMD_ANSWER                ( 8 )
+#define GM_CMD_ENTRANCES             ( 9 )
+#define GM_CMD_VIEW_MAP              ( 10 )
 
 // GM Walk types
-enum GM_WALK_TYPES
-{
-	GM_WALK_GROUND = 0,
-	GM_WALK_FLY,
-	GM_WALK_WATER
-};
+#define GM_WALK_GROUND               ( 0 )
+#define GM_WALK_FLY                  ( 1 )
+#define GM_WALK_WATER                ( 2 )
 
 // Flags Hex
 // Proto map
@@ -366,19 +329,13 @@ enum GM_WALK_TYPES
 #define RESPOWN_TIME_INFINITY        ( 4 * 24 * 60 * 60000 )
 
 // Combat modes
-enum COMBAT_MODES
-{
-	COMBAT_MODE_ANY = 0,
-	COMBAT_MODE_REAL_TIME,
-	COMBAT_MODE_TURN_BASED
-};
+#define COMBAT_MODE_ANY              ( 0 )
+#define COMBAT_MODE_REAL_TIME        ( 1 )
+#define COMBAT_MODE_TURN_BASED       ( 2 )
 
 // Turn based
-enum COMBAT_TB_ACTIONS
-{
-	COMBAT_TB_END_TURN = 0,
-	COMBAT_TB_END_COMBAT
-};
+#define COMBAT_TB_END_TURN           ( 0 )
+#define COMBAT_TB_END_COMBAT         ( 1 )
 
 // Answer
 #define ANSWER_BEGIN                 ( 0xF0 )
@@ -389,12 +346,10 @@ enum COMBAT_TB_ACTIONS
 #define AP_DIVIDER                   ( 100 )
 
 // Crit conditions
-enum CRIT_CONDITIONS
-{
-	COND_LIFE = 1,
-	COND_KNOCKOUT,
-	COND_DEAD
-};
+#define COND_LIFE                    ( 1 )
+#define COND_KNOCKOUT                ( 2 )
+#define COND_DEAD                    ( 3 )
+
 // Run-time critters flags
 #define FCRIT_PLAYER                 ( 0x00010000 ) // Player
 #define FCRIT_NPC                    ( 0x00020000 ) // Npc
@@ -403,32 +358,25 @@ enum CRIT_CONDITIONS
 #define FCRIT_RULEGROUP              ( 0x00200000 ) // Group rule
 
 // Slots
-enum SLOT_TYPES
-{
-	SLOT_INV = 0,
-	SLOT_HAND1,
-	SLOT_HAND2,
-	SLOT_ARMOR,
-
-	SLOT_GROUND = 255
-};
+#define SLOT_INV                     ( 0 )
+#define SLOT_HAND1                   ( 1 )
+#define SLOT_HAND2                   ( 2 )
+#define SLOT_ARMOR                   ( 3 )
+#define SLOT_GROUND                  ( 255 )
 
 // Players barter
 #define BARTER_DIST                  ( 1 )
 // Types
-enum BARTER_TYPES
-{
-	BARTER_TRY = 0,					// opponentId, isHide
-	BARTER_ACCEPTED,				// opponentId, isHide
-	BARTER_BEGIN,
-	BARTER_END,
-	BARTER_SET_SELF,
-	BARTER_SET_OPPONENT,
-	BARTER_UNSET_SELF,
-	BARTER_UNSET_OPPONENT,
-	BARTER_OFFER,					// isSet, isOpponent
-	BARTER_REFRESH
-};
+#define BARTER_TRY                   ( 0 ) // opponentId, isHide
+#define BARTER_ACCEPTED              ( 1 ) // opponentId, isHide
+#define BARTER_BEGIN                 ( 2 )
+#define BARTER_END                   ( 3 )
+#define BARTER_SET_SELF              ( 4 )
+#define BARTER_SET_OPPONENT          ( 5 )
+#define BARTER_UNSET_SELF            ( 6 )
+#define BARTER_UNSET_OPPONENT        ( 7 )
+#define BARTER_OFFER                 ( 8 ) // isSet, isOpponent
+#define BARTER_REFRESH               ( 9 )
 
 // Scores
 #define SCORE_SPEAKER                ( 3 )
@@ -440,158 +388,112 @@ enum BARTER_TYPES
 // Show screen modes
 // Ouput: it is 'uint param' in Critter::ShowScreen.
 // Input: I - integer value 'uint answerI', S - string value 'string& answerS' in 'answer_' function.
-enum SHOW_SCREEN_MODES
-{
-	SHOW_SCREEN_CLOSE = 0,					// Close top window.
-	SHOW_SCREEN_TIMER,						// Timer box. Output: picture index in INVEN.LST. Input I: time in game minutes (1..599).
-	SHOW_SCREEN_DIALOGBOX,					// Dialog box. Output: buttons count - 0..20 (exit button added automatically). Input I: Choosed button - 0..19.
-	SHOW_SCREEN_SKILLBOX,					// Skill box. Input I: selected skill.
-	SHOW_SCREEN_BAG,						// Bag box. Input I: id of selected item.
-	SHOW_SCREEN_SAY,						// Say box. Output: all symbols - 0 or only numbers - any other number. Input S: typed string.
-	SHOW_ELEVATOR,							// Elevator. Output: look ELEVATOR_* macro. Input I: Choosed level button.
-	SHOW_SCREEN_INVENTORY,					// Inventory.
-	SHOW_SCREEN_CHARACTER,					// Character.
-	SHOW_SCREEN_FIXBOY,						// Fix-boy.
-	SHOW_SCREEN_PIPBOY,						// Pip-boy.
-	SHOW_SCREEN_MINIMAP						// Mini-map.
-};
+#define SHOW_SCREEN_CLOSE            ( 0 )    // Close top window.
+#define SHOW_SCREEN_TIMER            ( 1 )    // Timer box. Output: picture index in INVEN.LST. Input I: time in game minutes (1..599).
+#define SHOW_SCREEN_DIALOGBOX        ( 2 )    // Dialog box. Output: buttons count - 0..20 (exit button added automatically). Input I: Choosed button - 0..19.
+#define SHOW_SCREEN_SKILLBOX         ( 3 )    // Skill box. Input I: selected skill.
+#define SHOW_SCREEN_BAG              ( 4 )    // Bag box. Input I: id of selected item.
+#define SHOW_SCREEN_SAY              ( 5 )    // Say box. Output: all symbols - 0 or only numbers - any other number. Input S: typed string.
+#define SHOW_ELEVATOR                ( 6 )    // Elevator. Output: look ELEVATOR_* macro. Input I: Choosed level button.
+#define SHOW_SCREEN_INVENTORY        ( 7 )    // Inventory.
+#define SHOW_SCREEN_CHARACTER        ( 8 )    // Character.
+#define SHOW_SCREEN_FIXBOY           ( 9 )    // Fix-boy.
+#define SHOW_SCREEN_PIPBOY           ( 10 )   // Pip-boy.
+#define SHOW_SCREEN_MINIMAP          ( 11 )   // Mini-map.
 
 // Parameters
 #define MAX_PARAMS                   ( 1000 )
 #define SKILL_OFFSET( skill )                 ( ( skill ) - ( GameOpt.AbsoluteOffsets ? 0 : SKILL_BEGIN ) )
 #define PERK_OFFSET( perk )                   ( ( perk ) - ( GameOpt.AbsoluteOffsets ? 0 : PERK_BEGIN ) )
 
-enum HARDCODE_PARAMS
-{
-	// Stats
-	ST_STRENGTH = 0,
-	ST_PERCEPTION,
-	ST_ENDURANCE,
-	ST_CHARISMA,
-	ST_INTELLECT,
-	ST_AGILITY,
-	ST_LUCK,
-	ST_MAX_LIFE,
-	ST_ACTION_POINTS,
-	ST_ARMOR_CLASS,
-	ST_MELEE_DAMAGE,
-	ST_CARRY_WEIGHT,
-	ST_SEQUENCE,
-	ST_HEALING_RATE,
-	ST_CRITICAL_CHANCE,
-	ST_NORMAL_RESIST = 23,
-	ST_RADIATION_RESISTANCE = 30,
-	ST_POISON_RESISTANCE,
-	ST_AGE = 70,
-	ST_GENDER,
-	ST_CURRENT_HP,
-	ST_POISONING_LEVEL,
-	ST_RADIATION_LEVEL,
-	ST_CURRENT_AP,
-	ST_EXPERIENCE,
-	ST_LEVEL,
-	ST_UNSPENT_SKILL_POINTS,
-	ST_UNSPENT_PERKS,
-	ST_KARMA,
-	ST_FOLLOW_CRIT,
-	ST_REPLICATION_MONEY,
-	ST_REPLICATION_COUNT,
-	ST_REPLICATION_TIME,
-	ST_REPLICATION_COST,
-	ST_TURN_BASED_AC,
-	ST_MAX_MOVE_AP,
-	ST_MOVE_AP,
-	ST_NPC_ROLE,
-	ST_BONUS_LOOK = 101,
-	ST_HANDS_ITEM_AND_MODE,
-	ST_FREE_BARTER_PLAYER,
-	ST_DIALOG_ID,
-	ST_AI_ID,
-	ST_TEAM_ID,
-	ST_BAG_ID,
-	ST_LAST_WEAPON_ID = 110,
-	ST_BASE_CRTYPE = 112,
-	ST_TALK_DISTANCE = 115,
-	ST_SCALE_FACTOR,
-	ST_WALK_TIME,
-	ST_RUN_TIME,
-	ST_MAX_TALKERS,
-	// Skills
-	SK_UNARMED = 203,
-	SK_FIRST_AID = 206,
-	SK_DOCTOR,
-	SK_SNEAK,
-	SK_LOCKPICK,
-	SK_STEAL,
-	SK_TRAPS,
-	SK_SCIENCE,
-	SK_REPAIR,
-	SK_SPEECH,
-	SK_BARTER,
-	// Tag skills
-	TAG_SKILL1 = 226,
-	TAG_SKILL2,
-	TAG_SKILL3,
-	TAG_SKILL4,
-	// Timeouts
-	TO_SK_REPAIR = 232,
-	TO_SK_SCIENCE,
-	TO_BATTLE = 238,
-	TO_TRANSFER,
-	TO_REMOVE_FROM_GAME,
-	TO_KARMA_VOTING = 242,
-	// Perks
-	PE_SILENT_RUNNING = 316,
-	PE_MASTER_TRADER = 318,
-	PE_QUICK_POCKETS = 349,
-	PE_SMOOTH_TALKER,
-	// Damages
-	DAMAGE_POISONED = 500,
-	DAMAGE_RADIATED,
-	DAMAGE_RIGHT_ARM = 503,
-	DAMAGE_LEFT_ARM,
-	DAMAGE_RIGHT_LEG,
-	DAMAGE_LEFT_LEG,
-	// Modes
-	MODE_HIDE = 510,
-	MODE_NO_STEAL,
-	MODE_NO_BARTER,
-	MODE_NO_ENEMY_STACK,
-	MODE_NO_PVP,
-	MODE_END_COMBAT,
-	MODE_DEFAULT_COMBAT,
-	MODE_NO_HOME,
-	MODE_GECK,
-	MODE_NO_FAVORITE_ITEM,
-	MODE_NO_ITEM_GARBAGER,
-	MODE_DLG_SCRIPT_BARTER,
-	MODE_UNLIMITED_AMMO,
-	MODE_INVULNERABLE = 527,
-	MODE_NO_FLATTEN,			 // Client
-	MODE_RANGE_HTH = 530,
-	MODE_NO_LOOT = 532,
-	MODE_NO_PUSH = 536,
-	MODE_NO_UNARMED,
-	MODE_NO_AIM,
-	MODE_NO_WALK,
-	MODE_NO_RUN,
-	MODE_NO_TALK,
-	MODE_PROCESS_ON_GLOB = 544
-};
-
+// Stats
+#define ST_STRENGTH                  ( 0 )
+#define ST_PERCEPTION                ( 1 )
+// #define ST_ENDURANCE                (2)
+#define ST_CHARISMA                  ( 3 )
+#define ST_INTELLECT                 ( 4 )
+#define ST_AGILITY                   ( 5 )
+#define ST_LUCK                      ( 6 )
+#define ST_MAX_LIFE                  ( 7 )
+#define ST_ACTION_POINTS             ( 8 )
+#define ST_ARMOR_CLASS               ( 9 )
+#define ST_MELEE_DAMAGE              ( 10 )
+#define ST_CARRY_WEIGHT              ( 11 )
+#define ST_SEQUENCE                  ( 12 )
+#define ST_HEALING_RATE              ( 13 )
+#define ST_CRITICAL_CHANCE           ( 14 )
+#define ST_NORMAL_RESIST             ( 23 )
+#define ST_RADIATION_RESISTANCE      ( 30 )
+#define ST_POISON_RESISTANCE         ( 31 )
+#define ST_AGE                       ( 70 )
+#define ST_GENDER                    ( 71 )
+#define ST_CURRENT_HP                ( 72 )
+#define ST_POISONING_LEVEL           ( 73 )
+#define ST_RADIATION_LEVEL           ( 74 )
+#define ST_CURRENT_AP                ( 75 )
+#define ST_EXPERIENCE                ( 76 )
+#define ST_LEVEL                     ( 77 )
+#define ST_UNSPENT_SKILL_POINTS      ( 78 )
+#define ST_UNSPENT_PERKS             ( 79 )
+#define ST_KARMA                     ( 80 )
+#define ST_FOLLOW_CRIT               ( 81 )
+#define ST_REPLICATION_MONEY         ( 82 )
+#define ST_REPLICATION_COUNT         ( 83 )
+#define ST_REPLICATION_TIME          ( 84 )
+#define ST_REPLICATION_COST          ( 85 )
+#define ST_TURN_BASED_AC             ( 86 )
+#define ST_MAX_MOVE_AP               ( 87 )
+#define ST_MOVE_AP                   ( 88 )
+#define ST_NPC_ROLE                  ( 89 )
+#define ST_BONUS_LOOK                ( 101 )
+#define ST_HANDS_ITEM_AND_MODE       ( 102 )
+#define ST_FREE_BARTER_PLAYER        ( 103 )
+#define ST_DIALOG_ID                 ( 104 )
+#define ST_AI_ID                     ( 105 )
+#define ST_TEAM_ID                   ( 106 )
+#define ST_BAG_ID                    ( 107 )
+#define ST_LAST_WEAPON_ID            ( 110 )
+#define ST_BASE_CRTYPE               ( 112 )
+#define ST_TALK_DISTANCE             ( 115 )
+#define ST_SCALE_FACTOR              ( 116 )
+#define ST_WALK_TIME                 ( 117 )
+#define ST_RUN_TIME                  ( 118 )
+#define ST_MAX_TALKERS               ( 119 )
 #define ST_ANIM3D_LAYER_BEGIN        ( 150 )
-#define ST_ANIM3D_LAYER_END			 ( 179 )
+#define ST_ANIM3D_LAYER_END          ( 179 )
 
 // Skills
 #define SKILL_BEGIN                  ( GameOpt.SkillBegin )
 #define SKILL_END                    ( GameOpt.SkillEnd )
 #define SKILL_COUNT                  ( SKILL_END - SKILL_BEGIN + 1 )
 #define MAX_SKILL_VAL                ( GameOpt.SkillMaxValue )
+#define SK_UNARMED                   ( 203 )
+#define SK_FIRST_AID                 ( 206 )
+#define SK_DOCTOR                    ( 207 )
+#define SK_SNEAK                     ( 208 )
+#define SK_LOCKPICK                  ( 209 )
+#define SK_STEAL                     ( 210 )
+#define SK_TRAPS                     ( 211 )
+#define SK_SCIENCE                   ( 212 )
+#define SK_REPAIR                    ( 213 )
+#define SK_SPEECH                    ( 214 )
+#define SK_BARTER                    ( 215 )
+
+// Tag skills
+#define TAG_SKILL1                   ( 226 )
+#define TAG_SKILL2                   ( 227 )
+#define TAG_SKILL3                   ( 228 )
+#define TAG_SKILL4                   ( 229 )
 
 // Timeouts
 #define TIMEOUT_BEGIN                ( GameOpt.TimeoutBegin )
 #define TIMEOUT_END                  ( GameOpt.TimeoutEnd )
-
+#define TO_SK_REPAIR                 ( 232 )
+#define TO_SK_SCIENCE                ( 233 )
+#define TO_BATTLE                    ( 238 )
+#define TO_TRANSFER                  ( 239 )
+#define TO_REMOVE_FROM_GAME          ( 240 )
+#define TO_KARMA_VOTING              ( 242 )
 #define TB_BATTLE_TIMEOUT            ( 100000000 )
 #define TB_BATTLE_TIMEOUT_CHECK( to )         ( ( to ) > 10000000 )
 
@@ -603,6 +505,10 @@ enum HARDCODE_PARAMS
 #define PERK_BEGIN                   ( GameOpt.PerkBegin )
 #define PERK_END                     ( GameOpt.PerkEnd )
 #define PERK_COUNT                   ( PERK_END - PERK_BEGIN + 1 )
+#define PE_SILENT_RUNNING            ( 316 )
+#define PE_MASTER_TRADER             ( 318 )
+#define PE_QUICK_POCKETS             ( 349 )
+#define PE_SMOOTH_TALKER             ( 350 )
 
 // Addiction
 #define ADDICTION_BEGIN              ( GameOpt.AddictionBegin )
@@ -615,6 +521,39 @@ enum HARDCODE_PARAMS
 // Damages
 #define DAMAGE_BEGIN                 ( GameOpt.DamageBegin )
 #define DAMAGE_END                   ( GameOpt.DamageEnd )
+#define DAMAGE_POISONED              ( 500 )
+#define DAMAGE_RADIATED              ( 501 )
+#define DAMAGE_RIGHT_ARM             ( 503 )
+#define DAMAGE_LEFT_ARM              ( 504 )
+#define DAMAGE_RIGHT_LEG             ( 505 )
+#define DAMAGE_LEFT_LEG              ( 506 )
+
+// Modes
+#define MODE_HIDE                    ( 510 )
+#define MODE_NO_STEAL                ( 511 )
+#define MODE_NO_BARTER               ( 512 )
+#define MODE_NO_ENEMY_STACK          ( 513 )
+#define MODE_NO_PVP                  ( 514 )
+#define MODE_END_COMBAT              ( 515 )
+#define MODE_DEFAULT_COMBAT          ( 516 )
+#define MODE_NO_HOME                 ( 517 )
+#define MODE_GECK                    ( 518 )
+#define MODE_NO_FAVORITE_ITEM        ( 519 )
+#define MODE_NO_ITEM_GARBAGER        ( 520 )
+#define MODE_DLG_SCRIPT_BARTER       ( 521 )
+#define MODE_UNLIMITED_AMMO          ( 522 )
+#define MODE_INVULNERABLE            ( 527 )
+#define MODE_NO_FLATTEN              ( 528 ) // Client
+#define MODE_RANGE_HTH               ( 530 )
+#define MODE_NO_LOOT                 ( 532 )
+#define MODE_NO_PUSH                 ( 536 )
+#define MODE_NO_UNARMED              ( 537 )
+#define MODE_NO_AIM                  ( 538 )
+#define MODE_NO_WALK                 ( 539 )
+#define MODE_NO_RUN                  ( 540 )
+#define MODE_NO_TALK                 ( 541 )
+
+#define MODE_PROCESS_ON_GLOB		 ( 544 )
 
 // Traits
 #define TRAIT_BEGIN                  ( GameOpt.TraitBegin )
@@ -638,51 +577,45 @@ enum HARDCODE_PARAMS
 #endif
 
 // Special send params
-enum SPECIAL_SEND_PARAM_TYPES
-{
-	OTHER_BRECK_TIME = MAX_PARAMS,
-	OTHER_WAIT_TIME,
-	OTHER_FLAGS,
-	OTHER_BASE_TYPE,
-	OTHER_MULTIHEX,
-	OTHER_YOU_TURE,
-	OTHER_CLEAR_MAP,
-	OTHER_TELEPORT
-};
+#define OTHER_BREAK_TIME             ( 0 + MAX_PARAMS )
+#define OTHER_WAIT_TIME              ( 1 + MAX_PARAMS )
+#define OTHER_FLAGS                  ( 2 + MAX_PARAMS )
+#define OTHER_BASE_TYPE              ( 3 + MAX_PARAMS )
+#define OTHER_MULTIHEX               ( 4 + MAX_PARAMS )
+#define OTHER_YOU_TURN               ( 5 + MAX_PARAMS )
+#define OTHER_CLEAR_MAP              ( 6 + MAX_PARAMS )
+#define OTHER_TELEPORT               ( 7 + MAX_PARAMS )
 
 // Critter actions
 // Flags for chosen:
 // l - hardcoded local call
 // s - hardcoded server call
 // for all others critters actions call only server
-//                                         flags    actionExt                                                      item
-enum ACTION_TYPES
-{
-	ACTION_MOVE = 0,					// l
-	ACTION_RUN,							// l
-	ACTION_MOVE_ITEM,					// l s      from slot                                                      +
-	ACTION_MOVE_ITEM_SWAP,				// l s      from slot                                                      +
-	ACTION_USE_ITEM,					// l s                                                                     +
-	ACTION_DROP_ITEM,					// l s      from slot                                                      +
-	ACTION_USE_WEAPON,					// l        fail attack 8 bit, use index (0-2) 4-7 bits, aim 0-3 bits      +
-	ACTION_RELOAD_WEAPON,				// l s                                                                     +
-	ACTION_USE_SKILL,					// l s      skill index (see SK_*)
-	ACTION_PICK_ITEM,					// l s                                                                     +
-	ACTION_PICK_CRITTER,				// l        0 - loot, 1 - steal, 2 - push
-	ACTION_OPERATE_CONTAINER,			// l s      transfer type * 10 + [0 - get, 1 - get all, 2 - put]           + (exclude get all)
-	ACTION_BARTER,						//   s      0 - item taken, 1 - item given                                 +
-	ACTION_DODGE,						//          0 - front, 1 - back
-	ACTION_DAMAGE,						//          0 - front, 1 - back
-	ACTION_DAMAGE_FORCE,				//          0 - front, 1 - back
-	ACTION_KNOCKOUT,					//   s      0 - knockout anim2begin
-	ACTION_STANDUP,						//   s      0 - knockout anim2end
-	ACTION_FIDGET,						// l
-	ACTION_DEAD,						//   s      dead type anim2 (see Anim2 in _animation.fos)
-	ACTION_CONNECT,						//
-	ACTION_DISCONNECT,					//
-	ACTION_RESPAWN,						//   s
-	ACTION_REFRESH						//   s
-};
+//                                          flags    actionExt                                                      item
+#define ACTION_MOVE                  ( 0 )  // l
+#define ACTION_RUN                   ( 1 )  // l
+#define ACTION_MOVE_ITEM             ( 2 )  // l s      from slot                                                      +
+#define ACTION_MOVE_ITEM_SWAP        ( 3 )  // l s      from slot                                                      +
+#define ACTION_USE_ITEM              ( 4 )  // l s                                                                     +
+#define ACTION_DROP_ITEM             ( 5 )  // l s      from slot                                                      +
+#define ACTION_USE_WEAPON            ( 6 )  // l        fail attack 8 bit, use index (0-2) 4-7 bits, aim 0-3 bits      +
+#define ACTION_RELOAD_WEAPON         ( 7 )  // l s                                                                     +
+#define ACTION_USE_SKILL             ( 8 )  // l s      skill index (see SK_*)
+#define ACTION_PICK_ITEM             ( 9 )  // l s                                                                     +
+#define ACTION_PICK_CRITTER          ( 10 ) // l        0 - loot, 1 - steal, 2 - push
+#define ACTION_OPERATE_CONTAINER     ( 11 ) // l s      transfer type * 10 + [0 - get, 1 - get all, 2 - put]           + (exclude get all)
+#define ACTION_BARTER                ( 12 ) //   s      0 - item taken, 1 - item given                                 +
+#define ACTION_DODGE                 ( 13 ) //          0 - front, 1 - back
+#define ACTION_DAMAGE                ( 14 ) //          0 - front, 1 - back
+#define ACTION_DAMAGE_FORCE          ( 15 ) //          0 - front, 1 - back
+#define ACTION_KNOCKOUT              ( 16 ) //   s      0 - knockout anim2begin
+#define ACTION_STANDUP               ( 17 ) //   s      0 - knockout anim2end
+#define ACTION_FIDGET                ( 18 ) // l
+#define ACTION_DEAD                  ( 19 ) //   s      dead type anim2 (see Anim2 in _animation.fos)
+#define ACTION_CONNECT               ( 20 ) //
+#define ACTION_DISCONNECT            ( 21 ) //
+#define ACTION_RESPAWN               ( 22 ) //   s
+#define ACTION_REFRESH               ( 23 ) //   s
 
 // Script defines
 // Look checks
@@ -694,39 +627,29 @@ enum ACTION_TYPES
 #define LOOK_CHECK_ITEM_SCRIPT       ( 0x20 )
 
 // In SendMessage
-enum AI_MESSAGE_TYPES
-{
-	MESSAGE_TO_VISIBLE_ME = 0,
-	MESSAGE_TO_IAM_VISIBLE,
-	MESSAGE_TO_ALL_ON_MAP
-};
+#define MESSAGE_TO_VISIBLE_ME        ( 0 )
+#define MESSAGE_TO_IAM_VISIBLE       ( 1 )
+#define MESSAGE_TO_ALL_ON_MAP        ( 2 )
 
 // Special skill values
-enum SPECIAL_SKILL_TYPES
-{
-	SKILL_TALK = -7,
-	SKILL_PUSH_CRITTER,
-	SKILL_LOOT_CRITTER,
-	SKILL_TAKE_ALL_CONT,
-	SKILL_TAKE_CONT,
-	SKILL_PUT_CONT,
-	SKILL_PICK_ON_GROUND
-};
+#define SKILL_PICK_ON_GROUND         ( -1 )
+#define SKILL_PUT_CONT               ( -2 )
+#define SKILL_TAKE_CONT              ( -3 )
+#define SKILL_TAKE_ALL_CONT          ( -4 )
+#define SKILL_LOOT_CRITTER           ( -5 )
+#define SKILL_PUSH_CRITTER           ( -6 )
+#define SKILL_TALK                   ( -7 )
 
 // Anim1
 #define ANIM1_UNARMED                ( 1 )
 // Anim2
-enum ANIM2_TYPES
-{
-	ANIM2_IDLE = 1,
-	ANIM2_WALK = 3,
-	ANIM2_LIMP,
-	ANIM2_RUN,
-	ANIM2_PANIC_RUN,
-	ANIM2_SNEAK_WALK,
-	ANIM2_SNEAK_RUN
-};
-
+#define ANIM2_IDLE                   ( 1 )
+#define ANIM2_WALK                   ( 3 )
+#define ANIM2_LIMP                   ( 4 )
+#define ANIM2_RUN                    ( 5 )
+#define ANIM2_PANIC_RUN              ( 6 )
+#define ANIM2_SNEAK_WALK             ( 7 )
+#define ANIM2_SNEAK_RUN              ( 8 )
 #define ANIM2_IDLE_PRONE_FRONT       ( 86 )
 #define ANIM2_IDLE_PRONE_BACK        ( 87 )
 #define ANIM2_DEAD_FRONT             ( 102 )
