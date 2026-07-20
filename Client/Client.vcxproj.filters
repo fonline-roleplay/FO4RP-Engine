@@ -782,6 +782,9 @@
     <ClInclude Include="..\Source\SDL2\SDL_vulkan.h">
       <Filter>SDL</Filter>
     </ClInclude>
+    <ClInclude Include="..\Source\case.h">
+      <Filter>Client</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Source\Zlib\adler32.c">

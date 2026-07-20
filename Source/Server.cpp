@@ -1,6 +1,5 @@
 #include "StdAfx.h"
 #include "Server.h"
-#include "FL/Fl.H"
 
 void* zlib_alloc( void* opaque, unsigned int items, unsigned int size ) { return calloc( items, size ); }
 void  zlib_free( void* opaque, void* address )                          { free( address ); }

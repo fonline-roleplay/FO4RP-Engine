@@ -4,6 +4,9 @@
 #include "ItemManager.h"
 #include "MapManager.h"
 
+#include <algorithm>
+#include <random>
+
 const char* MapEventFuncName[ MAP_EVENT_MAX ] =
 {
     "void %s(Map&,bool)",              // MAP_EVENT_FINISH
@@ -479,7 +482,10 @@ bool Map::GetStartCoordCar( ushort& hx, ushort& hy, ProtoItem* proto_item )
 
     ProtoMap::EntiresVec entires;
     Proto->GetEntires( proto_item->Car_Entrance, entires );
-    std::random_shuffle( entires.begin(), entires.end() );
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle( entires.begin(), entires.end(), g );
 
     for( int i = 0, j = (uint) entires.size(); i < j; i++ )
     {

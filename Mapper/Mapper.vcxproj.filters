@@ -638,6 +638,9 @@
     <ClInclude Include="..\Source\SDL2\SDL_vulkan.h">
       <Filter>SDL</Filter>
     </ClInclude>
+    <ClInclude Include="..\Source\case.h">
+      <Filter>Mapper</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Source\Common.cpp">

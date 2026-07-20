@@ -1,6 +1,9 @@
 #include "StdAfx.h"
 #include "Server.h"
 
+#include <algorithm>
+#include <random>
+
 void FOServer::ProcessCritter( Critter* cr )
 {
     if( cr->IsNotValid )
@@ -1361,7 +1364,10 @@ bool FOServer::MoveRandom( Critter* cr )
     UCharVec dirs( 6 );
     for( int i = 0; i < 6; i++ )
         dirs[ i ] = i;
-    std::random_shuffle( dirs.begin(), dirs.end() );
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle( dirs.begin(), dirs.end(), g);
 
     Map* map = MapMngr.GetMap( cr->GetMap() );
     if( !map )

@@ -1,6 +1,9 @@
 #include "StdAfx.h"
 #include "Server.h"
 
+#include <algorithm>
+#include <random>
+
 #define CHECK_NPC_AP( npc, map, need_ap )                                                                                        \
     do { if( npc->GetParam( ST_CURRENT_AP ) < (int) ( need_ap ) ) { if( map->IsTurnBasedOn ) { if( map->IsCritterTurn( npc ) )   \
                                                                                                    map->EndCritterTurn(); } else \
@@ -995,7 +998,11 @@ bool FOServer::Dialog_Compile( Npc* npc, Client* cl, const Dialog& base_dlg, Dia
     }
 
     if( !GameOpt.NoAnswerShuffle && !compiled_dlg.IsNoShuffle() )
-        std::random_shuffle( compiled_dlg.Answers.begin(), compiled_dlg.Answers.end() );
+    {
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(compiled_dlg.Answers.begin(), compiled_dlg.Answers.end(), g);
+    }
     return true;
 }
 
