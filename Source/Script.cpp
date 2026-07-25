@@ -1459,7 +1459,7 @@ bool Script::LoadScript( const char* module_name, const char* source, bool skip_
     {
         FileManager file;
         file.LoadFile( fname_real, ScriptsPath );
-        file_bin.LoadFile( Str::FormatBuf( "%sb", fname_script ), ScriptsPath );
+        file_bin.LoadFile( Str::FormatBuf( "intermediate\\%sb", fname_script ), ScriptsPath );
 
         if( file_bin.IsLoaded() && file_bin.GetFsize() > sizeof( uint ) )
         {
@@ -1705,6 +1705,8 @@ public:
     // Save binary version of script and preprocessed version
     if( !skip_binary && !file_bin.IsLoaded() )
     {
+        FileManager::CreateDirectoryTree( FileManager::GetFullPath( Str::FormatBuf( "intermediate\\%s", fname_script ), ScriptsPath ) );
+
         CBytecodeStream binary;
         if( module->SaveByteCode( &binary ) >= 0 )
         {
@@ -1721,7 +1723,7 @@ public:
                 file_bin.SetData( (uchar*) pragmas[ i ].c_str(), (uint) pragmas[ i ].length() + 1 );
             file_bin.SetData( &data[ 0 ], (uint) data.size() );
 
-            if( !file_bin.SaveOutBufToFile( Str::FormatBuf( "%sb", fname_script ), ScriptsPath ) )
+            if( !file_bin.SaveOutBufToFile( Str::FormatBuf( "intermediate\\%sb", fname_script ), ScriptsPath ) )
                 WriteLogF( _FUNC_, " - Can't save bytecode, script<%s>.\n", module_name );
         }
         else
@@ -1732,7 +1734,7 @@ public:
         FileManager file_prep;
         FormatPreprocessorOutput( result.String );
         file_prep.SetData( (void*) result.String.c_str(), result.String.length() );
-        if( !file_prep.SaveOutBufToFile( Str::FormatBuf( "%sp", fname_script ), ScriptsPath ) )
+        if( !file_prep.SaveOutBufToFile( Str::FormatBuf( "intermediate\\%sp", fname_script ), ScriptsPath ) )
             WriteLogF( _FUNC_, " - Can't write preprocessed file, script<%s>.\n", module_name );
     }
     return true;
