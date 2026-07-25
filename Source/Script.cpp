@@ -2342,9 +2342,9 @@ uint64 CallCDeclFunction32( const size_t* args, size_t paramSize, size_t func )
 uint64 __attribute( ( __noinline__ ) ) CallCDeclFunction32( const size_t * args, size_t paramSize, size_t func )
 #endif
 {
-    volatile uint64 retQW;
+    volatile uint64 retQW = 0;
 
-    #if defined ( FO_MSVC )
+    #if defined ( FO_MSVC ) && defined ( FO_X86 )
     // Copy the data to the real stack. If we fail to do
     // this we may run into trouble in case of exceptions.
     __asm
@@ -2443,8 +2443,8 @@ endcopy:
         : "d" ( a ), "m" ( retQW )          // input - pass pointer of args in edx, pass pointer of retQW in memory argument
         : "%eax", "%ecx"                    // clobber
         );
-	#else
-    retQW = 0;
+    #else
+    UNUSED_VARIABLE( retQW );
     #endif
 
     return retQW;
@@ -2532,28 +2532,42 @@ void* Script::GetReturnedObject()
 
 float Script::GetReturnedFloat()
 {
-    float            f;
-    #ifdef FO_MSVC
-    __asm fstp dword ptr[ f ]
-    #elif defined ( FO_GCC ) && !defined ( FO_OSX_IOS )
-    asm ( "fstps %0 \n" : "=m" ( f ) );
-	#else
-    f = 0.0f;
-    #endif
-    return f;
+    if( ScriptCall )
+    {
+        return *(float*) NativeRetValue;
+    }
+    else
+    {
+        float            f;
+        #if defined ( FO_MSVC ) && defined ( FO_X86 )
+        __asm fstp dword ptr[ f ]
+        #elif defined ( FO_GCC ) && !defined ( FO_OSX_IOS )
+        asm ( "fstps %0 \n" : "=m" ( f ) );
+        #else
+        f = 0.0f;
+        #endif
+        return f;
+    }
 }
 
 double Script::GetReturnedDouble()
 {
-    double           d;
-    #ifdef FO_MSVC
-    __asm fstp qword ptr[ d ]
-    #elif defined ( FO_GCC ) && !defined ( FO_OSX_IOS )
-    asm ( "fstpl %0 \n" : "=m" ( d ) );
-	#else
-    d = 0.0;
-    #endif
-    return d;
+    if( ScriptCall )
+    {
+        return *(double*) NativeRetValue;
+    }
+    else
+    {
+        double           d;
+        #if defined ( FO_MSVC ) && defined ( FO_X86 )
+        __asm fstp qword ptr[ d ]
+        #elif defined ( FO_GCC ) && !defined ( FO_OSX_IOS )
+        asm ( "fstpl %0 \n" : "=m" ( d ) );
+        #else
+        d = 0.0;
+        #endif
+        return d;
+    }
 }
 
 void* Script::GetReturnedRawAddress()
