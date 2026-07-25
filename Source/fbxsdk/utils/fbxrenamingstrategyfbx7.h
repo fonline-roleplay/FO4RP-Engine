@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -25,11 +25,11 @@ public:
     FbxRenamingStrategyFbx7();
     virtual ~FbxRenamingStrategyFbx7();
 
-    virtual void CleanUp();
-    virtual bool DecodeScene(FbxScene* pScene);
-    virtual bool EncodeScene(FbxScene* pScene);
-    virtual bool DecodeString(FbxNameHandler& pName);
-    virtual bool EncodeString(FbxNameHandler& pName, bool pIsPropertyName=false);
+    void CleanUp() override;
+    bool DecodeScene(FbxScene* pScene) override;
+    bool EncodeScene(FbxScene* pScene) override;
+    bool DecodeString(FbxNameHandler& pName) override;
+    bool EncodeString(FbxNameHandler& pName, bool pIsPropertyName=false) override;
 };
 
 #include <fbxsdk/fbxsdk_nsend.h>

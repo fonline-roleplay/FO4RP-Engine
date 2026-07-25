@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -36,7 +36,7 @@ class FbxUserDataRecord;
 class FbxConnectEvent;
 
 //! \internal Macro used to declare ClassId mechanics.
-#define FBXSDK_CLASS_DECLARE(Class, Parent)\
+#define FBXSDK_CLASS_DECLARE(Class, Parent, Const_Override)\
 private:\
 	Class(const Class&);\
 	Class& operator=(const Class&);\
@@ -44,14 +44,14 @@ protected:\
 	virtual ~Class(){};\
 public:\
 	static FbxClassId ClassId;\
-	virtual FbxClassId GetClassId() const { return ClassId; }\
+	virtual FbxClassId GetClassId() Const_Override { return ClassId; }\
 	friend class FBXSDK_NAMESPACE::FbxManager;\
     typedef Parent ParentClass;\
 	static Class* Create(FbxManager* pManager, const char* pName);\
 
 //! \internal Macro used to declare the FbxObject class.
-#define FBXSDK_FBXOBJECT_DECLARE(Class, Parent)\
-	FBXSDK_CLASS_DECLARE(Class, Parent)\
+#define FBXSDK_FBXOBJECT_DECLARE(Class, Parent, Const_Override)\
+	FBXSDK_CLASS_DECLARE(Class, Parent, Const_Override)\
     FBXSDK_FRIEND_NEW()\
     static Class* Create(FbxObject* pContainer, const char* pName);\
 protected:\
@@ -59,14 +59,14 @@ protected:\
 
 //! Macro used to declare a new class derived from FbxObject.
 #define FBXSDK_OBJECT_DECLARE(Class, Parent)\
-	FBXSDK_FBXOBJECT_DECLARE(Class, Parent)\
+	FBXSDK_FBXOBJECT_DECLARE(Class, Parent, const override)\
 protected:\
 	Class(FbxManager& pManager, const char* pName) : Parent(pManager, pName){};\
 private: /* end of object declaration, put back private */\
 
 //! Macro used to declare a new abstract class derived from FbxObject.
 #define FBXSDK_ABSTRACT_OBJECT_DECLARE(Class, Parent)\
-	FBXSDK_CLASS_DECLARE(Class, Parent)\
+	FBXSDK_CLASS_DECLARE(Class, Parent, const override)\
 protected:\
 	static FbxObjectCreateProc Allocate;\
 	Class(FbxManager& pManager, const char* pName) : Parent(pManager, pName){};\
@@ -156,23 +156,11 @@ private: /* end of object declaration, put back private */\
   */
 class FBXSDK_DLL FbxObject : public FbxEmitter
 {
-	FBXSDK_FBXOBJECT_DECLARE(FbxObject, FbxEmitter);
+	FBXSDK_FBXOBJECT_DECLARE(FbxObject, FbxEmitter, const);
 
 public:
 	//! \name General Object Management
 	//@{
-		/** Test if this class is a hierarchical children of the specified class type. This is the standard method to differentiate object classes. (Deprecated, please use Is<Type>() instead.)
-		* \param pClassId The class type to test against self.
-		* \return \c true if the object is a hierarchical children of the type specified.
-		* \remark This function will perform a complete search until it reaches the top level class, but it will stop as soon as one ClassId matches the test. */
-		FBX_DEPRECATED inline bool Is(const FbxClassId& pClassId) const { return GetClassId().Is(pClassId); }
-
-		/** Templated test if this class is a hierarchical children of the specified class type. (Deprecated, please use Is<Type>() instead.)
-		* \param pClassType	A direct pointer to the C++ type of the object to test against.
-		* \return \c true if the object is a hierarchical children of the type specified.
-		* \remark This function will perform a complete search until it reaches the top level class, but it will stop as soon as one ClassId matches the test. */
-		template <class T> FBX_DEPRECATED inline bool Is(T* pClassType) const { return Is(T::ClassId); }
-
 		/** Templated test if this class is a hierarchical children of the specified class type.
 		* \return \c true if the object is a hierarchical children of the type specified.
 		* \remark This function will perform a complete search until it reaches the top level class, but it will stop as soon as one ClassId matches the test. */
@@ -245,7 +233,7 @@ public:
 		* \param pObject	The source object to copy data from.
 		* \return			Returns the destination object being modified by the source.
 		* \remark			This function replace the assignment operator (operator=). It will copy all property values and the name. Connections are NOT copied. */
-		virtual FbxObject& Copy(const FbxObject& pObject);
+        virtual FbxObject& Copy(const FbxObject& pObject);
 
 		//! Types of clones that can be created for FbxObject.
 		enum ECloneType
@@ -358,7 +346,7 @@ public:
 		  * \param pName Whose prefix is removed.
 		  * \return A temporary string without prefix.
 		  */
-		static FbxString RemovePrefix(char* pName);
+		static FbxString RemovePrefix(const char* pName);
 
 		/** Strips the prefix of pName
 		  * \param lName Whose prefix is stripped.
@@ -456,12 +444,6 @@ public:
 		  */
 		inline bool DisconnectAllSrcObject(const FbxCriteria& pCriteria) { return RootProperty.DisconnectAllSrcObject(pCriteria); }
 
-		/** Disconnects this object from all source objects of a specific class type. (Deprecated, please use DisconnectAllSrcObject<Type>() instead.)
-		  * \param pClassId The specific class type.
-		  * \return \c True if it disconnects all source objects successfully, \c false otherwise.
-		  */
-		FBX_DEPRECATED inline bool DisconnectAllSrcObject(FbxClassId pClassId) { return RootProperty.DisconnectAllSrcObject(FbxCriteria::ObjectType(pClassId)); }
-
 		/** Returns the number of source objects with which this object connects.
 		  * \return The number of source objects with which this object connects. 
 		  */
@@ -472,12 +454,6 @@ public:
 		  * \return The number of source objects that satisfy the given criteria with which this object connects.
 		  */
 		inline int GetSrcObjectCount(const FbxCriteria& pCriteria) const { return RootProperty.GetSrcObjectCount(pCriteria); }
-
-		/** Returns the number of source objects of the specific class type with which this object connects. (Deprecated, please use GetSrcObjectCount<Type>() instead.)
-		  * \param pClassId The specific class type.
-		  * \return The number of source objects of the specific class type with which this object connects.
-		  */
-		FBX_DEPRECATED inline int GetSrcObjectCount(FbxClassId pClassId) const { return RootProperty.GetSrcObjectCount(FbxCriteria::ObjectType(pClassId)); }
 
 		/** Returns the source object with which this object connects at the specified index.
 		  * \param pIndex The specified index whose default value is 0.
@@ -491,13 +467,6 @@ public:
 		  * \return The source object that satisfies the given criteria at the specified index, NULL if not found.
 		  */
 		inline FbxObject* GetSrcObject(const FbxCriteria& pCriteria, int pIndex=0) const { return RootProperty.GetSrcObject(pCriteria,pIndex); }
-
-		/** Returns the source object of the specified class type at the specified index with which this object connects. (Deprecated, please use GetSrcObject<Type>() instead.)
-		  * \param pClassId The specified class type.
-		  * \param pIndex The specified index whose default value is 0.
-		  * \return The source object of the specified class type at the specified index, NULL if not found.
-		  */
-		FBX_DEPRECATED inline FbxObject* GetSrcObject(FbxClassId pClassId, int pIndex=0) const { return RootProperty.GetSrcObject(FbxCriteria::ObjectType(pClassId), pIndex); }
 
 		/** Searches the source object with the specified name, starting at the specified index.
 		  * \param pName The object name.
@@ -514,73 +483,28 @@ public:
 		  */
 		inline FbxObject* FindSrcObject(const FbxCriteria& pCriteria, const char* pName, int pStartIndex=0) const { return RootProperty.FindSrcObject(pCriteria,pName,pStartIndex); }
 
-		/** Searches the source object with the specified name which is also the specified class type, starting at the specified index. (Deprecated, please use FindSrcObject<Type>() instead.)
-		  * \param pClassId The specified class type.
-		  * \param pName The object name.
-		  * \param pStartIndex The start index.
-		  * \return The source object with the name, NULL if not found.
-		  */
-		FBX_DEPRECATED inline FbxObject* FindSrcObject(FbxClassId pClassId, const char* pName, int pStartIndex=0) const { return RootProperty.FindSrcObject(FbxCriteria::ObjectType(pClassId), pName, pStartIndex); }
-
-		/** Disconnects this object from all source objects of the specified class type. (Deprecated, please use DisconnectAllSrcObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \return \c True if it disconnects all source objects successfully, \c false otherwise.
-		  */
-		template <class T> FBX_DEPRECATED inline bool DisconnectAllSrcObject(const T* pFBX_TYPE) { return RootProperty.DisconnectAllSrcObject(pFBX_TYPE); }
-
 		/** Disconnects this object from all source objects of the specified class type.
 		* \return \c true if it disconnects all source objects successfully, \c false otherwise. */
 		template <class T> inline bool DisconnectAllSrcObject() { return RootProperty.DisconnectAllSrcObject(FbxCriteria::ObjectType(T::ClassId)); }
-
-		/** Disconnects this object from all source objects that are of the specified class type and that satisfy the given criteria. (Deprecated, please use DisconnectAllSrcObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pCriteria The given criteria.
-		  * \return \c True if it disconnects all source objects successfully, \c false otherwise.
-		  */
-		template <class T> FBX_DEPRECATED inline bool DisconnectAllSrcObject(const T* pFBX_TYPE, const FbxCriteria& pCriteria) { return RootProperty.DisconnectAllSrcObject(pFBX_TYPE,pCriteria); }
 
 		/** Disconnects this object from all source objects that are of the specified class type and that satisfy the given criteria.
 		* \param pCriteria The given criteria.
 		* \return \c true if it disconnects all source objects successfully, \c false otherwise. */
 		template <class T> inline bool DisconnectAllSrcObject(const FbxCriteria& pCriteria) { return RootProperty.DisconnectAllSrcObject(FbxCriteria::ObjectType(T::ClassId) && pCriteria); }
 
-		/** Returns the number of source objects of a specific class type with which this object connects. (Deprecated, please use GetSrcObjectCount<Type>() instead.)
-		* \param pFBX_TYPE The specified class type.
-		* \return The number of source objects of the specified class type with which this object connects. */
-		template <class T> FBX_DEPRECATED inline int GetSrcObjectCount(const T* pFBX_TYPE) const { return RootProperty.GetSrcObjectCount(pFBX_TYPE); }
-
 		/** Returns the number of source objects of a specific class type with which this object connects.
 		* \return The number of source objects of the specified class type with which this object connects. */
 		template <class T> inline int GetSrcObjectCount() const { return RootProperty.GetSrcObjectCount(FbxCriteria::ObjectType(T::ClassId)); }
-
-		/** Returns the number of source objects with which this object connects that are the specified class type and that satisfy the given criteria. (Deprecated, please use GetSrcObjectCount<Type>() instead.)
-		* \param pFBX_TYPE The specified class type.
-		* \param pCriteria The given criteria.
-		* \return The number of source objects that are the specified class type and that satisfy the given criteria. */
-		template <class T> FBX_DEPRECATED inline int GetSrcObjectCount(const T* pFBX_TYPE, const FbxCriteria& pCriteria) const { return RootProperty.GetSrcObjectCount(pFBX_TYPE,pCriteria); }
 
 		/** Returns the number of source objects with which this object connects that are the specified class type and that satisfy the given criteria.
 		* \param pCriteria The given criteria.
 		* \return The number of source objects that are the specified class type and that satisfy the given criteria. */
 		template <class T> inline int GetSrcObjectCount(const FbxCriteria& pCriteria) const { return RootProperty.GetSrcObjectCount(FbxCriteria::ObjectType(T::ClassId) && pCriteria); }
 
-		/** Returns the source object of the specified class type at the specified index. (Deprecated, please use GetSrcObject<Type>() instead.)
-		* \param pFBX_TYPE The specified class type.
-		* \param pIndex The specified index whose default value is 0.
-		* \return The source object of a specified class type at the specified index, NULL if not found. */
-		template <class T> FBX_DEPRECATED inline T* GetSrcObject(const T* pFBX_TYPE, int pIndex=0) const { return RootProperty.GetSrcObject(pFBX_TYPE, pIndex); }
-
 		/** Returns the source object of the specified class type at the specified index.
 		* \param pIndex The specified index whose default value is 0.
 		* \return The source object of a specified class type at the specified index, NULL if not found. */
 		template <class T> inline T* GetSrcObject(int pIndex=0) const { return (T*)RootProperty.GetSrcObject(FbxCriteria::ObjectType(T::ClassId), pIndex); }
-
-		/** Returns the source object that is the specified class type and that satisfies the given criteria at the specified index. (Deprecated, please use GetSrcObject<Type>() instead.)
-		* \param pFBX_TYPE The specified class type.
-		* \param pCriteria The given criteria.
-		* \param pIndex The specified index whose default value is 0.
-		* \return The source object that is of the specified class type and that satisfies the given criteria at the specified index, NULL if not found. */
-		template <class T> FBX_DEPRECATED inline T* GetSrcObject(const T* pFBX_TYPE, const FbxCriteria& pCriteria, int pIndex=0) const { return RootProperty.GetSrcObject(pFBX_TYPE,pCriteria,pIndex); }
 
 		/** Returns the source object that is the specified class type and that satisfies the given criteria at the specified index.
 		* \param pCriteria The given criteria.
@@ -588,28 +512,11 @@ public:
 		* \return The source object that is of the specified class type and that satisfies the given criteria at the specified index, NULL if not found. */
 		template <class T> inline T* GetSrcObject(const FbxCriteria& pCriteria, int pIndex=0) const { return (T*)RootProperty.GetSrcObject(FbxCriteria::ObjectType(T::ClassId) && pCriteria, pIndex); }
 
-		/** Searches the source object with the specified name that is the specified class type, starting at the specified index. (Deprecated, please use FindSrcObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pName The object name.
-		  * \param pStartIndex The start index.
-		  * \return The source object with the name, NULL if not found.
-		  */
-		template <class T> FBX_DEPRECATED inline T* FindSrcObject(const T* pFBX_TYPE, const char* pName, int pStartIndex=0) const { return RootProperty.FindSrcObject(pFBX_TYPE,pName,pStartIndex); }
-
 		/** Searches the source object with the specified name that is the specified class type, starting at the specified index.
 		* \param pName The object name.
 		* \param pStartIndex The start index.
 		* \return The source object with the name, NULL if not found. */
 		template <class T> inline T* FindSrcObject(const char* pName, int pStartIndex=0) const { return (T*)RootProperty.FindSrcObject(FbxCriteria::ObjectType(T::ClassId), pName, pStartIndex); }
-
-		/** Searches the source object with the specified name that is the specified class type and that satisfies the given criteria, starting at the specified index. (Deprecated, please use FindSrcObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pCriteria The given criteria.
-		  * \param pName The object name.
-		  * \param pStartIndex The start index.
-		  * \return The source object with the name, NULL if not found.
-		  */
-		template <class T> FBX_DEPRECATED inline T* FindSrcObject(const T* pFBX_TYPE, const FbxCriteria& pCriteria, const char* pName, int pStartIndex=0) const { return RootProperty.FindSrcObject(pFBX_TYPE,pCriteria,pName,pStartIndex); }
 
 		/** Searches the source object with the specified name that is the specified class type and that satisfies the given criteria, starting at the specified index.
 		* \param pCriteria The given criteria.
@@ -648,12 +555,6 @@ public:
 		  */
 		inline bool DisconnectAllDstObject(const FbxCriteria& pCriteria) { return RootProperty.DisconnectAllDstObject(pCriteria); }
 
-		/** Disconnects this object from all destination objects of the specified class type. (Deprecated, please use DisconnectAllDstObject<Type>() instead.)
-		  * \param pClassId The specified class type.
-		  * \return \c True if it disconnects all destination objects of the specified class type successfully, \c false otherwise.
-		  */
-		FBX_DEPRECATED inline bool DisconnectAllDstObject(FbxClassId pClassId) { return RootProperty.DisconnectAllDstObject(FbxCriteria::ObjectType(pClassId)); }
-
 		/** Returns the number of destination objects with which this object connects. 
 		  * \return The number of destination objects with which this object connects. 
 		  */
@@ -664,12 +565,6 @@ public:
 		  * \return The number of destination objects with which this object connects that satisfy the given criteria.
 		  */
 		inline int GetDstObjectCount(const FbxCriteria& pCriteria) const { return RootProperty.GetDstObjectCount(pCriteria); }
-
-		/** Returns the number of destination objects of the specified class type with which this object connects. (Deprecated, please use GetDstObjectCount<Type>() instead.)
-		  * \param pClassId The specified class type.
-		  * \return The number of destination objects of the specified class type with which this object connects. 
-		  */
-		FBX_DEPRECATED inline int GetDstObjectCount(FbxClassId pClassId) const { return RootProperty.GetDstObjectCount(FbxCriteria::ObjectType(pClassId)); }
 
 		/** Returns the destination object at the specified index with which this object connects.
 		  * \param pIndex The specified index whose default value is 0.
@@ -683,13 +578,6 @@ public:
 		  * \return The destination object that satisfies the given criteria at the specified index, NULL if not found.
 		  */
 		inline FbxObject* GetDstObject(const FbxCriteria& pCriteria, int pIndex=0) const { return RootProperty.GetDstObject(pCriteria,pIndex); }
-
-		/** Returns the destination object of the specified class type with which this object connects at the specified index. (Deprecated, please use GetDstObject<Type>() instead.)
-		  * \param pClassId The specified class type.
-		  * \param pIndex The specified index whose default value is 0.
-		  * \return The destination object of the specified class type at the specified index, NULL if not found.
-		  */
-		FBX_DEPRECATED inline FbxObject* GetDstObject(FbxClassId pClassId, int pIndex=0) const { return RootProperty.GetDstObject(FbxCriteria::ObjectType(pClassId), pIndex); }
 
 		/** Searches the destination object with the specified name, starting at the specified index.
 		  * \param pName The object name.
@@ -706,77 +594,28 @@ public:
 		  */
 		inline FbxObject* FindDstObject(const FbxCriteria& pCriteria, const char* pName, int pStartIndex=0) const { return RootProperty.FindDstObject(pCriteria,pName,pStartIndex); }
 
-		/** Searches the destination object with the specified name which is the specified class type, starting at the specified index. (Deprecated, please use FindDstObject<Type>() instead.)
-		  * \param pClassId The specified class type.
-		  * \param pName The object name.
-		  * \param pStartIndex The start index.
-		  * \return The destination object with the name, NULL if not found.
-		  */
-		FBX_DEPRECATED inline FbxObject* FindDstObject(FbxClassId pClassId, const char* pName,int pStartIndex=0) const { return RootProperty.FindDstObject(FbxCriteria::ObjectType(pClassId), pName, pStartIndex); }
-
-		/** Disconnects this object from all destination objects of the specified class type. (Deprecated, please use DisconnectAllDstObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \return \c true if it disconnects all destination objects of the specified class type successfully, \c false otherwise.
-		  */
-		template <class T> FBX_DEPRECATED inline bool DisconnectAllDstObject(const T* pFBX_TYPE) { return RootProperty.DisconnectAllDstObject(pFBX_TYPE); }
-
 		/** Disconnects this object from all destination objects of the specified class type.
 		* \return \c true if it disconnects all destination objects of the specified class type successfully, \c false otherwise. */
 		template <class T> inline bool DisconnectAllDstObject() { return RootProperty.DisconnectAllDstObject(FbxCriteria::ObjectType(T::ClassId)); }
-
-		/** Disconnects this object from all destination objects that are the specified class type and that satisfy the given criteria. (Deprecated, please use DisconnectAllDstObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pCriteria The given criteria.
-		  * \return \c true if it disconnects all destination objects successfully, \c false otherwise.
-		  */
-		template <class T> FBX_DEPRECATED inline bool DisconnectAllDstObject(const T* pFBX_TYPE, const FbxCriteria& pCriteria) { return RootProperty.DisconnectAllDstObject(pFBX_TYPE,pCriteria); }
 
 		/** Disconnects this object from all destination objects that are the specified class type and that satisfy the given criteria.
 		* \param pCriteria The given criteria.
 		* \return \c true if it disconnects all destination objects successfully, \c false otherwise. */
 		template <class T> inline bool DisconnectAllDstObject(const FbxCriteria& pCriteria) { return RootProperty.DisconnectAllDstObject(FbxCriteria::ObjectType(T::ClassId) && pCriteria); }
 
-		/** Returns the number of destination objects of the specified class type with which this object connects. (Deprecated, please use GetDstObjectCount<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \return The number of destination objects of the specified class type with which this object connects. 
-		  */
-		template <class T> FBX_DEPRECATED inline int GetDstObjectCount(const T* pFBX_TYPE) const { return RootProperty.GetDstObjectCount(pFBX_TYPE); }
-
 		/** Returns the number of destination objects of the specified class type with which this object connects.
 		* \return The number of destination objects of the specified class type with which this object connects. */
 		template <class T> inline int GetDstObjectCount() const { return RootProperty.GetDstObjectCount(FbxCriteria::ObjectType(T::ClassId)); }
-
-		/** Returns the number of destination objects with which this object connects that are the specified class type and that satisfy the given criteria. (Deprecated, please use GetDstObjectCount<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pCriteria The given criteria.
-		  * \return The number of destination objects that are the specified class type and that satisfy the given criteria. 
-		  */
-		template <class T> FBX_DEPRECATED inline int GetDstObjectCount(const T* pFBX_TYPE, const FbxCriteria& pCriteria) const { return RootProperty.GetDstObjectCount(pFBX_TYPE,pCriteria); }
 
 		/** Returns the number of destination objects with which this object connects that are the specified class type and that satisfy the given criteria.
 		* \param pCriteria The given criteria.
 		* \return The number of destination objects that are the specified class type and that satisfy the given criteria. */
 		template <class T> inline int GetDstObjectCount(const FbxCriteria& pCriteria) const { return RootProperty.GetDstObjectCount(FbxCriteria::ObjectType(T::ClassId) && pCriteria); }
 
-		/** Returns the destination object with which this object connects that is the specified class type at the specified index. (Deprecated, please use GetDstObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pIndex The specified index whose default value is 0.
-		  * \return The destination object of the specified class type at the specified index, NULL if not found.
-		  */
-		template <class T> FBX_DEPRECATED inline T* GetDstObject(const T* pFBX_TYPE, int pIndex=0) const { return RootProperty.GetDstObject(pFBX_TYPE,pIndex); }
-
 		/** Returns the destination object with which this object connects that is the specified class type at the specified index.
 		* \param pIndex The specified index whose default value is 0.
 		* \return The destination object of the specified class type at the specified index, NULL if not found. */
 		template <class T> inline T* GetDstObject(int pIndex=0) const { return (T*)RootProperty.GetDstObject(FbxCriteria::ObjectType(T::ClassId), pIndex); }
-
-		/** Returns the destination object with which this object connects that is the specified class type and that satisfies the given criteria at the specified index. (Deprecated, please use GetDstObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pCriteria The given criteria.
-		  * \param pIndex The specified index whose default value is 0.
-		  * \return The destination object that is the specified class type and that satisfies the given criteria at the specified index, NULL if not found.
-		  */
-		template <class T> FBX_DEPRECATED inline T* GetDstObject(const T * pFBX_TYPE, const FbxCriteria& pCriteria, int pIndex=0) const { return RootProperty.GetDstObject(pFBX_TYPE,pCriteria,pIndex); }
 
 		/** Returns the destination object with which this object connects that is the specified class type and that satisfies the given criteria at the specified index.
 		* \param pCriteria The given criteria.
@@ -784,28 +623,11 @@ public:
 		* \return The destination object that is the specified class type and that satisfies the given criteria at the specified index, NULL if not found. */
 		template <class T> inline T* GetDstObject(const FbxCriteria& pCriteria, int pIndex=0) const { return (T*)RootProperty.GetDstObject(FbxCriteria::ObjectType(T::ClassId) && pCriteria, pIndex); }
 
-		/** Searches the destination object with the specified name which is of the specified class type, starting at the specified index. (Deprecated, please use FindDstObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pName The object name.
-		  * \param pStartIndex The start index.
-		  * \return The source object with the name, NULL if not found.
-		  */
-		template <class T> FBX_DEPRECATED inline T* FindDstObject(const T* pFBX_TYPE, const char* pName, int pStartIndex=0) const { return RootProperty.FindDstObject(pFBX_TYPE,pName,pStartIndex); }
-
 		/** Searches the destination object with the specified name which is of the specified class type, starting at the specified index.
 		* \param pName The object name.
 		* \param pStartIndex The start index.
 		* \return The source object with the name, NULL if not found. */
 		template <class T> inline T* FindDstObject(const char* pName, int pStartIndex=0) const { return (T*)RootProperty.FindDstObject(FbxCriteria::ObjectType(T::ClassId), pName, pStartIndex); }
-
-		/** Searches the destination object with the specified name that is the specified class type and that satisfies the given criteria, starting at the specified index. (Deprecated, please use FindDstObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pCriteria The given criteria.
-		  * \param pName The object name.
-		  * \param pStartIndex The start index.
-		  * \return The source object with the name, NULL if not found.
-		  */
-		template <class T> FBX_DEPRECATED inline T* FindDstObject(const T* pFBX_TYPE, const FbxCriteria& pCriteria, const char* pName, int pStartIndex=0) const { return RootProperty.FindDstObject(pFBX_TYPE,pCriteria,pName,pStartIndex); }
 
 		/** Searches the destination object with the specified name that is the specified class type and that satisfies the given criteria, starting at the specified index.
 		* \param pCriteria The given criteria.
@@ -879,16 +701,6 @@ public:
 		{
 			return RootProperty.FindHierarchical(pName, pDataType, pCaseSensitive );
 		}
-
-		/** Returns the root property of this object. (Deprecated, use RootProperty instead)
-		  * \return The root property.
-		  */
-		FBX_DEPRECATED inline FbxProperty& GetRootProperty() { return RootProperty; }
-
-		/** Returns the root property of this object. (Deprecated, use RootProperty instead)
-		  * \return The root property.
-		  */
-		FBX_DEPRECATED inline const FbxProperty& GetRootProperty() const { return RootProperty; }
 
 		/** Returns the class root property.
 		  * \return The class root property if it exists, else an invalid FbxProperty. See FbxProperty::IsValid().
@@ -1129,7 +941,7 @@ public:
 		  * \return \c True on success, \c false otherwise.
 		  * \remarks The URL indicates where the object is stored.
 		  */
-		virtual bool SetUrl(char* pUrl);
+		virtual bool SetUrl(const char* pUrl);
 	//@}
 
 	/** \name Run-time ClassId Management */
@@ -1152,6 +964,10 @@ public:
 		* \return True if the run-time ClassId is inequal to the ClassId. */
 		bool IsRuntimePlug() const;
 	//@}
+
+	/** Compact the memory used by this object.
+	* \remark Note that this function might not result in saved memory because it depends if the sub-class implements it, or if any memory can actually be saved. */
+	virtual void Compact();
 
 	//! The root property that holds all children property for this object
 	FbxProperty RootProperty;
@@ -1686,25 +1502,6 @@ template <class T> inline const T* FbxCast(const FbxObject* pObject)
 ** WARNING! Anything beyond these lines is for internal use, may not be documented and is subject to change without notice! **
 *****************************************************************************************************************************/
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-
-//All these functions have been retired, please use their equivalent as stated in the documentation.
-FBX_DEPRECATED inline bool FbxConnectSrc(FbxObject* pDstObject, FbxObject* pSrcObject){ return (pSrcObject && pDstObject) ? pDstObject->ConnectSrcObject(pSrcObject) : 0; }
-FBX_DEPRECATED inline bool FbxConnectDst(FbxObject* pSrcObject, FbxObject* pDstObject){ return (pSrcObject && pDstObject) ? pSrcObject->ConnectDstObject(pDstObject) : 0; }
-template <class T> FBX_DEPRECATED inline int FbxGetSrcCount(const FbxObject* pObject){ return pObject ? pObject->GetSrcObjectCount(T::ClassId) : 0; }
-template <class T> FBX_DEPRECATED inline int FbxGetSrcCount(const FbxObject* pObject, FbxClassId pClassId){ return pObject ? pObject->GetSrcObjectCount(pClassId) : 0; }
-template <class T> FBX_DEPRECATED inline T* FbxGetSrc(const FbxObject* pObject, int pIndex=0){ return pObject ? (T *) pObject->GetSrcObject(T::ClassId,pIndex) : 0; }
-template <class T> FBX_DEPRECATED inline T* FbxGetSrc(const FbxObject* pObject, int pIndex, FbxClassId pClassId){ return pObject ? (T *) pObject->GetSrcObject(pClassId,pIndex) : 0; }
-template <class T> FBX_DEPRECATED inline T* FbxFindSrc(const FbxObject* pObject, const char* pName, int pIndex=0){ return pObject ? (T *) pObject->FindSrcObject(T::ClassId,pName,pIndex) : 0; }
-template <class T> FBX_DEPRECATED inline T* FbxFindSrc(const FbxObject* pObject, const char* pName, FbxClassId pClassId, int pIndex=0){ return pObject ? (T *) pObject->FindSrcObject(pClassId, pName, pIndex) : 0; }
-template <class T> FBX_DEPRECATED inline bool FbxDisconnectAllSrc(FbxObject *pObject){ return pObject->DisconnectAllSrcObject(T::ClassId); }
-template <class T> FBX_DEPRECATED inline int FbxGetDstCount(const FbxObject* pObject){ return pObject ? pObject->GetDstObjectCount(T::ClassId) : 0; }
-template <class T> FBX_DEPRECATED inline int FbxGetDstCount(const FbxObject* pObject, FbxClassId pClassId){ return pObject ? pObject->GetDstObjectCount(pClassId) : 0; }
-template <class T> FBX_DEPRECATED inline T* FbxGetDst(const FbxObject* pObject, int pIndex=0){ return pObject ? (T *) pObject->GetDstObject(T::ClassId,pIndex) : 0; }
-template <class T> FBX_DEPRECATED inline T* FbxGetDst(const FbxObject* pObject, int pIndex, FbxClassId pClassId){ return pObject ? (T *) pObject->GetDstObject(pClassId,pIndex) : 0; }
-template <class T> FBX_DEPRECATED inline T* FbxFindDst(const FbxObject* pObject, const char* pName, int pIndex=0){ return pObject ? (T *) pObject->FindDstObject(T::ClassId,pName,pIndex) : 0; }
-template <class T> FBX_DEPRECATED inline T* FbxFindDst(const FbxObject* pObject, const char* pName, FbxClassId pClassId, int pIndex=0){ return pObject ? (T *) pObject->FindDstObject(pClassId, pName, pIndex) : 0; }
-template <class T> FBX_DEPRECATED inline bool FbxDisconnectAllDst(const FbxObject* pObject){ return pObject->DisconnectAllDstObject(T::ClassId); }
-
 class FBXSDK_DLL FbxConnectEvent
 {
 public:

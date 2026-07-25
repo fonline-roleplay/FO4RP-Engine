@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -17,8 +17,13 @@
 
 #include <fbxsdk/fbxsdk_nsbegin.h>
 
+#if defined(FBXSDK_COMPILER_MSC) && _MSC_VER < 1900
+#pragma warning(push)
+#pragma warning(disable : 4512) // to avoid: assignment operator could not be generated
+#endif
+
 /** An allocator class for use as a template parameter to one of the
-  * container class (FbxMap, FbxSet2, FbxDynamicArray...) must implement these.
+  * container class (FbxMap, FbxSet, FbxDynamicArray...) must implement these.
   */
 class FBXSDK_DLL FbxBaseAllocator
 {
@@ -53,7 +58,7 @@ public:
 	  */
 	void* AllocateRecords(const size_t pRecordCount=1)
 	{
-		return FbxMalloc(pRecordCount * mRecordSize);
+		return FbxMalloc(FbxAllocSize(pRecordCount, mRecordSize));
 	}
 
 	/** Frees a block of memory returned by AllocateRecords. 
@@ -72,7 +77,7 @@ public:
 	}
 
 private:
-	size_t mRecordSize;
+	const size_t mRecordSize;
 };
 
 /** This allocator only frees the allocated memory when it is deleted.
@@ -207,6 +212,10 @@ private:
 	size_t			mRecordPoolSize;
 	MemoryBlock*	mData;
 };
+
+#if defined(FBXSDK_COMPILER_MSC) && _MSC_VER < 1900
+#pragma warning(pop)
+#endif
 
 #include <fbxsdk/fbxsdk_nsend.h>
 

@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -34,7 +34,7 @@
 
 class FbxAnimStack;
 class FbxAnimCurve;
-class FbxSet;
+class FbxMultiMap;
 class KFCurveNode;
 
 /** This class is an composite of animation curves and is called as animation curve node.
@@ -292,11 +292,11 @@ public:
 ** WARNING! Anything beyond these lines is for internal use, may not be documented and is subject to change without notice! **
 *****************************************************************************************************************************/
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-	virtual FbxObject& Copy(const FbxObject& pObject);
+    FbxObject& Copy(const FbxObject& pObject) override;
 
-    void Evaluate(double* pData, FbxTime pTime);
+    static const char* CurveNodeNameFrom(const char* pName);
+	static bool EvaluateChannels(FbxAnimCurveNode* pCurveNode, double* pData, unsigned int pCount, FbxTime pTime);
 
-    KFCurveNode* GetKFCurveNode(bool pNoCreate=false);
     void ReleaseKFCurveNode();
     void SyncChannelsWithKFCurve();
 
@@ -304,14 +304,18 @@ public:
 	bool SetQuaternionInterpolation(unsigned short pVal); 
     unsigned short GetQuaternionInterpolation() { return mQuaternionInterpolation; };
     void SetKFCurveNodeLayerType(FbxProperty& pProp);
+	KFCurveNode* GetKFCurveNode(bool pNoCreate=false);
 
-    static const char* CurveNodeNameFrom(const char* pName);
-
+private:
+	friend class FbxAnimCurveFilterMatrixConverter;
+	friend class FbxAnimEvalClassic;
+    void Evaluate(double* pData, FbxTime pTime);
+    
 protected:
-	virtual void Construct(const FbxObject* pFrom);
-    virtual void Destruct(bool pRecursive);
-    virtual void ConstructProperties(bool pForceSet);
-	virtual bool ConnectNotify(const FbxConnectEvent& pEvent);
+	void Construct(const FbxObject* pFrom) override;
+    void Destruct(bool pRecursive) override;
+    void ConstructProperties(bool pForceSet) override;
+	bool ConnectNotify(const FbxConnectEvent& pEvent) override;
 
     FbxAnimCurveNode* Find(FbxAnimCurveNode* pRoot, const FbxString& pName);
 
@@ -319,7 +323,7 @@ private:
     FbxProperty GetChannel(const char* pChnl);
     FbxProperty GetChannel(unsigned int pChnlId);
 
-	friend void CollectAnimFromCurveNode(void **lSrc, void *fcn, unsigned int nbCrvs, FbxAnimCurveNode *cn, FbxSet* pNickToAnimCurveTimeWarpsSet, FbxSet& pNickToKFCurveNodeWarpSet);
+	friend void CollectAnimFromCurveNode(void **lSrc, void *fcn, unsigned int nbCrvs, FbxAnimCurveNode *cn, FbxMultiMap* pNickToAnimCurveTimeWarpsSet, FbxMultiMap& pNickToKFCurveNodeWarpSet);
 
     unsigned char	mNonRemovableChannels;
     FbxProperty		mChannels;

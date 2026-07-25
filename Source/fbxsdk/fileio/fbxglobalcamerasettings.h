@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -143,7 +143,7 @@ public:
 ** WARNING! Anything beyond these lines is for internal use, may not be documented and is subject to change without notice! **
 *****************************************************************************************************************************/
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-    bool CopyProducerCamera(const char* pCameraName, const FbxCamera* pCamera) const;
+    bool CopyProducerCamera(const char* pCameraName, const FbxCamera* pCamera, bool pIncludeConnections = false) const;
 
 private:
     FbxGlobalCameraSettings(FbxManager& pManager, FbxScene& pScene);

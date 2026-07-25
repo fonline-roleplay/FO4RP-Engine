@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -85,6 +85,7 @@ public:
 		  * - \e eFrames96			96 frames/s
 		  * - \e eFrames72			72 frames/s
 		  * - \e eFrames59dot94		~59.94 frames/s
+		  * - \e eFrames119dot88	~119.88 frames/s
 		  * - \e eModesCount		Number of time modes
 		  */
 		enum EMode
@@ -107,6 +108,7 @@ public:
 			eFrames96,
 			eFrames72,
 			eFrames59dot94,
+			eFrames119dot88,
 			eModesCount
 		};
 
@@ -304,23 +306,6 @@ public:
 		  * \return ';' is returned if pTimeMode is a DropFrame mode otherwise ':'.
 		  */
 		char GetFrameSeparator(EMode pTimeMode=eDefaultMode) const;
-
-		/** Get time in a human readable format.
-		  * \param pTimeString An array large enough to contain a minimum of 19 characters.
-		  * \param pInfo The amount of information if time protocol is \c eSMPTE:
-		  * <ul><li>1 means hours only
-		  *     <li>2 means hours and minutes
-		  *     <li>3 means hours, minutes and seconds
-		  *     <li>4 means hours, minutes, seconds and frames
-		  *     <li>5 means hours, minutes, seconds, frames and field
-		  *     <li>6 means hours, minutes, seconds, frames, field and residual value</ul>
-		  * \param pTimeMode Requested time mode.
-		  * \param pTimeFormat Requested time protocol.
-		  * \return pTimeString parameter filled with a time value or set to a empty string
-		  * if parameter pInfo is not valid.
-          * \remarks Until it gets removed, this function will simply call the secure version passing 50 in the /e pTimeStringSize.
-		  */
-		FBX_DEPRECATED char* GetTimeString(char* pTimeString, int pInfo=5, EMode pTimeMode=eDefaultMode, EProtocol pTimeFormat=eDefaultProtocol) const;
 
 		/** Get time in a human readable format.
 		  * \param pTimeString An array large enough to contain a minimum of 19 characters.

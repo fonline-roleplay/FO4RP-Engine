@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -33,7 +33,7 @@ class FBXSDK_DLL FbxCameraStereo : public FbxCamera
 
 public:
     //! Return the type of node attribute which is EType::eCameraStereo.
-    virtual FbxNodeAttribute::EType GetAttributeType() const;
+    FbxNodeAttribute::EType GetAttributeType() const override;
 
     //! Reset the stereo camera to default values.
     void Reset();
@@ -232,9 +232,9 @@ public:
 *****************************************************************************************************************************/
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 protected:
-    virtual void ConstructProperties(bool pForceSet);
+    void ConstructProperties(bool pForceSet) override;
 
-    virtual FbxStringList GetTypeFlags() const;
+    FbxStringList GetTypeFlags() const override;
 #endif /* !DOXYGEN_SHOULD_SKIP_THIS *****************************************************************************************/
 };
 

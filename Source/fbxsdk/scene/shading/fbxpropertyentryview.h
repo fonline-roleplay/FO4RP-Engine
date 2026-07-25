@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -74,7 +74,7 @@ public:
 	* \return       Entry type as string "FbxPropertyEntry".
 	* \remarks Always use EntryType() to get the right entry type.
 	*/
-	virtual const char* EntryType() const;
+	const char* EntryType() const override;
 };
 
 #include <fbxsdk/fbxsdk_nsend.h>

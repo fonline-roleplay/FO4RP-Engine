@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -94,7 +94,7 @@ public:
     /** Get the type of the deformer.
       * \return                        Deformer type identifier.
       */
-    EDeformerType GetDeformerType()  const {return eSkin; };
+    EDeformerType GetDeformerType() const override {return eSkin; };
 
 	/** \enum EType Skinning type.
 	* The skinning type decides which method will be used to do the skinning.
@@ -169,12 +169,13 @@ public:
 ** WARNING! Anything beyond these lines is for internal use, may not be documented and is subject to change without notice! **
 *****************************************************************************************************************************/
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-    virtual FbxObject& Copy(const FbxObject& pObject);
-    virtual FbxObject* Clone(FbxObject::ECloneType pCloneType=eDeepClone, FbxObject* pContainer=NULL, void* pSet = NULL) const;
+    void Compact() override;
+    FbxObject& Copy(const FbxObject& pObject) override;
+    FbxObject* Clone(FbxObject::ECloneType pCloneType=eDeepClone, FbxObject* pContainer=NULL, void* pSet = NULL) const override;
 
 protected:
-	virtual void Construct(const FbxObject* pFrom);
-    virtual FbxStringList GetTypeFlags() const;
+	void Construct(const FbxObject* pFrom) override;
+    FbxStringList GetTypeFlags() const override;
 
     // Skin deformer
     double mDeformAccuracy;

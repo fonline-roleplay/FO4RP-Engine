@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2017 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -17,14 +17,27 @@
 
 #include <fbxsdk/fileio/collada/fbxcolladatokens.h>
 #include <fbxsdk/fileio/collada/fbxcolladaiostream.h>
+#include <fbxsdk/scene/fbxscene.h>
+#include <fbxsdk/utils/fbxrenamingstrategybase.h>
+#include <fbxsdk/utils/fbxnamehandler.h>
 
-#include <components/libxml2-2.7.8/include/libxml/globals.h>
-
-#include <map>
-#include <set>
-#include <vector>
+#include <libxml/globals.h>
 
 #include <fbxsdk/fbxsdk_nsbegin.h>
+
+class FBXSDK_DLL FbxRenamingStrategyCollada : public FbxRenamingStrategyBase
+{
+public:
+	FbxRenamingStrategyCollada();
+	virtual ~FbxRenamingStrategyCollada();
+
+	void CleanUp() override;
+	bool DecodeScene(FbxScene* pScene) override;
+	bool EncodeScene(FbxScene* pScene) override;
+	bool DecodeString(FbxNameHandler& pName) override;
+	bool EncodeString(FbxNameHandler& pName, bool pIsPropertyName = false) override;
+};
+
 
 #ifndef INT_MAX
 	#define INT_MAX 0x7FFFFFFF
@@ -59,36 +72,8 @@ public:
 };
 
 typedef FbxAutoPtr<xmlNode, XmlNodeDeletionPolicy> XmlNodePtr;
-
-#if defined(_MSC_VER) && _MSC_VER < 1600
-	// With VisualStudio 2008 and earlier, we have a crash in the std::map[] beacause the xmlNode* does not have
-	// a default constructor. The XmlNodeWrapper class is used to overcome this compiler limitation. In order
-	// to minimize the code changes, the wrapper provides various versions to cast into the xmlNode*
-	class XmlNodeWrapper
-	{
-	public:
-		XmlNodeWrapper() : mNode(NULL) {};
-		XmlNodeWrapper(xmlNode* pNode) : mNode(pNode) {};
-		XmlNodeWrapper(const XmlNodeWrapper& pRhs) { mNode = pRhs.mNode; };
-		XmlNodeWrapper& operator=(const XmlNodeWrapper& pRhs) 
-		{ 
-			if (this != &pRhs) {mNode = pRhs.mNode; } 
-			return *this; 
-		}
-		operator const xmlNode*() const { return mNode; }
-		operator const xmlNode*()		{ return mNode; }
-		operator xmlNode*() const		{ return mNode; }
-		operator xmlNode*()				{ return mNode; }
-
-	private:
-		xmlNode* mNode;
-	};
-	typedef std::map< FbxString, XmlNodeWrapper > SourceElementMapType;
-	typedef SourceElementMapType SkinMapType;
-#else
-    typedef std::map< FbxString, xmlNode* > SourceElementMapType;
-	typedef std::map< FbxString, xmlNode* > SkinMapType;
-#endif
+typedef FbxMap< FbxString, xmlNode* > SourceElementMapType;
+typedef FbxMap< FbxString, xmlNode* > SkinMapType;
 
 // Some information connecting COLLADA layer string, such as "NORMAL" or "UV", to FBX layer element type.
 struct ColladaLayerTraits
@@ -178,7 +163,7 @@ typedef FbxArray<xmlNode*> CNodeList;
   * \param pTypes The list of types.
   * \param pChildrenElements The found children elements.
   */
-void findChildrenByType(xmlNode* pParentElement, const std::set<FbxString>& pTypes, CNodeList& pChildrenElements);
+void findChildrenByType(xmlNode* pParentElement, const FbxSet<FbxString>& pTypes, CNodeList& pChildrenElements);
 
 /** Find children elements of a specific type.
   * \param pParentElement The parent element.
@@ -224,8 +209,12 @@ void DAE_GetElementContent(xmlNode * pElement, TYPE & pData)
 {
     if (pElement != NULL)
     {
-        FbxAutoFreePtr<xmlChar> lContent(xmlNodeGetContent(pElement));
-        FromString(&pData, (const char *)lContent.Get());
+        xmlChar* lContent = xmlNodeGetContent(pElement);
+		if (lContent)
+		{
+			FromString(&pData, (const char *)lContent);
+			xmlFree(lContent);
+		}
     }
 }
 
@@ -260,10 +249,11 @@ bool DAE_GetElementAttributeValue(xmlNode * pElement, const char * pAttributeNam
     if (!pElement || !pAttributeName)
         return false;
 
-    FbxAutoFreePtr<xmlChar> lPropertyValue(xmlGetProp(pElement, (const xmlChar *)pAttributeName));
+    xmlChar* lPropertyValue = xmlGetProp(pElement, (const xmlChar *)pAttributeName);
     if (lPropertyValue)
     {
-        FromString(&pData, (const char *)lPropertyValue.Get());
+        FromString(&pData, (const char *)lPropertyValue);
+		xmlFree(lPropertyValue);
         return true;
     }
     return false;
@@ -279,10 +269,11 @@ inline bool DAE_GetElementAttributeValue(xmlNode * pElement,
     if (!pElement || !pAttributeName)
         return false;
 
-    FbxAutoFreePtr<xmlChar> lPropertyValue(xmlGetProp(pElement, (const xmlChar *)pAttributeName));
+    xmlChar* lPropertyValue =xmlGetProp(pElement, (const xmlChar *)pAttributeName);
     if (lPropertyValue)
     {
-        pData = (const char *)lPropertyValue.Get();
+        pData = (const char *)lPropertyValue;
+		xmlFree(lPropertyValue);
         return true;
     }
     return false;
@@ -300,9 +291,10 @@ bool DAE_CompareAttributeValue(xmlNode * pElement,
 
 /** Get the ID of another element from the url attribute of the given element.
   * \param pElement The specific XML element in which the ID is looked for.
+  * \param pExternalRef The external reference part of the url (before the #)
   * \return The ID of another element if success, or an empty string if no url attributes are found.
   */
-const FbxString DAE_GetIDFromUrlAttribute(xmlNode * pElement);
+const FbxString DAE_GetIDFromUrlAttribute(xmlNode * pElement, FbxString& pExternalRef);
 
 /** Get the ID of another element from the source attribute of the given element.
   * \param pElement The specific XML element in which the ID is looked for.

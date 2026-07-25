@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -27,31 +27,32 @@
 //! Type identifier constants
 enum EFbxType
 {
-	eFbxUndefined,	//!< Unidentified.
-	eFbxChar,		//!< 8 bit signed integer.
-	eFbxUChar,		//!< 8 bit unsigned integer.
-	eFbxShort,		//!< 16 bit signed integer.
-	eFbxUShort,		//!< 16 bit unsigned integer.
-	eFbxUInt,		//!< 32 bit unsigned integer.
-	eFbxLongLong,	//!< 64 bit signed integer.
-	eFbxULongLong,	//!< 64 bit unsigned integer.
-	eFbxHalfFloat,	//!< 16 bit floating point.
-	eFbxBool,		//!< Boolean.
-	eFbxInt,		//!< 32 bit signed integer.
-	eFbxFloat,		//!< Floating point value.
-	eFbxDouble,		//!< Double width floating point value.
-	eFbxDouble2,	//!< Vector of two double values.
-	eFbxDouble3,	//!< Vector of three double values.
-	eFbxDouble4,	//!< Vector of four double values.
-	eFbxDouble4x4,	//!< Four vectors of four double values.
-	eFbxEnum,		//!< Enumeration.
-	eFbxString,		//!< String.
-	eFbxTime,		//!< Time value.
-	eFbxReference,	//!< Reference to object or property.
-	eFbxBlob,		//!< Binary data block type.
-	eFbxDistance,	//!< Distance.
-	eFbxDateTime,	//!< Date and time.
-	eFbxTypeCount	//!< Indicates the number of type identifiers constants.
+	eFbxUndefined,			//!< Unidentified.
+	eFbxChar,				//!< 8 bit signed integer.
+	eFbxUChar,				//!< 8 bit unsigned integer.
+	eFbxShort,				//!< 16 bit signed integer.
+	eFbxUShort,				//!< 16 bit unsigned integer.
+	eFbxUInt,				//!< 32 bit unsigned integer.
+	eFbxLongLong,			//!< 64 bit signed integer.
+	eFbxULongLong,			//!< 64 bit unsigned integer.
+	eFbxHalfFloat,			//!< 16 bit floating point.
+	eFbxBool,				//!< Boolean.
+	eFbxInt,				//!< 32 bit signed integer.
+	eFbxFloat,				//!< Floating point value.
+	eFbxDouble,				//!< Double width floating point value.
+	eFbxDouble2,			//!< Vector of two double values.
+	eFbxDouble3,			//!< Vector of three double values.
+	eFbxDouble4,			//!< Vector of four double values.
+	eFbxDouble4x4,			//!< Four vectors of four double values.
+	eFbxEnum		= 17,	//!< Enumeration.
+	eFbxEnumM		=-17,	//!< Enumeration allowing duplicated items.
+	eFbxString		= 18,	//!< String.
+	eFbxTime,				//!< Time value.
+	eFbxReference,			//!< Reference to object or property.
+	eFbxBlob,				//!< Binary data block type.
+	eFbxDistance,			//!< Distance.
+	eFbxDateTime,			//!< Date and time.
+	eFbxTypeCount	= 24	//!< Indicates the number of type identifiers constants.
 };
 
 /** Class to represent colors in RGBA format using doubles.
@@ -165,7 +166,7 @@ public:
 	//@}
 
 	/** Assign operator
-	  * \param pValue       The half-float to be assigned to this distance.
+	  * \param pValue       The half-float to be assigned to this instance.
 	  * \return             This half-float.
 	  */
     FbxHalfFloat& operator=(const FbxHalfFloat& pValue);
@@ -193,11 +194,11 @@ public:
 	//@{
 		/** Retrieve the value as a float.
 		  */
-		const float value() const;
+		float value() const;
 
 		/** Retrieve the value as it is stored.
 		  */
-		unsigned const short internal_value() const;
+		unsigned short internal_value() const;
 	//@}
 
 /*****************************************************************************************************************************
@@ -339,13 +340,14 @@ public:
 		FbxDateTime();
 
 		/** Constructor.
-		  *\param pDay           Day
-		  *\param pMonth         Month
-		  *\param pYear          Year
-		  *\param pHour          Hour
-		  *\param pMin           Minute
-		  *\param pSec           Second
-		  *\param pMillisecond   Millisecond
+		  * \param pDay           Day
+		  * \param pMonth         Month
+		  * \param pYear          Year
+		  * \param pHour          Hour
+		  * \param pMin           Minute
+		  * \param pSec           Second
+		  * \param pMillisecond   Millisecond
+		  * \remark If one or more argument is invalid, the object is reset to 0.
 		  */
 		FbxDateTime(int pDay, int pMonth, int pYear, int pHour, int pMin, int pSec, int pMillisecond=0);
 	//@}
@@ -383,6 +385,7 @@ public:
 		  * \param pDay          Day to be set.
 		  * \param pMonth        Month to be set.
 		  * \param pYear         Year to be set.
+		  * \remark If one or more argument is invalid, the object is reset to 0.
 		  */
 		void setDate(int pDay, int pMonth, int pYear);
 
@@ -391,6 +394,7 @@ public:
 		  * \param pMin          Minute to be set.
 		  * \param pSec          Second to be set.
 		  * \param pMillisecond  Millisecond to be set.
+		  * \remark If one or more argument is invalid, the object is reset to 0.
 		  */
 		void setTime(int pHour, int pMin, int pSec, int pMillisecond = 0);
 	//@}
@@ -493,22 +497,22 @@ public:
 		  */
 		const FbxSystemUnit unit() const;
 
-		/** Retrieve the value of distance using the measurement unit.
-		  * \return             The value of distance using the measurement unit.   
+		/** Retrieve the distance value 
+		  * \return             The value of the distance in the defined measurement unit.   
 		  */
-		const float value() const;
+		float value() const;
 	//@}
 
     /** Get the value of distance when converting this measurement unit to inch.
 	  * \return             The value of distance when converting this measurement unit to inch.
 	  */
-    const float internalValue() const;
+    float internalValue() const;
 
 	/** Get the value of distance when converting this measurement unit to the specified measurement unit.
 	  * \param pUnit       The measurement unit to be converted to.
 	  * \return            The value of distance when using the specified measurement unit.
 	  */
-    const float valueAs(const FbxSystemUnit& pUnit) const;
+    float valueAs(const FbxSystemUnit& pUnit) const;
 
 private:
     float               mValue;
@@ -518,12 +522,12 @@ private:
 /** Retrieve a type enumeration memory footprint size
 * \param pType The type enumeration
 * \return The size of this type in memory */
-FBXSDK_DLL const size_t FbxTypeSizeOf(const EFbxType pType);
+FBXSDK_DLL size_t FbxTypeSizeOf(const EFbxType pType);
 
 /** Retrieve a type enumeration component count
 * \param pType The type enumeration
 * \return The number of component used by this type */
-FBXSDK_DLL const size_t FbxTypeComponentCount(const EFbxType pType);
+FBXSDK_DLL size_t FbxTypeComponentCount(const EFbxType pType);
 
 // Type management for properties
 inline EFbxType FbxTypeOf(const FbxChar&){ return eFbxChar; }
@@ -1029,7 +1033,7 @@ inline bool FbxTypeCopy(FbxDateTime& /*pDst*/, const FbxBlob& /*pSrc*/){ return 
 inline bool FbxTypeCopy(FbxDateTime& /*pDst*/, const FbxDistance& /*pSrc*/){ return false; }
 
 template<class T> inline bool FbxTypeCopy(T& pDst, const void* pSrc, EFbxType pSrcType)
-{
+{	
 	switch( pSrcType )
 	{
 		case eFbxChar:		return FbxTypeCopy(pDst, *(FbxChar*)pSrc);
@@ -1048,6 +1052,7 @@ template<class T> inline bool FbxTypeCopy(T& pDst, const void* pSrc, EFbxType pS
 		case eFbxDouble3:	return FbxTypeCopy(pDst, *(FbxDouble3*)pSrc);
 		case eFbxDouble4:	return FbxTypeCopy(pDst, *(FbxDouble4*)pSrc);
 		case eFbxDouble4x4:	return FbxTypeCopy(pDst, *(FbxDouble4x4*)pSrc);
+		case eFbxEnumM:
 		case eFbxEnum:		return FbxTypeCopy(pDst, *(FbxEnum*)pSrc);
 		case eFbxString:	return FbxTypeCopy(pDst, *(FbxString*)pSrc);
 		case eFbxTime:		return FbxTypeCopy(pDst, *(FbxTime*)pSrc);
@@ -1086,6 +1091,7 @@ template<class T> inline bool FbxTypeCopy(void* pDst, EFbxType pDstType, const T
 		case eFbxDouble3:	return FbxTypeCopy(*(FbxDouble3*)pDst, pSrc);
 		case eFbxDouble4:	return FbxTypeCopy(*(FbxDouble4*)pDst, pSrc);
 		case eFbxDouble4x4:	return FbxTypeCopy(*(FbxDouble4x4*)pDst, pSrc);
+		case eFbxEnumM:
 		case eFbxEnum:		return FbxTypeCopy(*(FbxEnum*)pDst, pSrc);
 		case eFbxString:	return FbxTypeCopy(*(FbxString*)pDst, pSrc);
 		case eFbxTime:		return FbxTypeCopy(*(FbxTime*)pDst, pSrc);
@@ -1124,6 +1130,7 @@ inline bool FbxTypeCopy(void* pDst, EFbxType pDstType, const void* pSrc, EFbxTyp
 		case eFbxDouble3:	return FbxTypeCopy(pDst, pDstType, *(FbxDouble3*)pSrc);
 		case eFbxDouble4:	return FbxTypeCopy(pDst, pDstType, *(FbxDouble4*)pSrc);
 		case eFbxDouble4x4:	return FbxTypeCopy(pDst, pDstType, *(FbxDouble4x4*)pSrc);
+		case eFbxEnumM:
 		case eFbxEnum:		return FbxTypeCopy(pDst, pDstType, *(FbxEnum*)pSrc);
 		case eFbxString:	return FbxTypeCopy(pDst, pDstType, *(FbxString*)pSrc);
 		case eFbxTime:		return FbxTypeCopy(pDst, pDstType, *(FbxTime*)pSrc);
@@ -1149,6 +1156,14 @@ inline bool FbxTypeCopy(void* pDst, EFbxType pDstType, const void* pSrc, EFbxTyp
   */
 FBXSDK_DLL void* FbxTypeAllocate(const EFbxType pType);
 
+/** Creates a fbx primitive type and initializes its memory; in place if possible.
+  * \param pType The type of object to create.
+  * \param pData Pointer to the object being created.
+  * \param pDataSize Data size at pData.
+  * \return true if allocation was successful. if the size of pType is larger than pDataSize pData is allocated otherwise inplace constructor is called.
+  */
+FBXSDK_DLL bool FbxTypeAllocate(const EFbxType pType, void* &pData, size_t pDataSize);
+
 /** Destroys an fbx primitive type. If the return value is true
   * the memory pointed to by pData has been deleted and should
   * no longer be accessed.
@@ -1157,6 +1172,16 @@ FBXSDK_DLL void* FbxTypeAllocate(const EFbxType pType);
   * \return true if the object was destroyed, false otherwise.
   */
 FBXSDK_DLL bool FbxTypeDeallocate(const EFbxType pType, void* pData);
+
+/** Destroys an fbx primitive type. If the return value is true
+  * the memory pointed to by pData has been deleted and should
+  * no longer be accessed.
+  * \param pType The type of object being deleted
+  * \param pData Pointer to the object being deleted.
+  * \param pDataSize Data size at pData.
+  * \return true if the object was destroyed, false otherwise.
+  */
+FBXSDK_DLL bool FbxTypeDeallocate(const EFbxType pType, void* &pData, size_t pDataSize);
 
 /** Compare two values of the same type
   * \param pA first value

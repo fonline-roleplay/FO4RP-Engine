@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -30,7 +30,7 @@ public:
     /** Add a member if it's not a member of any other FbxCollectionExclusive objects.
       * \param pMember Object to be added
       */
-    bool AddMember(FbxObject* pMember);
+    bool AddMember(FbxObject* pMember) override;
 };
 
 #include <fbxsdk/fbxsdk_nsend.h>

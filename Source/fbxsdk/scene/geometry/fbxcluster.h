@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -56,7 +56,7 @@ public:
     /** Get the type of the sub deformer.
       * \return SubDeformer type identifier: eCluster.
       */
-    EType GetSubDeformerType() const {return eCluster; };
+    EType GetSubDeformerType() const override {return eCluster; };
 
     /** Restore the cluster to its initial state.
       * Calling this function will clear the following:
@@ -258,7 +258,7 @@ public:
 ** WARNING! Anything beyond these lines is for internal use, may not be documented and is subject to change without notice! **
 *****************************************************************************************************************************/
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-    virtual FbxObject& Copy(const FbxObject& pObject);
+    FbxObject& Copy(const FbxObject& pObject) override;
     void SetUserData(const char* pUserDataID, const char* pUserData);
     const char* GetUserDataID () const;
     const char* GetUserData () const;
@@ -270,10 +270,10 @@ public:
 
 
 protected:
-    virtual void Construct(const FbxObject* pFrom);
-    virtual void ConstructProperties(bool pForceSet);
+    void Construct(const FbxObject* pFrom) override;
+    void ConstructProperties(bool pForceSet) override;
 
-    virtual FbxStringList GetTypeFlags() const;
+    FbxStringList GetTypeFlags() const override;
 
     ELinkMode               mLinkMode;
     FbxString               mUserDataID;

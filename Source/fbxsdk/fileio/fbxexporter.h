@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2019 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -28,6 +28,7 @@ class FbxIO;
 class FbxIOFileHeaderInfo;
 class FbxThread;
 class FbxWriter;
+class FbxEmbeddedFileCallback;
 
 struct FbxExportThreadArg;
 
@@ -104,7 +105,7 @@ public:
 		  * \remarks             To identify the error that occurred, inspect the status object accessed 
           *                      using the GetStatus() function.
 		  */
-		virtual bool Initialize(const char* pFileName, int pFileFormat = -1, FbxIOSettings* pIOSettings = NULL);
+        bool Initialize(const char* pFileName, int pFileFormat = -1, FbxIOSettings* pIOSettings = NULL) override;
 
 	    /** Initialize object.
 	    * \param pStream       stream to access.
@@ -144,7 +145,7 @@ public:
 		  */
 		bool Export(FbxDocument* pDocument, bool pNonBlocking=false);
 
-	#ifndef FBXSDK_ENV_WINSTORE
+	#if !defined(FBXSDK_ENV_WINSTORE) && !defined(FBXSDK_ENV_EMSCRIPTEN)
 		/** Check if the exporter is currently exporting.
 		  * \param pExportResult  This parameter, after the export finished, will contain the result of the export success or failure.
 		  * \return               Return true if the exporter is currently exporting.
@@ -154,7 +155,7 @@ public:
 		  *                       since it will also free up the thread's allocations when its done.
 		  */
 		bool IsExporting(bool& pExportResult);
-	#endif /* !FBXSDK_ENV_WINSTORE */
+	#endif /* !FBXSDK_ENV_WINSTORE && ! FBXSDK_ENV_EMSCRIPTEN */
 
 		/** Get the progress status in non-blocking mode.
 		  *	\param pStatus Optional current status string.
@@ -167,6 +168,19 @@ public:
 		  * \param pArgs Pointer to the arguments passed to the callback function.
 		  */
 		void SetProgressCallback(FbxProgressCallback pCallback, void* pArgs=NULL);
+
+        /** Register a callback object for reading embedded data.
+          *	\param pCallback Pointer to the callback object.
+          * \remark The FbxEmbeddefFileCallback object can have the Mode and DataHint members changed
+          *         by the FBX SDK, however the callback function and the user data pointers are guaranteed
+          *         to remain unaffected therefore they must be properly configured during the object creation.
+          * \remark This function must be called after the FbxExporter::Initialize().
+          */
+        void SetEmbeddedFileWriteCallback(FbxEmbeddedFileCallback* pCallback);
+
+        /** Retrieve the currently registered FbxEmbeddedFileCallback object.
+          */
+        FbxEmbeddedFileCallback* GetEmbeddedFileWriteCallback();
 	//@}
 
 	/** 
@@ -207,7 +221,7 @@ public:
 		  * \param pRenamingMode Renaming mode.
 		  * \return \c true if mode is set correctly
 		  */
-		bool SetFileExportVersion(FbxString pVersion, FbxSceneRenamer::ERenamingMode pRenamingMode);
+		bool SetFileExportVersion(FbxString pVersion, FbxSceneRenamer::ERenamingMode pRenamingMode=FbxSceneRenamer::eNone);
 
 		/** Set the resampling rate (only used when exporting to FBX 5.3 and lower)
 		  * \param pResamplingRate resampling rate
@@ -238,12 +252,13 @@ public:
 ** WARNING! Anything beyond these lines is for internal use, may not be documented and is subject to change without notice! **
 *****************************************************************************************************************************/
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-	bool GetExportOptions(FbxIO* pFbxObject);
+    void TCSetDefinition(int pType);
+    bool GetExportOptions(FbxIO* pFbxObject);
 	bool Export(FbxDocument* pDocument, FbxIO* pFbxObject);
 
 protected:
-	virtual void Construct(const FbxObject* pFrom);
-	virtual void Destruct(bool pRecursive);
+	void Construct(const FbxObject* pFrom) override;
+	void Destruct(bool pRecursive) override;
 	virtual void SetOrCreateIOSettings(FbxIOSettings* pIOSettings, bool pAllowNULL);
 
 	void Reset();
@@ -255,12 +270,12 @@ private:
 
 	int								mFileFormat;
 	FbxWriter*						mWriter;
-#ifndef FBXSDK_ENV_WINSTORE
+#if !defined(FBXSDK_ENV_WINSTORE) && !defined(FBXSDK_ENV_EMSCRIPTEN)
     FbxThread*						mExportThread;
     FbxExportThreadArg*				mExportThreadArg;
     bool							mExportThreadResult;
     bool							mIsThreadExporting;
-#endif /* !FBXSDK_ENV_WINSTORE */
+#endif /* !FBXSDK_ENV_WINSTORE && !FBXSDK_ENV_EMSCRIPTEN */
     FbxProgress						mProgress;
 	FbxStream*                      mStream;
 	void*                           mStreamData;
@@ -270,6 +285,7 @@ private:
 	FbxIOFileHeaderInfo*			mHeaderInfo;
 	FbxIOSettings*					mIOSettings;
 	bool							mClientIOSettings;
+    FbxEmbeddedFileCallback*        mEmbeddedFileCallback;
 
 	friend void ExportThread(void*);
 #endif /* !DOXYGEN_SHOULD_SKIP_THIS *****************************************************************************************/

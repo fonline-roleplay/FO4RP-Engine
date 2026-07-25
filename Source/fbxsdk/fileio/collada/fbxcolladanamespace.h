@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -15,7 +15,7 @@
 
 #include <fbxsdk.h>
 
-#include <components/libxml2-2.7.8/include/libxml/globals.h>
+#include <libxml/globals.h>
 
 #include <fbxsdk/fbxsdk_nsbegin.h>
 

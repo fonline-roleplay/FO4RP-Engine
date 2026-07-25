@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -74,7 +74,7 @@ public:
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
     // Remark: This method copies the mEntries table AND clears the UserData on the resulting copy to prevent shared memory
     // data between clones/copies.
-    virtual FbxObject& Copy(const FbxObject& pObject);
+    FbxObject& Copy(const FbxObject& pObject) override;
 
 private:
     FbxDynamicArray<FbxBindingTableEntry> mEntries;

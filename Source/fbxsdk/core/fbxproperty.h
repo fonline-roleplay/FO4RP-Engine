@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -29,6 +29,9 @@ class FbxAnimStack;
 class FbxAnimLayer;
 class FbxAnimCurveNode;
 class FbxAnimCurve;
+class FbxAnimEvaluator;
+
+template <class T> inline T EvaluatePropertyValue(FbxProperty& pProperty, const FbxTime& pTime, bool pForceEval = false);
 
 /** \brief Class to hold user properties.
 * \nosubgrouping
@@ -187,37 +190,37 @@ public:
 		  * \param pFlag Property attribute identifier.
 		  * \param pValue New state of pFlag.
 		  */
-		void ModifyFlag(FbxPropertyAttr::EFlags pFlag, bool pValue);
+		void ModifyFlag(FbxPropertyFlags::EFlags pFlag, bool pValue);
 
 		/** Returns the state of the property attribute. 
 		  * \param pFlag Property attribute identifier.
 		  * \return The state of the property attribute(pFlag).
 		  */
-		bool GetFlag(FbxPropertyAttr::EFlags pFlag) const;
+		bool GetFlag(FbxPropertyFlags::EFlags pFlag) const;
 
 		/** Returns the state of all of the property attributes.
 		  * \return The state of the property attributes(pFlags).
 		  */
-		FbxPropertyAttr::EFlags GetFlags() const;
+		FbxPropertyFlags::EFlags GetFlags() const;
 
 		/** Returns the inheritance type of the given flag, similar to GetValueInheritType().
 		  * \param pFlag The flag to be queried.
 		  * \return The inheritance type of the specific flag.
 		  */
-		FbxPropertyAttr::EInheritType GetFlagInheritType( FbxPropertyAttr::EFlags pFlag ) const;
+		FbxPropertyFlags::EInheritType GetFlagInheritType( FbxPropertyFlags::EFlags pFlag ) const;
 
 		/** Sets the inheritance type for the specific flag, similar to SetValueInheritType().
 		  * \param pFlag The flag to be set.
 		  * \param pType The inheritance type to be set.
 		  * \return \c True on success, \c false otherwise.
 		  */
-		bool SetFlagInheritType( FbxPropertyAttr::EFlags pFlag, FbxPropertyAttr::EInheritType pType );
+		bool SetFlagInheritType( FbxPropertyFlags::EFlags pFlag, FbxPropertyFlags::EInheritType pType );
 
 		/** Checks if the property flag has been modified from its default value.
 		  * \param pFlag The flag to be queried.
 		  * \return \c True if the value of this property has changed, \c false otherwise
 		  */
-		bool ModifiedFlag( FbxPropertyAttr::EFlags pFlag ) const;
+		bool ModifiedFlag( FbxPropertyFlags::EFlags pFlag ) const;
 	//@}
 
 	/**
@@ -241,6 +244,16 @@ public:
 		  * \return \c True if unequal, \c false otherwise.
 		  */    
 		bool operator!= (const FbxProperty& pProperty) const;
+
+		/** Lesser operator, used to sort property in map.
+		* \param pProperty The property compared to this property.
+		* \return \c true if less, \c false otherwise. */
+		bool operator< (const FbxProperty& pProperty) const;
+
+		/** Greater operator, used to sort property in map.
+		* \param pProperty The property compared to this property.
+		* \return \c true if greater, \c false otherwise. */
+		bool operator> (const FbxProperty& pProperty) const;
 
 		/** Equivalence operator.
 		  * \param pValue The value compared to this property.
@@ -303,7 +316,7 @@ public:
 		  * value, or from the referenced object, if this object is a clone.
 		  * \return The inheritance type of the property.
 		  */
-		FbxPropertyAttr::EInheritType GetValueInheritType() const;
+		FbxPropertyFlags::EInheritType GetValueInheritType() const;
 
 		/** Sets the inheritance type of the property.
 		  * Use the method to explicitly override the default value of the property,
@@ -315,7 +328,7 @@ public:
 		  * \param pType The new inheritance type.
 		  * \return \c True on success, \c false otherwise.
 		  */
-		bool SetValueInheritType( FbxPropertyAttr::EInheritType pType );
+		bool SetValueInheritType( FbxPropertyFlags::EInheritType pType );
 
 		/** Checks if the property's value has been modified from its default value.
 		  * \return \c True if the value of the property has changed, \c false otherwise.
@@ -335,14 +348,25 @@ public:
 	  * from files, and will assure that they are persistent in memory 
 	  * while the property exists.
 	  *
-	  * Note: These limits are meaningless for the boolean type. It is the responsibility of the
-	  * calling application to implement the necessary instructions to limit the property of boolean type.
+	  * Notes: 
+	  * - The limit value is truncated to the property data type.
+	  *
+	  * - These limits are meaningless for the boolean type. It is the responsibility of the
+	  *   calling application to implement the necessary instructions to limit the property of boolean type.
+	  *
+	  * - The SetMinLimit/SetMaxLimit methods will do nothing if SupportSetLimitsAsDoube() returns false.
 	  */
 	//@{
+		/** Returns whether setting limits as a double number on this property type is allowed. 
+		   * \return \c True if allowed, \c false otherwise.
+		   */
+		bool SupportSetLimitAsDouble() const;
+
 		/** Sets a minimum property value limit.
 		  * \param pMin Minimum value allowed.
+		  * \return \c True if the limit has been set, \c false otherwise.
 		  */
-		void SetMinLimit(double pMin);
+		bool SetMinLimit(double pMin);
 
 		/** Returns whether a minimum limit exists, if it returns false, 
 		   * calling GetMinLimit() produces undefined behavior.
@@ -363,8 +387,9 @@ public:
 
 		/** Sets a maximum property value limit.
 		  * \param pMax Maximum value allowed.
+		  * \return \c True if the limit has been set, \c false otherwise.
 		  */
-		void SetMaxLimit(double pMax);
+		bool SetMaxLimit(double pMax);
 
 		/** Returns the maximum property value.
 		  * \return The maximum value limit.
@@ -374,8 +399,9 @@ public:
 		/** Sets the minimum and maximum value limit of the property. 
 		  * \param pMin Minimum value allowed.
 		  * \param pMax Maximum value allowed.
+		  \return \c True if both the min and max limit have been set, \c false otherwise.
 		  */
-		void SetLimits(double pMin, double pMax);
+		bool SetLimits(double pMin, double pMax);
 	//@}
 
 	/**
@@ -384,8 +410,10 @@ public:
 	//@{
 		/** Adds a string value at the end of the enumeration list.
 		  * \param pStringValue The string value to be added.
-		  * \return The index in the list where the string is added.
-		  * \remarks This function is only valid if the property type is eFbxEnum.
+		  * \return The index in the list where the string is added or -1 if the action failed.
+		  * \remarks This function is only valid if the property type is eFbxEnum or eFbxEnumM.
+		  * \remarks If the property is of type eFbxEnum, trying to add a value that is already
+          * in the enumeration list will fail. 
 		  * Empty strings are not allowed.
 		  */
 		int AddEnumValue(const char* pStringValue);
@@ -393,7 +421,9 @@ public:
 		/** Inserts a string value at the specific index.
 		  * \param pIndex Zero bound index.
 		  * \param pStringValue The string value to be inserted.
-		  * \remarks This function is only valid if the property type is eFbxEnum.
+		  * \remarks This function is only valid if the property type is eFbxEnum or eFbxEnumM.
+		  * \remarks If the property is of type eFbxEnum, trying to insert a value that is already
+          * in the enumeration list will fail. 
 		  * pIndex must be in the range [0, ListValueGetCount()].
 		  * Empty strings are not allowed.
 		  */
@@ -401,14 +431,16 @@ public:
 
 		/** Returns the number of elements in the enumeration list.
 		  * \return The number of elements in the enumeration list.
-		  * \remarks This function returns 0 if the property type is not eFbxEnum.
+		  * \remarks This function returns 0 if the property type is not eFbxEnum or eFbxEnumM.
 		  */
 		int GetEnumCount() const;
 
 		/** Sets a string value at the specific index.
 		  * \param pIndex Zero bound index.
 		  * \param pStringValue The string value at the specific index.
-		  * \remarks This function is only valid if the property type is eFbxEnum.
+		  * \remarks This function is only valid if the property type is eFbxEnum or eFbxEnumM.
+		  * \remarks If the property is of type eFbxEnum, trying to set a value that is already
+          * in the enumeration list will fail. 
 		  * The function assigns the string value to the specific index.
 		  * A string value must exist at the specific index in order to be changed.
 		  * Empty strings are not allowed.
@@ -417,13 +449,13 @@ public:
 
 		/** Removes the string value at the specified index.
 		  * \param pIndex Index of the string value to be removed.
-		  * \remarks This function is only valid if the property type is eFbxEnum.
+		  * \remarks This function is only valid if the property type is eFbxEnum or eFbxEnuM.
 		  */
 		void RemoveEnumValue(int pIndex);
 
 		/** Returns a string value at the specified index
 		  * \param pIndex Zero bound index.
-		  * \remarks This function is only valid if the property type is eFbxEnum.
+		  * \remarks This function is only valid if the property type is eFbxEnum or eFbxEnumM.
 		  */
 		const char* GetEnumValue(int pIndex) const;
 	//@}
@@ -453,12 +485,6 @@ public:
 		  * \return The parent of this property.
 		  */
 		inline FbxProperty GetParent() const { return FbxProperty(mPropertyHandle.GetParent());  }
-
-		/** Sets the parent for this property (this function has not been implemented, so it always return \c false).
-		  * \param pOther The parent to be set.
-		  * \return \c True on success, \c false otherwise.
-		  */
-		bool SetParent(const FbxProperty& pOther);
 
 		/** Returns the first child of this property.
 		  * \return The first child of this property, if there is none, an invalid property is returned.
@@ -545,35 +571,18 @@ public:
 	//@}
 
 	/**
-	  * \name Array Management
-	  */
-	//@{
-		/** Sets the array size(not implemented).
-		  * \param pSize
-		  * \param pVariableArray
-		  */
-		bool	SetArraySize( int pSize, bool pVariableArray );
-
-		//! Returns the array size(not implemented).
-		int		GetArraySize() const;
-
-		/** Returns the (pIndex)th array item.
-		  * \param pIndex The item index.
-		  * \return The (pIndex)th array item.
-		  */
-		FbxProperty GetArrayItem(int pIndex) const;
-
-		/** Returns the (pIndex)th array item.
-		  * \param pIndex The item index.
-		  * \return The (pIndex)th array item.
-		  */
-		inline FbxProperty operator[](int pIndex) const { return GetArrayItem(pIndex); }
-	//@}
-
-	/**
 	  * \name Animation Curve Management
 	  */
 	//@{
+		/** Retrieve the proper animation evaluator to use for this property.
+		* \return If the object has no scene, returns the default evaluator, otherwise the object's scene evaluator. */
+		FbxAnimEvaluator* GetAnimationEvaluator() const;
+
+		/** Find out if the property is animated: has a curve node with curves.
+		* \param pAnimLayer The animation layer to test for curve presence. Set to NULL if you want to use the default animation layer of the default animation stack.
+		* \return \c true if the property is animated. */
+		bool IsAnimated(FbxAnimLayer* pAnimLayer=NULL) const;
+
 		/** Evaluate the value of a property if it has animation and return the result as the template type.
 		* \param pTime The time used for evaluate. If FBXSDK_TIME_INFINITE is used, this returns the default value, without animation curves evaluation.
 		* \param pForceEval Force the evaluator to refresh the evaluation state cache even if its already up-to-date.
@@ -590,7 +599,7 @@ public:
 		/** Creates a FbxAnimCurveNode on the specified layer.
 		* \param pAnimLayer The animation layer the FbxAnimCurveNode object is attached to.
 		* \return Pointer to the created FbxAnimCurveNode.
-		* \remarks This function check the property FbxPropertyAttr::eAnimatable flag and fails to execute if it is not set.
+		* \remarks This function check the property FbxPropertyFlags::eAnimatable flag and fails to execute if it is not set.
 		* \remarks If created, the FbxAnimCurveNode is automatically connected to the property and the animation layer.
 		* \remarks The created FbxAnimCurveNode does not automatically allocate anim curves.
 		* \remarks On the successful execution of this function, the property eAnimated flag is set to \c true. */
@@ -599,7 +608,7 @@ public:
 		/** Get the property's animation curve node on the default animation stack and base layer.
 		* \param pCreate If \c true, create the animation curve node and return it if none were found.
 		* \return The animation curve node of this property, if found or created, otherwise NULL.
-		* \remark If the property flag FbxPropertyAttr::eAnimatable is not set, creating the curve node will fail. */
+		* \remark If the property flag FbxPropertyFlags::eAnimatable is not set, creating the curve node will fail. */
 		FbxAnimCurveNode* GetCurveNode(bool pCreate=false);
 
 		/** Get the property's animation curve node on the specified animation stack, using its base layer.
@@ -607,14 +616,14 @@ public:
 		*                   \c NULL can be passed to automatically specify the default animation stack.
 		* \param pCreate If \c true, create the animation curve node and return it if none were found.
 		* \return The animation curve node of this property, if found or created, otherwise NULL.
-		* \remark If the property flag FbxPropertyAttr::eAnimatable is not set, creating the curve node will fail. */
+		* \remark If the property flag FbxPropertyFlags::eAnimatable is not set, creating the curve node will fail. */
 		FbxAnimCurveNode* GetCurveNode(FbxAnimStack* pAnimStack, bool pCreate=false);
 
 		/** Get the property's animation curve node on the specified animation layer.
 		* \param pAnimLayer The animation layer to use to get or create the property's animation curve node. Cannot be NULL.
 		* \param pCreate If \c true, create the animation curve node and return it if none were found.
 		* \return The animation curve node of this property, if found or created, otherwise NULL.
-		* \remark If the property flag FbxPropertyAttr::eAnimatable is not set, creating the curve node will fail. */
+		* \remark If the property flag FbxPropertyFlags::eAnimatable is not set, creating the curve node will fail. */
 		FbxAnimCurveNode* GetCurveNode(FbxAnimLayer* pAnimLayer, bool pCreate=false);
 
 		/** Get the FbxAnimCurve from the specified animation layer.
@@ -623,7 +632,7 @@ public:
 		* \param pAnimLayer The searched animation layer.
 		* \param pCreate Create a FbxAnimCurve if not found.
 		* \return Pointer to the FbxAnimCurve. Returns NULL in case of errors or pCreate is \c false and the curve is not found.
-		* \remark If the FbxAnimCurveNode does not exists but the property has the FbxPropertyAttr::eAnimatable flag set and
+		* \remark If the FbxAnimCurveNode does not exists but the property has the FbxPropertyFlags::eAnimatable flag set and
 		*         pCreate is true, then this function will first create the FbxAnimCurveNode object and then the FbxAnimCurve.
 		* \remark If more than one FbxAnimCurveNode matching the name criteria are connected, the first one is returned. */
 		inline FbxAnimCurve* GetCurve(FbxAnimLayer* pAnimLayer, bool pCreate=false)
@@ -638,7 +647,7 @@ public:
 		* \param pChannel Name of the channel we are looking for the animation curve. If NULL use the first defined channel.
 		* \param pCreate Create a FbxAnimCurve if not found.
 		* \return Pointer to the FbxAnimCurve. Returns NULL in case of errors or pCreate is \c false and the curve is not found.
-		* \remark If the FbxAnimCurveNode does not exists but the property has the FbxPropertyAttr::eAnimatable flag set and
+		* \remark If the FbxAnimCurveNode does not exists but the property has the FbxPropertyFlags::eAnimatable flag set and
 		*         pCreate is true, then this function will first create the FbxAnimCurveNode object and then the FbxAnimCurve.
 		* \remark If more than one FbxAnimCurveNode matching the name criteria are connected, the first one is returned. */
 		inline FbxAnimCurve* GetCurve(FbxAnimLayer* pAnimLayer, const char* pChannel, bool pCreate=false)
@@ -655,7 +664,7 @@ public:
 		*         use the first defined channel.
 		* \param pCreate Create a FbxAnimCurve if not found.
 		* \return Pointer to the FbxAnimCurve. Returns NULL in case of errors or pCreate is \c false and the curve is not found.
-		* \remark If the FbxAnimCurveNode does not exists but the property has the FbxPropertyAttr::eAnimatable flag set and
+		* \remark If the FbxAnimCurveNode does not exists but the property has the FbxPropertyFlags::eAnimatable flag set and
 		*         pCreate is true, then this function will first create the FbxAnimCurveNode object and then the FbxAnimCurve.
 		* \remark If more than one FbxAnimCurveNode matching the name criteria are connected, the first one is returned.
 		* \remark If pChannel is NULL, this function is the equivalent of GetCurve(FbxAnimLayer*, bool). */
@@ -696,12 +705,6 @@ public:
 		  */
 		bool DisconnectAllSrcObject(const FbxCriteria& pCriteria);
 
-		/** Disconnects this property from all the source objects of a specific class type. (Deprecated, please use DisconnectAllSrcObject<Type>() instead.)
-		  * \param pClassId The specific class type.
-		  * \return \c True if it disconnects all the source objects successfully, \c false otherwise.
-		  */
-		FBX_DEPRECATED bool DisconnectAllSrcObject(const FbxClassId& pClassId);
-
 		/** Returns the number of source objects with which this property connects.
 		  * \return The number of source objects with which this property connects. 
 		  */
@@ -712,12 +715,6 @@ public:
 		  * \return The number of source objects that satisfy the given criteria with which this property connects.
 		  */
 		int GetSrcObjectCount(const FbxCriteria& pCriteria) const;
-
-		/** Returns the number of source objects of the specific class type with which this property connects. (Deprecated, please use GetSrcObjectCount<Type>() instead.)
-		  * \param pClassId The specific class type.
-		  * \return The number of source objects of the specific class type with which this property connects.
-		  */
-		FBX_DEPRECATED int GetSrcObjectCount(const FbxClassId& pClassId) const;
 
 		/** Returns the source object at the specified index with which this property connects.
 		  * \param pIndex The specified index whose default value is 0.
@@ -731,13 +728,6 @@ public:
 		  * \return The source object that satisfies the given criteria at the specified index, NULL if not found.
 		  */
 		FbxObject* GetSrcObject(const FbxCriteria& pCriteria, const int pIndex=0) const;
-
-		/** Returns the source object of the specified class type at the specified index with which this property connects. (Deprecated, please use GetSrcObject<Type>() instead.)
-		  * \param pClassId The specified class type.
-		  * \param pIndex The specified index whose default value is 0.
-		  * \return The source object of the specified class type at the specified index, NULL if not found.
-		  */
-		FBX_DEPRECATED FbxObject* GetSrcObject(const FbxClassId& pClassId, const int pIndex=0) const;
 
 		/** Searches the source object with the specified name, starting with the specified index.
 		  * \param pName The object name.
@@ -754,32 +744,11 @@ public:
 		  */
 		FbxObject* FindSrcObject(const FbxCriteria& pCriteria, const char* pName, const int pStartIndex=0) const;
 
-		/** Searches the source object with the specified name which is of the specified class type, starting with the specified index. (Deprecated, please use FindSrcObject<Type>() instead.)
-		  * \param pClassId The specified class type.
-		  * \param pName The object name.
-		  * \param pStartIndex The start index.
-		  * \return The source object with the name, NULL if not found.
-		  */
-		FBX_DEPRECATED FbxObject* FindSrcObject(const FbxClassId& pClassId, const char* pName, const int pStartIndex=0) const;
-
-		/** Disconnects this property from all source objects of the specified class type. (Deprecated, please use DisconnectAllSrcObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \return \c True if it disconnects all source objects successfully, \c false otherwise.
-		  */
-		template <class T> FBX_DEPRECATED inline bool DisconnectAllSrcObject (const T* /*pFBX_TYPE*/){ return DisconnectAllSrcObject(T::ClassId);}
-
 		/** Disconnects this property from all source objects of the specified class type.
 		  * \tparam T The specified class type.
 		  * \return \c True if it disconnects all source objects successfully, \c false otherwise.
 		  */
 		template <class T> inline bool DisconnectAllSrcObject(){ return DisconnectAllSrcObject(FbxCriteria::ObjectType(T::ClassId)); }
-
-		/** Disconnects this property from all source objects which are of the specified class type and satisfy the given criteria. (Deprecated, please use DisconnectAllSrcObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pCriteria The given criteria.
-		  * \return \c True if it disconnects all source objects successfully, \c false otherwise.
-		  */
-		template <class T> FBX_DEPRECATED inline bool DisconnectAllSrcObject (const T* /*pFBX_TYPE*/, const FbxCriteria& pCriteria)  { return DisconnectAllSrcObject(T::ClassId,pCriteria);  }
 
 		/** Disconnects this property from all source objects which are of the specified class type and satisfy the given criteria.
 		  * \tparam T The specified class type.
@@ -788,24 +757,11 @@ public:
 		  */
 		template <class T> inline bool DisconnectAllSrcObject(const FbxCriteria& pCriteria){ return DisconnectAllSrcObject(FbxCriteria::ObjectType(T::ClassId) && pCriteria); }
 
-		/** Returns the number of source objects of a specific class type with which this property connects. (Deprecated, please use GetSrcObjectCount<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \return The number of source objects of the specified class type with which this property connects. 
-		  */
-		template <class T> FBX_DEPRECATED inline int  GetSrcObjectCount(const T* /*pFBX_TYPE*/) const{ return GetSrcObjectCount(T::ClassId); }
-
 		/** Returns the number of source objects of a specific class type with which this property connects.
 		  * \tparam T The specified class type.
 		  * \return The number of source objects of the specified class type with which this property connects.
 		  */
 		template <class T> inline int GetSrcObjectCount() const { return GetSrcObjectCount(FbxCriteria::ObjectType(T::ClassId)); }
-
-		/** Returns the number of source objects which are of the specified class type and satisfy the given criteria with which this property connects. (Deprecated, please use GetSrcObjectCount<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pCriteria The given criteria.
-		  * \return The number of source objects which are of the specified class type and satisfy the given criteria.
-		  */
-		template <class T> FBX_DEPRECATED inline int GetSrcObjectCount(const T* /*pFBX_TYPE*/, const FbxCriteria& pCriteria) const { return GetSrcObjectCount(T::ClassId,pCriteria); }
 
 		/** Returns the number of source objects which are of the specified class type and satisfy the given criteria with which this property connects.
 		  * \tparam T The specified class type.
@@ -814,27 +770,12 @@ public:
 		  */
 		template <class T> inline int GetSrcObjectCount(const FbxCriteria& pCriteria) const { return GetSrcObjectCount(FbxCriteria::ObjectType(T::ClassId) && pCriteria); }
 
-		/** Returns the source object of the specified class type at the specified index. (Deprecated, please use GetSrcObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pIndex The specified index whose default value is 0.
-		  * \return The source object of a specified class type at the specified index, NULL if not found.
-		  */
-		template <class T> FBX_DEPRECATED inline T* GetSrcObject(const T* /*pFBX_TYPE*/, int pIndex=0) const { return (T*)GetSrcObject(T::ClassId,pIndex); }
-
 		/** Returns the source object of the specified class type at the specified index.
 		  * \tparam T The specified class type.
 		  * \param pIndex The specified index whose default value is 0.
 		  * \return The source object of a specified class type at the specified index, NULL if not found.
 		  */
 		template <class T> inline T* GetSrcObject(const int pIndex=0) const { return (T*)GetSrcObject(FbxCriteria::ObjectType(T::ClassId), pIndex); }
-
-		/** Returns the source object which is of the specified class type and satisfies the given criteria at the specified index. (Deprecated, please use GetSrcObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pCriteria The given criteria.
-		  * \param pIndex The specified index whose default value is 0.
-		  * \return The source object which is of the specified class type and satisfies the given criteria at the specified index, NULL if not found.
-		  */
-		template <class T> FBX_DEPRECATED inline T* GetSrcObject(const T* /*pFBX_TYPE*/, const FbxCriteria& pCriteria, int pIndex=0) const { return (T*)GetSrcObject(T::ClassId,pCriteria,pIndex); }
 
 		/** Returns the source object which is of the specified class type and satisfies the given criteria at the specified index.
 		  * \tparam T The specified class type.
@@ -844,14 +785,6 @@ public:
 		  */
 		template <class T> inline T* GetSrcObject(const FbxCriteria& pCriteria, const int pIndex=0) const { return (T*)GetSrcObject(FbxCriteria::ObjectType(T::ClassId) && pCriteria, pIndex); }
 
-		/** Searches the source object with the specified name which is of the specified class type, starting with the specified index. (Deprecated, please use FindSrcObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pName The object name.
-		  * \param pStartIndex The start index.
-		  * \return The source object with the name, NULL if not found.
-		  */
-		template <class T> FBX_DEPRECATED inline T* FindSrcObject(const T* /*pFBX_TYPE*/, const char* pName, int pStartIndex=0) const { return (T*)FindSrcObject(T::ClassId,pName,pStartIndex); }
-
 		/** Searches the source object with the specified name which is of the specified class type, starting with the specified index.
 		  * \tparam T The specified class type.
 		  * \param pName The object name.
@@ -859,15 +792,6 @@ public:
 		  * \return The source object with the name, NULL if not found.
 		  */
 		template <class T> inline T* FindSrcObject(const char* pName, const int pStartIndex=0) const { return (T*)FindSrcObject(FbxCriteria::ObjectType(T::ClassId), pName, pStartIndex); }
-
-		/** Searches the source object with the specified name which is of the specified class type and satisfies the given criteria, starting with the specified index. (Deprecated, please use FindSrcObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pCriteria The given criteria.
-		  * \param pName The object name.
-		  * \param pStartIndex The start index.
-		  * \return The source object with the name, NULL if not found.
-		  */
-		template <class T> FBX_DEPRECATED inline T* FindSrcObject(const T* /*pFBX_TYPE*/, const FbxCriteria& pCriteria, const char* pName, int pStartIndex=0) const { return (T*)FindSrcObject(T::ClassId,pCriteria,pName,pStartIndex); }
 
 		/** Searches the source object with the specified name which is of the specified class type and satisfies the given criteria, starting with the specified index.
 		  * \tparam T The specified class type.
@@ -908,12 +832,6 @@ public:
 		  */
 		bool DisconnectAllDstObject(const FbxCriteria& pCriteria);
 
-		/** Disconnects this property from all the destination objects of the specified class type. (Deprecated, please use DisconnectAllDstObject<Type>() instead.)
-		  * \param pClassId The specified class type.
-		  * \return \c True if it disconnects all the destination objects successfully, \c false otherwise.
-		  */
-		FBX_DEPRECATED bool DisconnectAllDstObject(const FbxClassId& pClassId);
-
 		/** Returns the number of destination objects with which this property connects. 
 		  * \return The number of destination objects with which this property connects. 
 		  */
@@ -924,12 +842,6 @@ public:
 		  * \return The number of destination objects that satisfy given criteria with which this property connects. 
 		  */
 		int GetDstObjectCount(const FbxCriteria& pCriteria) const;
-
-		/** Returns the number of destination objects of the specified class type with which this property connects. (Deprecated, please use GetDstObjectCount<Type>() instead.)
-		  * \param pClassId The specified class type.
-		  * \return The number of destination objects of the specified class type with which this property connects. 
-		  */
-		FBX_DEPRECATED int GetDstObjectCount(const FbxClassId& pClassId) const;
 
 		/** Returns the destination object at the specified index with which this property connects.
 		  * \param pIndex The specified index whose default value is 0.
@@ -943,13 +855,6 @@ public:
 		  * \return The destination object that satisfies given criteria at the specified index, NULL if not found.
 		  */
 		FbxObject* GetDstObject(const FbxCriteria& pCriteria, const int pIndex=0) const;
-
-		/** Returns the destination object of the specified class type at the specified index with which this property connects. (Deprecated, please use GetDstObject<Type>() instead.)
-		  * \param pClassId The specified class type.
-		  * \param pIndex The specified index whose default value is 0.
-		  * \return The destination object of the specified class type at the specified index, NULL if not found.
-		  */
-		FBX_DEPRECATED FbxObject* GetDstObject(const FbxClassId& pClassId, const int pIndex=0) const;
 
 		/** Searches the destination object with the specified name, starting with the specified index.
 		  * \param pName The object name.
@@ -966,32 +871,11 @@ public:
 		  */
 		FbxObject* FindDstObject(const FbxCriteria& pCriteria, const char* pName, const int pStartIndex=0) const;
 
-		/** Searches the destination object with the specified name which is of the specified class type, starting with the specified index. (Deprecated, please use FindDstObject<Type>() instead.)
-		  * \param pClassId The specified class type.
-		  * \param pName The object name.
-		  * \param pStartIndex The start index.
-		  * \return The destination object with the name, NULL if not found.
-		  */
-		FBX_DEPRECATED FbxObject* FindDstObject(const FbxClassId& pClassId, const char* pName, const int pStartIndex=0) const;
-
-		/** Disconnects this property from all the destination objects of the specified class type. (Deprecated, please use DisconnectAllDstObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \return \c True if it disconnects all the destination objects successfully, \c false otherwise.
-		  */
-		template <class T> FBX_DEPRECATED inline bool DisconnectAllDstObject (const T* /*pFBX_TYPE*/){ return DisconnectAllDstObject(T::ClassId);    }
-
 		/** Disconnects this property from all the destination objects of the specified class type.
 		  * \tparam T The specified class type.
 		  * \return \c True if it disconnects all the destination objects successfully, \c false otherwise.
 		  */
 		template <class T> inline bool DisconnectAllDstObject(){ return DisconnectAllDstObject(FbxCriteria::ObjectType(T::ClassId)); }
-
-		/** Disconnects this property from all the destination objects which are of the specified class type and satisfy the given criteria. (Deprecated, please use DisconnectAllDstObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pCriteria The given criteria.
-		  * \return \c True if it disconnects all the destination objects successfully, \c false otherwise.
-		  */
-		template <class T> FBX_DEPRECATED inline bool DisconnectAllDstObject (const T* /*pFBX_TYPE*/, const FbxCriteria& pCriteria)  { return DisconnectAllDstObject(T::ClassId,pCriteria);  }
 
 		/** Disconnects this property from all the destination objects which are of the specified class type and satisfy the given criteria.
 		  * \tparam T The specified class type.
@@ -1000,24 +884,11 @@ public:
 		  */
 		template <class T> inline bool DisconnectAllDstObject(const FbxCriteria& pCriteria){ return DisconnectAllDstObject(FbxCriteria::ObjectType(T::ClassId) && pCriteria); }
 
-		/** Returns the number of destination objects of the specified class type with which this property connects. (Deprecated, please use GetDstObjectCount<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \return The number of destination objects of the specified class type with which this property connects. 
-		  */
-		template <class T> FBX_DEPRECATED inline int GetDstObjectCount(const T* /*pFBX_TYPE*/) const { return GetDstObjectCount(T::ClassId); }
-
 		/** Returns the number of destination objects of the specified class type with which this property connects.
 		  * \tparam T The specified class type.
 		  * \return The number of destination objects of the specified class type with which this property connects.
 		  */
 		template <class T> inline int GetDstObjectCount() const { return GetDstObjectCount(FbxCriteria::ObjectType(T::ClassId)); }
-
-		/** Returns the number of destination objects which are of the specified class type and satisfy the given criteria with which this property connects. (Deprecated, please use GetDstObjectCount<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pCriteria The given criteria.
-		  * \return The number of destination objects which are of the specified class type and satisfy the given criteria with which this property connects. 
-		  */
-		template <class T> FBX_DEPRECATED inline int  GetDstObjectCount(const T* /*pFBX_TYPE*/, const FbxCriteria& pCriteria) const { return GetDstObjectCount(T::ClassId,pCriteria); }
 
 		/** Returns the number of destination objects which are of the specified class type and satisfy the given criteria with which this property connects.
 		  * \tparam T The specified class type.
@@ -1026,27 +897,12 @@ public:
 		  */
 		template <class T> inline int GetDstObjectCount(const FbxCriteria& pCriteria) const { return GetDstObjectCount(FbxCriteria::ObjectType(T::ClassId) && pCriteria); }
 
-		/** Returns the destination object of the specified class type at the specified index with which this property connects. (Deprecated, please use GetDstObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pIndex The specified index whose default value is 0.
-		  * \return The destination object of the specified class type at the specified index, NULL if not found.
-		  */
-		template <class T> FBX_DEPRECATED inline T* GetDstObject(const T* /*pFBX_TYPE*/, int pIndex=0) const { return (T*)GetDstObject(T::ClassId,pIndex); }
-
 		/** Returns the destination object of the specified class type at the specified index with which this property connects.
 		  * \tparam T The specified class type.
 		  * \param pIndex The specified index whose default value is 0.
 		  * \return The destination object of the specified class type at the specified index, NULL if not found.
 		  */
 		template <class T> inline T* GetDstObject(const int pIndex=0) const { return (T*)GetDstObject(FbxCriteria::ObjectType(T::ClassId), pIndex); }
-
-		/** Returns the destination object which is of the specified class type and satisfies the given criteria at the specified index with which this property connects. (Deprecated, please use GetDstObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pCriteria The given criteria.
-		  * \param pIndex The specified index whose default value is 0.
-		  * \return The destination object which is of the specified class type and satisfies the given criteria at the specified index, NULL if not found.
-		  */
-		template <class T> FBX_DEPRECATED inline T* GetDstObject(const T* /*pFBX_TYPE*/, const FbxCriteria& pCriteria, int pIndex=0) const { return (T*)GetDstObject(T::ClassId,pCriteria,pIndex); }
 
 		/** Returns the destination object which is of the specified class type and satisfies the given criteria at the specified index with which this property connects.
 		  * \tparam T The specified class type.
@@ -1056,14 +912,6 @@ public:
 		  */
 		template <class T> inline T* GetDstObject(const FbxCriteria& pCriteria, const int pIndex=0) const { return (T*)GetDstObject(FbxCriteria::ObjectType(T::ClassId) && pCriteria, pIndex); }
 
-		/** Searches the destination object with the specified name which is of the specified class type, starting with the specified index. (Deprecated, please use FindDstObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pName The object name.
-		  * \param pStartIndex The start index.
-		  * \return The source object with the name, NULL if not found.
-		  */
-		template <class T> FBX_DEPRECATED inline T* FindDstObject(const T* /*pFBX_TYPE*/, const char* pName, int pStartIndex=0) const { return (T*)FindDstObject(T::ClassId,pName,pStartIndex); }
-
 		/** Searches the destination object with the specified name which is of the specified class type, starting with the specified index.
 		  * \tparam T The specified class type.
 		  * \param pName The object name.
@@ -1071,15 +919,6 @@ public:
 		  * \return The source object with the name, NULL if not found.
 		  */
 		template <class T> inline T* FindDstObject(const char* pName, const int pStartIndex=0) const { return (T*)FindDstObject(FbxCriteria::ObjectType(T::ClassId), pName, pStartIndex); }
-
-		/** Searches the destination object with the specified name which is of the specified class type and satisfies the given criteria, starting with the specified index. (Deprecated, please use FindDstObject<Type>() instead.)
-		  * \param pFBX_TYPE The specified class type.
-		  * \param pCriteria The given criteria.
-		  * \param pName The object name.
-		  * \param pStartIndex The start index.
-		  * \return The source object with the name, NULL if not found.
-		  */
-		template <class T> FBX_DEPRECATED inline T* FindDstObject(const T* /*pFBX_TYPE*/, const FbxCriteria& pCriteria, const char* pName, int pStartIndex=0) const { return (T*)FindDstObject(T::ClassId,pCriteria,pName,pStartIndex); }
 
 		/** Searches the destination object with the specified name which is of the specified class type and satisfies the given criteria, starting with the specified index.
 		  * \tparam T The specified class type.
@@ -1222,7 +1061,7 @@ private:
 	friend class FbxIOSettings;
 	friend class FbxBindingOperator;
 	friend class FbxAnimEvalClassic;
-    friend void FbxMarkObject(FbxObject* pObject, FbxMap<FbxObject*, int>& pObjectDstDisconnectCount, FbxSet2<FbxObject*>& pObjectsToDeleted, FbxArray<FbxObject*>& pObjectToDeletedInSequence);
+    friend void FbxMarkObject(FbxObject* pObject, FbxMap<FbxObject*, int>& pObjectDstDisconnectCount, FbxSet<FbxObject*>& pObjectsToDeleted, FbxArray<FbxObject*>& pObjectToDeletedInSequence);
     friend void FbxCleanUpConnectionsAtDestructionBoundary(FbxScene* pObject, FbxArray<FbxObject*>& pObjectToDeletedInSequence);
 #endif /* !DOXYGEN_SHOULD_SKIP_THIS *****************************************************************************************/
 };
@@ -1233,6 +1072,9 @@ private:
 template <class T> class FbxPropertyT : public FbxProperty
 {
 public:
+    /** Provides access to the property's underlying type */
+    typedef T ValueType;
+
 	/**
 	  * \name Static initialization.
 	  */
@@ -1244,9 +1086,9 @@ public:
 		  * \param pForceSet If \c true, the value is forcibly set, if \c false the value is not set when it equals the default value. 
 		  * \param pFlags  The property flag.
 		  */
-		FbxProperty& StaticInit(FbxObject* pObject, const char* pName, const T& pValue, bool pForceSet, FbxPropertyAttr::EFlags pFlags=FbxPropertyAttr::eNone)
+		FbxProperty& StaticInit(FbxObject* pObject, const char* pName, const T& pValue, bool pForceSet, FbxPropertyFlags::EFlags pFlags=FbxPropertyFlags::eNone)
 		{
-			return StaticInit(pObject, pName, FbxGetDataTypeFromEnum(FbxTypeOf(*((T*)0))), pValue, pForceSet, pFlags);
+			return StaticInit(pObject, pName, FbxGetDataTypeFromEnum(FbxTypeOf(pValue)), pValue, pForceSet, pFlags);
 		}
 
 		/** Creates a property and initializes it using a specific value and flag.
@@ -1257,7 +1099,7 @@ public:
 		  * \param pForceSet If \c true, the value is forcibly set, if \c false the value is not set when it equals the default value. 
 		  * \param pFlags  The property flag.
 		  */
-		FbxProperty& StaticInit(FbxObject* pObject, const char* pName, const FbxDataType& pDataType, const T& pValue, bool pForceSet, FbxPropertyAttr::EFlags pFlags=FbxPropertyAttr::eNone)
+		FbxProperty& StaticInit(FbxObject* pObject, const char* pName, const FbxDataType& pDataType, const T& pValue, bool pForceSet, FbxPropertyFlags::EFlags pFlags=FbxPropertyFlags::eNone)
 		{
 			bool lWasFound = false;
 			*this = Create(pObject, pDataType, pName, "", true, &lWasFound);
@@ -1266,7 +1108,7 @@ public:
 				ModifyFlag(pFlags, true);	// modify the flags before we set the value
 				FbxProperty::Set(&pValue, FbxTypeOf(pValue), false);
 			}
-			ModifyFlag(FbxPropertyAttr::eStatic, true);
+			ModifyFlag(FbxPropertyFlags::eStatic, true);
 			return *this;
 		}
 
@@ -1278,7 +1120,7 @@ public:
 		  * \param pForceSet If \c true, the value is forcibly set, if \c false the value is not set when it equals to the default value. 
 		  * \param pFlags  The property flag.
 		  */
-		FbxProperty& StaticInit(FbxProperty pCompound, const char* pName, const FbxDataType& pDataType, const T& pValue, bool pForceSet=true, FbxPropertyAttr::EFlags pFlags=FbxPropertyAttr::eNone)
+		FbxProperty& StaticInit(FbxProperty pCompound, const char* pName, const FbxDataType& pDataType, const T& pValue, bool pForceSet=true, FbxPropertyFlags::EFlags pFlags=FbxPropertyFlags::eNone)
 		{
 			bool lWasFound = false;
 			*this = Create(pCompound, pDataType, pName, "", true, &lWasFound);
@@ -1287,7 +1129,7 @@ public:
 				ModifyFlag(pFlags, true);	// modify the flags before we set the value
 				FbxProperty::Set(&pValue, FbxTypeOf(pValue), false);
 			}
-			ModifyFlag(FbxPropertyAttr::eStatic, true);
+			ModifyFlag(FbxPropertyFlags::eStatic, true);
 			return *this;
 		}
 	//@}
@@ -1321,7 +1163,7 @@ public:
 		* \return The property value at the specified time. */
 		T EvaluateValue(const FbxTime& pTime=FBXSDK_TIME_INFINITE, bool pForceEval=false)
 		{
-			return GetFbxObject()->GetFbxManager()->GetAnimationEvaluator()-> template GetPropertyValue<T>(*this, pTime, pForceEval);
+			return EvaluatePropertyValue<T>(*this, pTime, pForceEval);
 		}
 	//@}
 
@@ -1346,12 +1188,12 @@ public:
 	FbxPropertyT(const FbxProperty& pProperty) : FbxProperty(pProperty){}
 	~FbxPropertyT(){}
 
-	const FbxProperty& StaticInit(FbxObject* pObject, const char* pName, const FbxReference& pValue, bool pForceSet, FbxPropertyAttr::EFlags pFlags=FbxPropertyAttr::eNone)
+	const FbxProperty& StaticInit(FbxObject* pObject, const char* pName, const FbxReference& pValue, bool pForceSet, FbxPropertyFlags::EFlags pFlags=FbxPropertyFlags::eNone)
 	{
-		return StaticInit(pObject, pName, FbxGetDataTypeFromEnum(FbxTypeOf(*((FbxReference*)0))), pValue, pForceSet, pFlags);
+		return StaticInit(pObject, pName, FbxGetDataTypeFromEnum(eFbxReference), pValue, pForceSet, pFlags);
 	}
 
-	const FbxProperty& StaticInit(FbxObject* pObject, const char* pName, const FbxDataType& pDataType, const FbxReference& pValue, bool pForceSet, FbxPropertyAttr::EFlags pFlags=FbxPropertyAttr::eNone)
+	const FbxProperty& StaticInit(FbxObject* pObject, const char* pName, const FbxDataType& pDataType, const FbxReference& pValue, bool pForceSet, FbxPropertyFlags::EFlags pFlags=FbxPropertyFlags::eNone)
 	{
 		bool lWasFound = false;
 		*this = Create(pObject, pDataType, pName, "", true, &lWasFound);
@@ -1360,7 +1202,7 @@ public:
 			ModifyFlag(pFlags, true);	// modify the flags before we set the value
 			Set(pValue);			// since we will trigger callbacks in there!
 		}
-		ModifyFlag(FbxPropertyAttr::eStatic, true);
+		ModifyFlag(FbxPropertyFlags::eStatic, true);
 		return *this;
 	}
 
@@ -1372,12 +1214,14 @@ public:
 
 	FbxPropertyT& Set(const FbxReference& pValue)
 	{
-		bool Result = FbxProperty::NotifySetRequest();
-		if( Result )
+		if( FbxProperty::NotifySetRequest() )
 		{
 			DisconnectAllSrcObject();
-			ConnectSrcObject(pValue);
-			FbxProperty::NotifySet();
+			if( ConnectSrcObject(pValue) ) 
+			{
+				FbxProperty::SetValueInheritType(FbxPropertyFlags::eOverride);
+				FbxProperty::NotifySet();
+			}
 		}
 		return *this;
 	}

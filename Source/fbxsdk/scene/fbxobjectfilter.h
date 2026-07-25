@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -61,7 +61,7 @@ public:
 	/** Tells if this filter match the given object
 	  * \param pObjectPtr The given object.
 	  */
-    virtual bool Match(const FbxObject * pObjectPtr) const { return pObjectPtr ? mTargetName == pObjectPtr->GetName() : false; }
+    bool Match(const FbxObject * pObjectPtr) const  override { return pObjectPtr ? mTargetName == pObjectPtr->GetName() : false; }
 
 /*****************************************************************************************************************************
 ** WARNING! Anything beyond these lines is for internal use, may not be documented and is subject to change without notice! **

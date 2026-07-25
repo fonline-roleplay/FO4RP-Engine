@@ -759,8 +759,6 @@ void GetClientOptions()
     cfg.GetStr( "Language", "russ", buf );
     GETOPTIONS_CMD_LINE_STR( buf, "Language" );
     Str::Lower( buf );
-    if( Str::Compare( buf, "russ" ) )
-        SetExceptionsRussianText();
 
     // Int / Bool
     GameOpt.OpenGLDebug = cfg.GetInt( "OpenGLDebug", false ) != 0;

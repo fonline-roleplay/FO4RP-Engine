@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -84,9 +84,9 @@ template <typename EventType, typename ListenerType> class FbxMemberFuncEventHan
 
 public:
     FbxMemberFuncEventHandler(ListenerType* pListenerInstance, CallbackFnc pFunction) : mListener(pListenerInstance), mFunction(pFunction){}
-	virtual int GetHandlerEventType(){ return EventType::GetStaticTypeId(); }  
-	virtual void FunctionCall(const FbxEventBase& pEvent){ (*mListener.*mFunction)(reinterpret_cast<const EventType*>(&pEvent)); } 
-	virtual FbxListener* GetListener(){ return mListener; }
+	int GetHandlerEventType() override { return EventType::GetStaticTypeId(); }  
+	void FunctionCall(const FbxEventBase& pEvent) override { (*mListener.*mFunction)(reinterpret_cast<const EventType*>(&pEvent)); } 
+	FbxListener* GetListener() override { return mListener; }
 
 private:
 	ListenerType*	mListener;
@@ -99,9 +99,9 @@ template <typename EventType, typename ListenerType> class FbxConstMemberFuncEve
 
 public:
 	FbxConstMemberFuncEventHandler(ListenerType* pListenerInstance, CallbackFnc pFunction) : mListener(pListenerInstance), mFunction(pFunction){}
-	virtual int GetHandlerEventType(){ return EventType::GetStaticTypeId(); }    
-	virtual void FunctionCall(const FbxEventBase& pEvent){ (*mListener.*mFunction)(reinterpret_cast<const EventType*>(&pEvent)); }
-	virtual FbxListener* GetListener(){ return mListener; }
+	int GetHandlerEventType() override { return EventType::GetStaticTypeId(); }    
+	void FunctionCall(const FbxEventBase& pEvent) override { (*mListener.*mFunction)(reinterpret_cast<const EventType*>(&pEvent)); }
+	FbxListener* GetListener() override { return mListener; }
 
 private:
 	ListenerType*	mListener;
@@ -114,9 +114,9 @@ template <typename EventType> class FbxFuncEventHandler : public FbxEventHandler
 
 public:
 	FbxFuncEventHandler(FbxListener* pListener, CallbackFnc pFunction) : mListener(pListener), mFunction(pFunction){}
-	virtual int GetHandlerEventType(){ return EventType::GetStaticTypeId(); }   
-	virtual void FunctionCall(const FbxEventBase& pEvent){ (*mFunction)(reinterpret_cast<const EventType*>(&pEvent), mListener); }
-	virtual FbxListener* GetListener(){ return mListener; }
+	int GetHandlerEventType() override { return EventType::GetStaticTypeId(); }
+	void FunctionCall(const FbxEventBase& pEvent)  override { (*mFunction)(reinterpret_cast<const EventType*>(&pEvent), mListener); }
+	FbxListener* GetListener()  override { return mListener; }
 
 private:
 	FbxListener*	mListener;

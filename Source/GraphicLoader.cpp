@@ -11,6 +11,7 @@
 #include "fbxsdk/fbxsdk.h"
 #ifdef FO_WINDOWS
 # pragma comment( lib, "libfbxsdk-mt.lib")
+# pragma comment( lib, "libxml2-mt.lib")
 #endif
 
 #include "PNG/png.h"
@@ -300,11 +301,11 @@ Frame* GraphicLoader::LoadModel( const char* fname )
         VectorVec         sv;
         QuaternionVec     rv;
         VectorVec         tv;
-        FbxAnimEvaluator* fbx_anim_evaluator = fbx_manager->GetAnimationEvaluator();
+        FbxAnimEvaluator* fbx_anim_evaluator = fbx_scene->GetAnimationEvaluator();
         for( int i = 0; i < fbx_scene->GetMemberCount< FbxAnimStack >(); i++ )
         {
             FbxAnimStack* fbx_anim_stack = fbx_scene->GetMember< FbxAnimStack >( i );
-            fbx_anim_evaluator->SetContext( fbx_anim_stack );
+            fbx_scene->SetCurrentAnimationStack( fbx_anim_stack );
 
             FbxTakeInfo* take_info = fbx_importer->GetTakeInfo( i );
             int          frames_count = (int) take_info->mLocalTimeSpan.GetDuration().GetFrameCount() + 1;

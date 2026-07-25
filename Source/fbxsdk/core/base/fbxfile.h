@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2019 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -118,7 +118,7 @@ public:
       * \param pMemPtr Unused
 	  * \param pSize Unused
 	  */
-	virtual void		GetMemoryFileInfo(void** pMemPtr, size_t pSize);
+	virtual void		GetMemoryFileInfo(void** pMemPtr, size_t& pSize);
 
 	/** Checks whether the file is currently opened.
 	  * \return True if file is opened, false otherwise
@@ -182,7 +182,7 @@ public:
 	static bool Copy(const char* pDestination_UTF8, const char* pSource_UTF8);
 
 	//! Get given file's size.
-	static FbxLong Size(const char* pFilePath_UTF8);
+	static FbxInt64 Size(const char* pFilePath_UTF8);
 
 	/** Find if the specified file exist.
 	  * \param pFilePath_UTF8 The file path to test against.

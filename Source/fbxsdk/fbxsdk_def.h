@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -31,6 +31,9 @@
 #include <float.h>
 #include <math.h>
 #include <time.h>
+#include <stdexcept>
+#include <climits>
+#include <iterator>
 
 //---------------------------------------------------------------------------------------
 //Define Version and Namespace

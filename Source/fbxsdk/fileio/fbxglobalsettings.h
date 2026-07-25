@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -259,7 +259,7 @@ public:
 ** WARNING! Anything beyond these lines is for internal use, may not be documented and is subject to change without notice! **
 *****************************************************************************************************************************/
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-	virtual FbxObject& Copy(const FbxObject& pObject);
+    FbxObject& Copy(const FbxObject& pObject) override;
     
 protected:
 	FbxPropertyT<FbxInt>	UpAxis;
@@ -287,8 +287,8 @@ protected:
     FbxPropertyT<FbxDouble>     CustomFrameRate;
 
 protected:
-	virtual void Construct(const FbxObject* pFrom);
-	virtual void ConstructProperties(bool pForceSet);
+	void Construct(const FbxObject* pFrom) override;
+	void ConstructProperties(bool pForceSet) override;
 	
 private:
     void AxisSystemToProperties();

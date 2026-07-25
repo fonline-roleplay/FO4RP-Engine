@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -97,7 +97,7 @@ protected:
 	bool SetDoubleParameter(FbxProperty pProperty, double pDouble);
 	bool GetDoubleParameter(FbxProperty pProperty, double pDouble) const;
 	
-	virtual void ConstructProperties(bool pForceSet);
+    void ConstructProperties(bool pForceSet) override;
 #endif /* !DOXYGEN_SHOULD_SKIP_THIS *****************************************************************************************/
 };
 

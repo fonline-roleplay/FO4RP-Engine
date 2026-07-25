@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -36,7 +36,7 @@ class FBXSDK_DLL FbxNurbsSurface : public FbxGeometry
 
 public:
     //! Returns the FbxNodeAttribute::EType::eNurbsSurface node attribute type.
-    virtual FbxNodeAttribute::EType GetAttributeType() const;
+    FbxNodeAttribute::EType GetAttributeType() const override;
 
     //! Resets the NURBS surface its default values.
     void Reset();
@@ -248,16 +248,16 @@ public:
         eErrorCount
     };
 
-    virtual FbxObject& Copy(const FbxObject& pObject);
-    virtual void InitControlPoints(int pCount) { ParentClass::InitControlPoints(pCount); }
+    FbxObject& Copy(const FbxObject& pObject) override;
+    void InitControlPoints(int pCount) override { ParentClass::InitControlPoints(pCount); }
 
     void SetFlipNormals(bool pFlipNormals);
     bool GetFlipNormals() const;
     bool IsValidKnots() const;
 
 protected:
-	virtual void Construct(const FbxObject* pFrom);
-    virtual void Destruct(bool pRecursive);
+	void Construct(const FbxObject* pFrom) override;
+    void Destruct(bool pRecursive) override;
 
     FbxUInt mUOrder, mVOrder;
     int mUCount, mVCount;

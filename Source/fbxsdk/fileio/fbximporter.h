@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2019 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -31,6 +31,7 @@ class FbxDocumentInfo;
 class FbxTakeInfo;
 class FbxReader;
 class FbxThread;
+class FbxEmbeddedFileCallback;
 
 struct FbxImportThreadArg;
 
@@ -107,7 +108,7 @@ public:
       *                           using the GetStatus() function.
       * \remarks                  You do not need to give the pFileFormat if the suffix of pFileName is recognized
 	  */
-	virtual bool Initialize(const char* pFileName, int pFileFormat=-1, FbxIOSettings * pIOSettings=NULL);
+    bool Initialize(const char* pFileName, int pFileFormat=-1, FbxIOSettings * pIOSettings=NULL) override;
 
 	/** Initialize object.
 	  *	\param pStream            stream to access.
@@ -183,7 +184,7 @@ public:
       */
 	  bool Import(FbxDocument* pDocument, bool pNonBlocking=false);
 
-#ifndef FBXSDK_ENV_WINSTORE
+#if  !defined(FBXSDK_ENV_WINSTORE) && !defined(FBXSDK_ENV_EMSCRIPTEN) 
     /** Check if the importer is currently importing.
 	  * \param pImportResult  This parameter, after the import finished, will contain the result of the import success or failure.
       * \return               Return true if the importer is currently importing.
@@ -193,7 +194,7 @@ public:
       *                       since it will also free up the thread's allocations when its done.
       */
 	  bool IsImporting(bool& pImportResult);
-#endif /* !FBXSDK_ENV_WINSTORE */
+#endif /* !FBXSDK_ENV_WINSTORE && !defined(FBXSDK_ENV_EMSCRIPTEN) */
 
 	/** Get the progress status in non-blocking mode.
 	  *	\param pStatus Optional current status string.
@@ -215,6 +216,19 @@ public:
 	/** Retrieve the current folder destination where the embedded files will be extracted. This might not be initialized until file I/O is performed.
 	  */
 	const char* GetEmbeddingExtractionFolder();
+
+    /** Register a callback object for reading embedded data.
+      *	\param pCallback Pointer to the callback object.
+      * \remark The FbxEmbeddefFileCallback object can have the Mode and DataHint members changed
+      *         by the FBX SDK, however the callback function and the user data pointers are guaranteed
+      *         to remain unaffected therefore they must be properly configured during the object creation.
+      * \remark This function must be called after the FbxImporter::Initialize().
+      */
+    void SetEmbeddedFileReadCallback(FbxEmbeddedFileCallback* pCallback);
+
+    /** Retrieve the currently registered FbxEmbeddedFileCallback object.
+      */
+    FbxEmbeddedFileCallback* GetEmbeddedFileReadCallback();
 
 	/** Access to a IOSettings object.
       * \return The pointer to IOSettings or \c NULL \c if the object has not been allocated.
@@ -307,8 +321,8 @@ public:
 	bool GetFrameRate(FbxTime::EMode &pTimeMode);
 
 protected:
-	virtual void Construct(const FbxObject* pFrom);
-	virtual void Destruct(bool pRecursive);
+	void Construct(const FbxObject* pFrom) override;
+	void Destruct(bool pRecursive) override;
 	virtual void SetOrCreateIOSettings(FbxIOSettings* pIOSettings, bool pAllowNULL);
 
 	void Reset();
@@ -320,6 +334,7 @@ protected:
     bool IsNativeExtension ();
 
 	//These two internal functions are only used to read old character pose data
+public:
 	bool Initialize(FbxFile* pFile, const int pFileFormat=-1, FbxIOSettings* pIOSettings=NULL);
 	bool Import(FbxDocument* pDocument, FbxIO* pFbxObject);
 
@@ -335,12 +350,12 @@ private:
 	FbxTime::EMode			mFrameRate;
     bool					mParseForStatistics;
     FbxStatistics			mStatistics;
-#ifndef FBXSDK_ENV_WINSTORE
+#if  !defined(FBXSDK_ENV_WINSTORE) && !defined(FBXSDK_ENV_EMSCRIPTEN) 
 	FbxThread*				mImportThread;
 	FbxImportThreadArg*		mImportThreadArg;
 	bool					mImportThreadResult;
 	bool					mIsThreadImporting;
-#endif /* !FBXSDK_ENV_WINSTORE */
+#endif /* !FBXSDK_ENV_WINSTORE && !defined(FBXSDK_ENV_EMSCRIPTEN) */
     FbxProgress				mProgress;
     FbxFile*				mFile;
 	FbxStream*				mStream;
@@ -355,6 +370,8 @@ private:
 	FbxIOFileHeaderInfo*	mHeaderInfo;
 	FbxIOSettings*			mIOSettings;
 	bool					mClientIOSettings;
+
+    FbxEmbeddedFileCallback* mEmbeddedFileCallbackObj;
 
 	//For Initialize and Import
 	friend class FbxReaderFbx5;

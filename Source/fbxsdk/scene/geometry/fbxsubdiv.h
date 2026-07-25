@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -65,7 +65,7 @@ public:
         EScheme pScheme = eCatmullClark, 
         ETesselationPattern pPattern = ePower2);
 
-    virtual FbxNodeAttribute::EType GetAttributeType() const;
+    FbxNodeAttribute::EType GetAttributeType() const override;
 
 
     //max subdivision level number
@@ -115,6 +115,9 @@ public:
 	FbxSubDiv::EDisplaySmoothness GetDisplaySmoothness() const;
 
 	void SetDisplaySmoothness(FbxSubDiv::EDisplaySmoothness pSmoothness);
+
+protected:
+	void Construct(const FbxObject* pFrom) override;
 
 private:
 

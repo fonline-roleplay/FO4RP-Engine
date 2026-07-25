@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -63,19 +63,6 @@ class FBXSDK_DLL FbxAnimEvaluator : public FbxObject
     FBXSDK_ABSTRACT_OBJECT_DECLARE(FbxAnimEvaluator, FbxObject);
 
 public:
-	/** Set the evaluator context, which represent which animation stack should be evaluated. When no context is specified, the FBX SDK
-	* will try to automatically pick the first animation stack available in the scene and set it as the current context. If no animation
-	* stack are available, the evaluator will not be able to evaluate the scene's animation. Only one context can be evaluated at a time per evaluator.
-	* \param pAnimStack The animation stack to evaluate when using this evaluator.
-	* \remark When changing the current context, the evaluator will automatically clear any animation evaluation cache present in memory.
-	* \see FbxAnimStack */
-    void SetContext(FbxAnimStack* pAnimStack);
-
-	/** Get the current evaluator context.
-	* \return The current animation stack used by the evaluator.
-	* \remark If no animation stack has been set, one will be automatically set during the first FbxAnimStack creation. */
-	FbxAnimStack* GetContext();
-
 	/** Returns a node's global transformation matrix at the specified time. The node's translation, rotation and scaling limits are taken into consideration.
 	* \param pNode The node to evaluate.
 	* \param pTime The time used for evaluate. If FBXSDK_TIME_INFINITE is used, this returns the default value, without animation curves evaluation.
@@ -186,11 +173,11 @@ public:
 *****************************************************************************************************************************/
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 protected:
-	virtual void Construct(const FbxObject* pFrom);
-    virtual void Destruct(bool pRecursive);
+	void Construct(const FbxObject* pFrom) override;
+    void Destruct(bool pRecursive) override;
 
-    virtual void EvaluateNodeTransform(FbxNodeEvalState* pResult, FbxNode* pNode, const FbxTime& pTime, FbxAnimStack* pStack, FbxNode::EPivotSet pPivotSet, bool pApplyTarget) = 0;
-	virtual void EvaluatePropertyValue(FbxPropertyEvalState* pResult, FbxProperty& pProperty, const FbxTime& pTime, FbxAnimStack* pStack) = 0;
+    virtual void EvaluateNodeTransform(FbxNodeEvalState* pResult, FbxNode* pNode, const FbxTime& pTime, FbxNode::EPivotSet pPivotSet, bool pApplyTarget) = 0;
+	virtual void EvaluatePropertyValue(FbxPropertyEvalState* pResult, FbxProperty& pProperty, const FbxTime& pTime) = 0;
 
 	FbxAnimEvalState*		GetDefaultEvalState();
 	FbxAnimEvalState*		GetEvalState(const FbxTime& pTime);
@@ -198,10 +185,20 @@ protected:
 	FbxPropertyEvalState*	GetPropertyEvalState(FbxProperty& pProperty, const FbxTime& pTime, bool pForceEval);
 
 private:
-	FbxAnimEvalState*	mEvalState;
-	FbxAnimStack*		mAnimStack;
+	FbxAnimEvalState*		mEvalState;
 #endif /* !DOXYGEN_SHOULD_SKIP_THIS *****************************************************************************************/
 };
+
+/** Evaluate the property at the specified time using the template type provided.
+* \param pProperty The property to evaluate.
+* \param pTime The time used for evaluate.
+* \param pForceEval Force the evaluator to refresh the evaluation state cache even if its already up-to-date.
+* \return The property value at the specified time converted to the template type provided, if possible.
+* \remark If the property type versus the template cannot be converted, the result is unknown. */
+template <class T> inline T EvaluatePropertyValue(FbxProperty& pProperty, const FbxTime& pTime, bool pForceEval)
+{ 
+	return pProperty.GetAnimationEvaluator()-> template GetPropertyValue<T>(pProperty, pTime, pForceEval);
+}
 
 #include <fbxsdk/fbxsdk_nsend.h>
 

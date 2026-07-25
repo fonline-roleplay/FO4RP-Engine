@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -49,9 +49,9 @@ class FbxAnimCurveFilterMatrixConverter;
 /** Represents an element in the scene graph. A scene graph is a tree of FbxNode 
   * objects. The tree management services are self contained in this class.
   *
-  * \note The FBX SDK does not test the validity of the constructed scene graph. It 
+  * \note The FBX SDK does not test the validity of the constructed scene graph by default. It 
   * is the responsibility of the caller to make sure that it does not generate cyclic 
-  * graphs in a node hierarchy.
+  * graphs in a node hierarchy. The class FbxSceneCheckUtility can be used for this test.
   *
   * Besides the tree management, this class defines all the properties required to describe
   * the position of the object in the scene. This information include the basic Translation,
@@ -564,13 +564,13 @@ public:
 	  *
 	  * \note Please refer to the FBX SDK programmers guide for more details.
 	  * 
-	  * The application of the pivots is performed by calling the method ConvertPivotAnimation(). Typically,
+	  * The application of the pivots is performed by calling the method ConvertPivotAnimationRecursive(). Typically,
 	  * you set-up the eDestinationPivot context to match what your system can directly support and leave at (0,0,0) the
 	  * attributes that are not supported by your system. When the values of a specific attribute in the 
 	  * two contexts (source and destination) are identical, the system considers that no adjustment is 
 	  * required because the attribute is directly supported in the destination world.
 	  *
-	  * Below is an example of code that shows how the pivot information could be setup before calling ConvertPivotAnimation(). 
+	  * Below is an example of code that shows how the pivot information could be setup before calling ConvertPivotAnimationRecursive(). 
 	  * \code
 	  * FbxVector4 lZero(0,0,0);
       * FbxVector4 lOne(1,1,1);
@@ -969,33 +969,8 @@ public:
 		  */
 		void ResetPivotSet( FbxNode::EPivotSet pPivotSet );
 
-		/** Recursively convert the animation data according to pivot settings.
-		  * This method is still available for legacy reasons. Its use is limited to
-		  * the processing of very old data coming from FBX v5 files and should not be
-		  * used in any other case. Instead call the ConvertPivotAnimationRecursive().
-		  *
-		  * \param pConversionTarget If set to EPivotSet::eDestinationPivot,
-		  *                          convert animation data from the EPivotSet::eSourcePivot pivot context
-		  *                          to the EPivotSet::eDestinationPivot pivot context. Otherwise, the
-		  *                          conversion is computed the other way around.
-		  * \param pFrameRate Resampling frame rate in frames per second.
-		  * \param pKeyReduce Apply or skip key reducing filter.
-		  * \remarks Due to the intrinsic properties of the mathematical operations performed,
-		  *          sometimes, it is necessary to resample animation curves to maintain the accurate
-		  *          conversion. When this resampling is required, the method will use the \e pFrameRate
-		  *          value to specify the number of samples. To avoid a huge number of keys in the animation
-		  *          curves, a constant key reducer filter (FbxKFCurveFilterConstantKeyReducer) is 
-		  *          automatically applied to all the affected curves to remove as much consecutive keys 
-		  *          that have the same value. This filter is private and its settings cannot be changed.
-		  *          It is possible that, after the filtering pass, the animations curves do not contain keys
-		  *          anymore. This is a normal result and does not affect the overall results.
-		  *
-		  */
-		FBX_DEPRECATED void ConvertPivotAnimation(EPivotSet pConversionTarget, double pFrameRate, bool pKeyReduce=true);
-	    
-		/** This version is an improved version of the ConvertPivotAnimation(). It fully supports all the
-		  * attributes defined in the pivot sets and can process animation data defined on different animation
-		  * stack. 
+		/** Fully supports all the attributes defined in the pivot sets and can process animation data defined on different animation
+		  * stacks. 
 		  * \param pAnimStack The animation stack on which the conversion will take place. If equals \c NULL, convert the animation on all the animation stacks.
 		  * \param pConversionTarget If set to EPivotSet::eDestinationPivot,
 		  *                          convert animation data from the EPivotSet::eSourcePivot pivot context
@@ -1012,7 +987,7 @@ public:
 		  *          that have the same value. This filter is private and its settings cannot be changed.
 		  *          It is possible that, after the filtering pass, the animations curves do not contain keys
 		  *          anymore. This is a normal result and does not affect the overall results.
-		  * \note    Altough it is possible to call this method several times with a different
+		  * \note    Although it is possible to call this method several times with a different
 		  *          AnimStack name, users must be aware that some pivot computation can irreversibly
 		  *          modify the geometric nodes with a cumulative effect of the \e GeometricTranslation, 
 		  *          \e GeometricRotation and \e GeometricScaling which will produce undesirable results. It is recommended
@@ -1020,6 +995,7 @@ public:
 		  *          the animation on all the Anim stacks at once. 
 		  *          In the case when there are no geometric nodes in the scene tree, specifying the animation stack
 		  *          is safe and somewhat faster.
+		  *          If any transform limits are active, they are applied during the conversion and disabled.
 		 */
 		void ConvertPivotAnimationRecursive(FbxAnimStack* pAnimStack, EPivotSet pConversionTarget, double pFrameRate, bool pKeyReduce=true);
 
@@ -1048,6 +1024,10 @@ public:
 	  * \name Node Evaluation Functions
 	  */
 	//@{
+		/** Retrieve the proper animation evaluator to use for this node.
+		* \return If the object has no scene, returns the default evaluator, otherwise the object's scene evaluator. */
+		FbxAnimEvaluator* GetAnimationEvaluator() const;
+
 		/** Returns this node's global transformation matrix at the specified time. The node's translation, rotation and scaling limits are taken into consideration.
 		  * \param pTime The time used for evaluate. If FBXSDK_TIME_INFINITE is used, this returns the default value, without animation curves evaluation.
 		  * \param pPivotSet The pivot set to take into account
@@ -1109,10 +1089,19 @@ public:
 		* \param pBBoxMax The maximum value of the bounding box upon successful return.
 		* \param pBBoxCenter The center value of the bounding box upon successful return.
 		* \param pTime If different from FBXSDK_TIME_INFINITE, time used to compute the bounding box for deformed geometry.
-		* \param pAnimLayerId The animation layer used to compute the bounding box for deformed geometry.
 		* \return \c true if successful, otherwise \c false.
 		* \remark If geometry have been unloaded from memory, their bounding box cannot be calculated and will use any value set previously. */
-		bool EvaluateGlobalBoundingBoxMinMaxCenter(FbxVector4& pBBoxMin, FbxVector4& pBBoxMax, FbxVector4& pBBoxCenter, const FbxTime& pTime=FBXSDK_TIME_INFINITE, int pAnimLayerId=0);
+		bool EvaluateGlobalBoundingBoxMinMaxCenter(FbxVector4& pBBoxMin, FbxVector4& pBBoxMax, FbxVector4& pBBoxCenter, const FbxTime& pTime=FBXSDK_TIME_INFINITE);
+
+		/** Compute closest ray intersection point with mesh attributes of this node (triangle meshes only!).
+		* \param pOut The closest intersection point from pRayOrigin location in pRayDir direction. Variable is unchanged if return value is \c false.
+		* \param pRayOrigin The origin location to cast the ray from.
+		* \param pRayDir The direction the cast ray to test mesh triangles from.
+		* \param pCulling If \c true, only test triangles that are front facing, otherwise test both sides.
+		* \param pTime The time to use to evaluate mesh deformations.
+		* \return \c true if a triangle intersect with the ray, otherwise \c false.
+		* \remark This function will automatically fail if the node's meshes are not triangulated. */
+		bool EvaluateRayIntersectionPoint(FbxVector4& pOut, const FbxVector4& pRayOrigin, const FbxVector4& pRayDir, bool pCulling=false, const FbxTime& pTime=FBXSDK_TIME_INFINITE);
 	//@}
 
 	/**
@@ -2327,7 +2316,7 @@ public:
 		int mSubIndex;
 	};
 
-    void					AddChildName(char* pChildName);
+    void					AddChildName(const char* pChildName);
     char*					GetChildName(FbxUInt pIndex) const;
     FbxUInt					GetChildNameCount() const;
 
@@ -2349,10 +2338,10 @@ public:
     // Duplicate this node as well as all its node attributes and the Target and UpTarget objects.
     FbxNode*                DeepCloneWithNodeAttributes();
 
-    virtual FbxObject&		Copy(const FbxObject& pObject);
-    virtual const char*		GetTypeName() const;
-    virtual FbxStringList	GetTypeFlags() const;
-    virtual bool			PropertyNotify(EPropertyNotifyType pType, FbxProperty& pProperty);
+    FbxObject&		Copy(const FbxObject& pObject) override;
+    const char*		GetTypeName() const override;
+    FbxStringList	GetTypeFlags() const override;
+    bool			PropertyNotify(EPropertyNotifyType pType, FbxProperty& pProperty) override;
 
     enum ECullingType
 	{
@@ -2365,15 +2354,15 @@ public:
     bool					mCorrectInheritType;
 
 protected:
-	virtual void Construct(const FbxObject* pFrom);
-	virtual void ConstructProperties(bool pForceSet);
-	virtual void Destruct(bool pRecursive);
+	void Construct(const FbxObject* pFrom) override;
+	void ConstructProperties(bool pForceSet) override;
+	void Destruct(bool pRecursive) override;
 
 	void				Reset();
 	bool				GetAnimationIntervalRecursive(FbxTimeSpan& pTimeInterval, FbxAnimLayer* pAnimLayer);
 
 private:
-	typedef FbxSet2<FbxHandle> GeomInstSet;
+	typedef FbxSet<FbxHandle> GeomInstSet;
 
 	void				ResetLimitsRecursive(FbxNode* pNode);
 

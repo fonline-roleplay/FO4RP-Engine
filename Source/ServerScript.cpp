@@ -16,7 +16,7 @@ void* ASDebugMalloc( size_t size )
 {
     size += sizeof( size_t );
     MEMORY_PROCESS( MEMORY_ANGEL_SCRIPT, (int) size );
-    size_t* ptr = (size_t*) malloc( size );
+    size_t* ptr = (size_t*) std::malloc( size );
     *ptr = size;
     return ++ptr;
 }
@@ -26,7 +26,7 @@ void ASDebugFree( void* ptr )
     size_t* ptr_ = (size_t*) ptr;
     size_t  size = *( --ptr_ );
     MEMORY_PROCESS( MEMORY_ANGEL_SCRIPT, -(int) size );
-    free( ptr_ );
+    std::free( ptr_ );
 }
 
 static bool                 ASDbgMemoryCanWork = false;
@@ -38,7 +38,7 @@ static Mutex                ASDbgMemoryLocker;
 void* ASDeepDebugMalloc( size_t size )
 {
     size += sizeof( size_t );
-    size_t* ptr = (size_t*) malloc( size );
+    size_t* ptr = (size_t*) std::malloc( size );
     *ptr = size;
 
     if( ASDbgMemoryCanWork && !ASDbgMemoryInUse )
@@ -74,7 +74,7 @@ void ASDeepDebugFree( void* ptr )
     }
     MEMORY_PROCESS( MEMORY_ANGEL_SCRIPT, -(int) size );
 
-    free( ptr_ );
+    std::free(ptr_);
 }
 
 bool FOServer::InitScriptSystem()

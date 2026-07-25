@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -27,6 +27,10 @@ class FbxNurbsSurface;
 class FbxNurbsCurve;
 class FbxWeightedMapping;
 class FbxSurfaceEvaluator;
+class FbxScene;
+class FbxNode;
+class FbxNodeAttribute;
+class FbxGeometry;
 
 /** 
 * This class provides the functionality to convert geometry nodes 
@@ -50,7 +54,8 @@ public:
 
 		/** Triangulate a node attribute, if supported, and preserve the skins and shapes animation channels.
 		* \param pNodeAttribute Pointer to the node containing the geometry to triangulate.
-		* \param pReplace If \c true, replace the original mesh with the new triangulated mesh on the nodes, and delete the original mesh. Otherwise, original mesh is left untouched and only return new mesh.
+		* \param pReplace If \c true, replace the original geometry with the new triangulated geometry on the nodes, and delete the original geometry.
+		*                 Otherwise, the original geometry is left untouched, the new one is added to the nodes, and becomes the default one.
 		* \param pLegacy If \c true, use legacy triangulation method that does not support holes in geometry. Provided for backward compatibility.
 		* \return The newly created node attribute if successful, otherwise NULL. If node attribute type is not supported by triangulation, it returns the original node attribute.
 		* \remark This function currently only supports node attribute of type eMesh, ePatch, eNurbs or eNurbsSurface. If the node attribute does not support triangulation,
@@ -65,37 +70,6 @@ public:
 		* \return \c true on success, \c false if the function fails to compute the correspondence.
 		* \remark Skins and shapes are also converted to fit the alternate geometry. */
 		bool ComputeGeometryControlPointsWeightedMapping(FbxGeometry* pSrcGeom, FbxGeometry* pDstGeom, FbxWeightedMapping* pSrcToDstWeightedMapping, bool pSwapUV=false);
-
-		/** Triangulate a basic mesh, without support for holes.
-		* \param pMesh Pointer to the mesh to triangulate.
-		* \return Pointer to the new triangulated mesh.
-		* \remark This method creates a new mesh, leaving the source mesh unchanged. This function is deprecated, please use Triangulate instead. */
-		FBX_DEPRECATED FbxMesh* TriangulateMesh(const FbxMesh* pMesh);
-
-		/** Triangulate a mesh with support for simple holes in polygons.
-		* \param pMesh Pointer to the mesh to triangulate.
-		* \return Pointer to the new triangulated mesh if successful, otherwise NULL.
-		* \remark This method creates a new mesh, leaving the source mesh unchanged. This function is deprecated, please use Triangulate instead. */
-		FBX_DEPRECATED FbxMesh* TriangulateMeshAdvance(const FbxMesh* pMesh);
-
-		/** Triangulate a patch.
-		* \param pPatch Pointer to the patch to triangulate.
-		* \return Pointer to the new triangulated mesh.
-		* \remark The current deformations (skins & shapes) on the patch are also converted and applied to the resulting mesh. This function is deprecated, please use Triangulate instead. */
-		FBX_DEPRECATED FbxMesh* TriangulatePatch(const FbxPatch* pPatch);
-
-		/** Triangulate a nurb.
-		* \param pNurbs Pointer to the nurb to triangulate.
-		* \return Pointer to the new triangulated mesh.
-		* \remark The current deformations (skins and shapes) on the nurb are also converted and applied to the resulting mesh. This function is deprecated, please use Triangulate instead. */
-		FBX_DEPRECATED FbxMesh* TriangulateNurbs(const FbxNurbs* pNurbs);
-
-		/** Triangulate the default mesh, patch or nurb contained in a node and preserve the skins and shapes animation channels.
-		* \param pNode Pointer to the node containing the geometry to triangulate.
-		* \return \c true on success, or \c false if the node attribute is not a mesh, a patch or a nurb.
-		* \remark This funciton will only triangulate the default node attribute found on the node. Also, see the remarks for functions TriangulateMesh(), TriangulatePatch() and TriangulateNurbs().
-		* This function is deprecated, please consider using Triangulate instead. */
-		FBX_DEPRECATED bool TriangulateInPlace(FbxNode* pNode);
     //@}
 
     /** 
@@ -133,13 +107,13 @@ public:
 		bool ConvertPatchToNurbsSurfaceInPlace(FbxNode* pNode);
 
 		/** Convert a FbxNurbs to a FbxNurbsSurface
-		  * \param pNurbs     Pointer to the original nurb
+		  * \param pNurbs    Pointer to the original nurb
 		  * \return          A FbxNurbsSurface that is equivalent to the original nurb.
 		  */
 		FbxNurbsSurface* ConvertNurbsToNurbsSurface( FbxNurbs* pNurbs );
 
 		/** Convert a FbxNurbsSurface to a FbxNurbs
-		  * \param pNurbs     Pointer to the original nurbs surface
+		  * \param pNurbs    Pointer to the original nurbs surface
 		  * \return          A FbxNurbs that is equivalent to the original nurbs surface.
 		  */
 		FbxNurbs* ConvertNurbsSurfaceToNurbs( FbxNurbsSurface* pNurbs );
@@ -164,7 +138,7 @@ public:
     */
     //@{
 		/** Flip UV and/or skin clusters of a nurb.
-		  * \param pNurbs             Pointer to the Source nurb.
+		  * \param pNurbs            Pointer to the Source nurb.
 		  * \param pSwapUV           Set to \c true to swap the UVs.
 		  * \param pSwapClusters     Set to \c true to swap the control point indices of clusters.
 		  * \return                  A flipped FbxNurbs, or \c NULL if the function fails.
@@ -172,7 +146,7 @@ public:
 		FbxNurbs* FlipNurbs(FbxNurbs* pNurbs, bool pSwapUV, bool pSwapClusters);
 
 		/** Flip UV and/or skin clusters of a nurb surface.
-		  * \param pNurbs             Pointer to the Source nurb surface.
+		  * \param pNurbs            Pointer to the Source nurb surface.
 		  * \param pSwapUV           Set to \c true to swap the UVs.
 		  * \param pSwapClusters     Set to \c true to swap the control point indices of clusters.
 		  * \return                  A flipped FbxNurbsSurface, or \c NULL if the function fails.
@@ -191,9 +165,9 @@ public:
 		  *                  vertices.
 		  * \remarks         For applications that only supports normals by control points, 
 		  *                  this function duplicates control points to equal the 
-		  *                  number of polygon vertices. skins and shapes are also converted.
-		  *                  As preconditions:
-		  *                       -# polygons must have been created
+		  *                  number of polygon vertices. skins and shapes are also converted.\n
+		  *                  As preconditions:\n
+		  *                       -# polygons must have been created\n
 		  *                       -# the number of normals in the mesh and in its associated shapes must match the 
 		  *                          number of polygon vertices.
 		  */
@@ -204,7 +178,7 @@ public:
 		  * none exists on the mesh.
 		  * \param pMesh     The mesh used to generate edge smoothing.
 		  * \return          \c true on success, \c false otherwise.
-		  * \remarks         The edge smoothing data is placed on Layer 0 of the mesh.
+		  * \remarks         The edge smoothing data is placed on Layer 0 of the mesh.\n
 		  *                  Normals do not need to be on Layer 0, since the first layer with
 		  *                  per polygon vertex normals is used.
 		  */
@@ -245,43 +219,53 @@ public:
 		* \param pReplace If \c true, replace the original mesh with new one and delete the original mesh, but *only* if they got split into multiple meshes, otherwise left untouched.
 		* \return \c true on success, \c false otherwise.
 		* \remark The function will fail if the mapped material is not per face (FbxLayerElement::eByPolygon) or if a material is multi-layered. It will create as many meshes as
-		* there are materials applied to it. If one mesh have some polygons with material A, some polygons with material B, and some polygons with NO material, 3 meshes distinct
+		* there are materials applied to it. If one mesh have some polygons with material A, some polygons with material B, and some polygons with NO material, 3 distinct meshes
 		* will be created. The newly created meshes will be automatically attached to the same FbxNode that holds the original FbxMesh. If the original mesh have tangents, they will
 		* be regenerated on the new meshes. */
 		bool SplitMeshPerMaterial(FbxMesh* pMesh, bool pReplace);
 	//@}
 
-	/** Reset meshes geometry center to be at world center, if delta between the two is greater than threshold.
-	* Basically, this function calculates the scene bounding box in world coordinates, and test if the center of that bounding box distance from the world center is larger than the threshold.
-	* If this happen to be true, this function goes ahead and substracts the center's delta to the mesh's control points directly.
-	* \param pScene The scene to iterate through meshes to reset their world center.
-	* \param pThreshold If the scene center distance from world center is greater than the threshold, apply center offset to all meshes to reset them to world center.
-	* \return \c true only if any meshes were modified, otherwise \c false.
-	* \remark This function does not work on deformed geometry. */
-	bool ResetMeshesCenterToWorld(FbxScene* pScene, FbxDouble pThreshold);
+	/** Re-parent nodes at root node level under a new node to re-center them at world center.
+	* Basically, this function calculates the scene bounding box in world coordinates, and test if the center of that bounding box distance from the
+	* world center is larger or equal than the threshold. If true, a new node with the proper negative offset position will become the new parent of all nodes at root node level.
+	* \param pScene The scene to process.
+	* \param pThreshold Threshold at which all nodes will be re-centered.
+	* \return \c true if any nodes were re-centered, otherwise \c false. */
+	bool RecenterSceneToWorldCenter(FbxScene* pScene, FbxDouble pThreshold);
 
 	/**
 	* Merge multiple meshes to one mesh.
-	* The method will merge: 
-	* a) mesh vertex;
-	* b) mesh polygon;
-	* c) mesh edge;
-	* d) all mesh elements; only the layer 0 elements is merged.
-	* e) if there are skins for old mesh, merge these skins. The new skin clusters link to old skeletons.
-	*
+	* The method will merge:\n 
+	* \n
+	*	a) mesh vertex;\n
+	*	b) mesh polygon;\n
+	*	c) mesh edge;\n
+	*	d) mesh elements; only the layer 0 elements are merged with some restrictions.\n
+    *	e) if there are skins for old mesh, merge these skins. The new skin clusters link to old skeletons.\n
+	* \n
+	*  
 	* \param pMeshNodes FBX nodes that hold multiple meshes. These meshes will be merged.
-	* \param pNodeName	 Name of new mesh node.
+	* \param pNodeName  Name of new mesh node.
 	* \param pScene     The scene that will contain the new mesh node.
-	* \return			 The new mesh node if merge successfully, otherwise NULL is returned.
-	* \remarks			 This method creates a new mesh, leaving the source mesh unchanged.
-	*                   The transform of new mesh node is: translate (0, 0, 0), rotation (0, 0, 0), scale (1, 1, 1).
-	*					 For layer element material, normal, smoothing, UV set, vertex color, binormal, tangent and polygon group,
-	*					 if any mesh misses these element, the merge for this kind of element is skipped.
-	*					 For layer element crease, hole, visibility and user data, if any mesh has such element, the kind of element
-	*                   will be merged. The missing element will be filled with default values.
-	*					 For meshes with skin binding, if the pose of frame 0 is different with bind pose, the new mesh will be distorted.
+	* \return           The new mesh node if merge successfully, otherwise NULL is returned.
+	* \remarks          This method creates a new mesh, leaving the source mesh unchanged.\n
+	*                   The transform of new mesh node is: translate (0, 0, 0), rotation (0, 0, 0), scale (1, 1, 1).\n
+	*                   For layer element material, normal, smoothing, UV set, vertex color, binormal, tangent and polygon group,
+	*                   if any mesh misses these element, the merge for this kind of element is skipped.\n
+	*                   For layer element crease, hole, visibility, if any mesh has such element, the kind of element
+	*                   will be merged. The missing element will be filled with default values.\n
+	*                   For meshes with skin binding, if the pose of frame 0 is different with bind pose, the new mesh will be distorted.\n
+    *                   UserData layer elements are merged only if they have identical layouts (same mapping mode, same DataTypes and same DataNames arrays).
 	*/
 	FbxNode* MergeMeshes(FbxArray<FbxNode*>& pMeshNodes, const char* pNodeName, FbxScene* pScene);
+
+	/**
+	* Cleanup or remove degenerated meshes.
+	* \param pScene The scene to process.
+	* \param pAffectedNodes The list of nodes that have been affected by this operation.
+	* \remarks  If the cleaned-up mesh becomes invalid, it is removed entirely.
+	*/
+	void RemoveBadPolygonsFromMeshes(FbxScene* pScene, FbxArray<FbxNode*>* pAffectedNodes = NULL);
 
 /*****************************************************************************************************************************
 ** WARNING! Anything beyond these lines is for internal use, may not be documented and is subject to change without notice! **
@@ -356,6 +340,10 @@ private:
     FbxManager* mManager;
 
 	friend class FbxWriter3ds;
+
+public:
+	static bool mValidateTriangulation;
+
 #endif /* !DOXYGEN_SHOULD_SKIP_THIS *****************************************************************************************/
 };
 

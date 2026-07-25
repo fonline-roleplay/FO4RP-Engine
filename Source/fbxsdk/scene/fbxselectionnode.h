@@ -1,6 +1,6 @@
 /****************************************************************************************
  
-   Copyright (C) 2013 Autodesk, Inc.
+   Copyright (C) 2015 Autodesk, Inc.
    All rights reserved.
  
    Use of this software is subject to the terms of the Autodesk license agreement
@@ -89,8 +89,8 @@ public:
     static const char* SELECT_TYPE_NAMES[(int)eSelectTypeCount];
 
 protected:
-	virtual void Construct(const FbxObject* pFrom);
-    bool ConnectNotify (FbxConnectEvent const &pEvent);
+	void Construct(const FbxObject* pFrom) override;
+    bool ConnectNotify (FbxConnectEvent const &pEvent) override;
 #endif /* !DOXYGEN_SHOULD_SKIP_THIS *****************************************************************************************/
 };
 
