@@ -618,7 +618,7 @@ const char* IniParser::GetConfigFileName()
 {
     // Default config names
     #if defined ( FONLINE_SERVER )
-    static char config_name[ MAX_FOPATH ] = { "FOnlineServer.cfg\0--default-server-config--" };
+    static char config_name[ MAX_FOPATH ] = { "Server.cfg\0--default-server-config--" };
     #elif defined ( FONLINE_MAPPER )
     static char config_name[ MAX_FOPATH ] = { "Mapper.cfg\0--default-mapper-config--" };
     #else // FONLINE_CLIENT and others

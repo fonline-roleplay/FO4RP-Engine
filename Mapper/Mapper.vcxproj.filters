@@ -641,6 +641,21 @@
     <ClInclude Include="..\Source\case.h">
       <Filter>Mapper</Filter>
     </ClInclude>
+    <ClInclude Include="..\Source\zlib\crypt.h">
+      <Filter>Zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\zlib\gzguts.h">
+      <Filter>Zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\zlib\iowin32.h">
+      <Filter>Zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\zlib\mztools.h">
+      <Filter>Zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\zlib\zip.h">
+      <Filter>Zlib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Source\Common.cpp">
@@ -909,6 +924,27 @@
     </ClCompile>
     <ClCompile Include="..\Source\GL\glu_stuff.cpp">
       <Filter>GL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\zlib\gzclose.c">
+      <Filter>Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\zlib\gzlib.c">
+      <Filter>Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\zlib\gzread.c">
+      <Filter>Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\zlib\gzwrite.c">
+      <Filter>Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\zlib\iowin32.c">
+      <Filter>Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\zlib\mztools.c">
+      <Filter>Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\zlib\zip.c">
+      <Filter>Zlib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

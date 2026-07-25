@@ -3,6 +3,9 @@
 #include "Exception.h"
 #include "Version.h"
 #include <locale.h>
+#ifdef FO_WINDOWS
+# include "BugTrap/BugTrap.h"
+#endif
 
 int main( int argc, char** argv )
 {
@@ -14,9 +17,12 @@ int main( int argc, char** argv )
     pthread_win32_process_attach_np();
     #endif
     Thread::SetCurrentName( "GUI" );
+    # ifdef FO_WINDOWS
+    BT_SetTerminate();
+    # endif
 
     // Exceptions
-    CatchExceptions( "FOnlineMapper", MAPPER_VERSION );
+    SetupExceptionHandler( "FOnlineMapper", MAPPER_VERSION );
 
     // Make command line
     SetCommandLine( argc, argv );

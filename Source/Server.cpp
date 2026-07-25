@@ -1,6 +1,10 @@
 #include "StdAfx.h"
 #include "Server.h"
 
+#ifdef FO_WINDOWS
+# include "BugTrap/BugTrap.h"
+#endif
+
 void* zlib_alloc( void* opaque, unsigned int items, unsigned int size ) { return calloc( items, size ); }
 void  zlib_free( void* opaque, void* address )                          { free( address ); }
 
@@ -615,6 +619,10 @@ bool FOServer::Logic_CritterProccess(Critter* cr)
 
 void FOServer::Logic_Work( void* data )
 {
+    # ifdef FO_WINDOWS
+    BT_SetTerminate();
+    # endif
+
     Thread::Sleep( 10 );
 
     // Init scripts
@@ -902,6 +910,9 @@ void FOServer::Logic_Work( void* data )
 
 void FOServer::Net_Listen( void* )
 {
+    # ifdef FO_WINDOWS
+    BT_SetTerminate();
+    # endif
     while( true )
     {
         // Blocked
@@ -1047,6 +1058,9 @@ void FOServer::Net_Listen( void* )
 
 void FOServer::NetIO_Loop( void* )
 {
+    # ifdef FO_WINDOWS
+    BT_SetTerminate();
+    # endif
     while( true )
     {
         event_base* eb = NetIOEventHandler;
@@ -1265,6 +1279,9 @@ void FOServer::NetIO_Output( bufferevent* bev, void* arg )
 
 void FOServer::NetIO_Work( void* )
 {
+    # ifdef FO_WINDOWS
+    BT_SetTerminate();
+    # endif
     while( true )
     {
         DWORD             bytes;
@@ -3410,8 +3427,13 @@ bool FOServer::InitReal()
     STATIC_ASSERT( sizeof( uint ) == 4 );
     STATIC_ASSERT( sizeof( uint64 ) == 8 );
     STATIC_ASSERT( sizeof( bool ) == 1 );
+    #ifdef FO_X86
 	STATIC_ASSERT( sizeof( size_t ) == 4 );
 	STATIC_ASSERT( sizeof( void* ) == 4 );
+    #elif defined(FO_X64)
+    STATIC_ASSERT( sizeof( size_t ) == 8 );
+    STATIC_ASSERT( sizeof( void* ) == 8 );
+    #endif
 
     // Critters parameters
     Critter::ParamsSendMsgLen = sizeof( Critter::ParamsSendCount );
@@ -4727,6 +4749,10 @@ void FOServer::AddClientSaveData( Client* cl )
 
 void FOServer::Dump_Work( void* data )
 {
+    # ifdef FO_WINDOWS
+    BT_SetTerminate();
+    # endif
+
     char fname[ MAX_FOPATH ];
 
     while( true )

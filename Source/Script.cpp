@@ -12,6 +12,10 @@
 #include "AngelScript/preprocessor.h"
 #include <strstream>
 
+#ifdef FO_WINDOWS
+# include "BugTrap/BugTrap.h"
+#endif
+
 const char* ContextStatesStr[] =
 {
     "Finished",
@@ -733,7 +737,7 @@ void Script::Profiler::Init()
     FileManager::CreateDirectoryTree( dump_file_path );
 
     char dump_file[ MAX_FOPATH ];
-    Str::Format( dump_file, "%sFOnlineServer_Profiler_%04u.%02u.%02u_%02u-%02u-%02u.foprof",
+    Str::Format( dump_file, "%sServer_Profiler_%04u.%02u.%02u_%02u-%02u-%02u.foprof",
                  dump_file_path, dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second );
 
     ProfilerFileHandle = FileOpen( dump_file, true );
@@ -1254,6 +1258,9 @@ void CollectGarbage( asDWORD flags )
 
 void RunTimeout( void* data )
 {
+    # ifdef FO_WINDOWS
+    BT_SetTerminate();
+    # endif
     while( RunTimeoutSuspend )
     {
         #ifndef FONLINE_SERVER
@@ -1933,7 +1940,6 @@ bool Script::ReparseScriptName( const char* script_name, char* module_name, char
     if( !script_name || !module_name || !func_name )
     {
         WriteLogF( _FUNC_, " - Some name null ptr.\n" );
-        CreateDump( "ReparseScriptName" );
         return false;
     }
 

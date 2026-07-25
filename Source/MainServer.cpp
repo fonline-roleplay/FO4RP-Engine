@@ -7,6 +7,8 @@
 #include <locale.h>
 #ifndef FO_WINDOWS
 # include <signal.h>
+#else
+# include "BugTrap/BugTrap.h"
 #endif
 
 // ImGui & SDL2 / OpenGL3
@@ -31,7 +33,6 @@ enum GUIActions
     GUI_SAVE_WORLD,
     GUI_SAVE_LOG,
     GUI_SAVE_INFO,
-    GUI_CREATE_DUMP,
     GUI_SHOW_MEMORY,
     GUI_SHOW_PLAYERS,
     GUI_SHOW_LOCS_MAPS,
@@ -120,7 +121,7 @@ int main( int argc, char** argv )
     # endif
 
     // Exceptions catcher
-    CatchExceptions( "FOnlineServer", SERVER_VERSION );
+    SetupExceptionHandler( "Server", SERVER_VERSION );
 
     // Timer
     Timer::Init();
@@ -162,7 +163,7 @@ int main( int argc, char** argv )
         Str::Copy(log_path, ptr);
     }
     Str::EraseFrontBackSpecificChars(log_path);
-    Str::Append(log_path, "FOnlineServer.log");
+    Str::Append(log_path, "Server.log");
     LogToFile(log_path);
 
     // Check single player parameters
@@ -191,7 +192,6 @@ int main( int argc, char** argv )
     if( !Singleplayer || strstr( CommandLine, "-showgui" ) )
     {
         GUIInit( cfg );
-        LogToFile( NULL );
         LogToBuffer( true );
     }
 
@@ -308,7 +308,7 @@ void GUIInit( IniParser& cfg )
     float main_scale = 1.0f;
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     
-    GuiWindow = SDL_CreateWindow("FOnline Server Panel", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, (int)(890 * main_scale), (int)(720 * main_scale), window_flags);
+    GuiWindow = SDL_CreateWindow( GetWindowName(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, (int)(890 * main_scale), (int)(720 * main_scale), window_flags);
     if (GuiWindow == nullptr)
     {
         printf("Error: SDL_CreateWindow(): %s\n", SDL_GetError());
@@ -382,7 +382,6 @@ void GUIDrawFrame()
 
         ImGui::Separator();
         if (ImGui::Button("Save log", ImVec2(-1, 0))) { GUICallback(GUI_SAVE_LOG); }
-        if (ImGui::Button("Create dump", ImVec2(-1, 0))) { GUICallback(GUI_CREATE_DUMP); }
         if (ImGui::Button("Memory usage", ImVec2(-1, 0))) { GUICallback(GUI_SHOW_MEMORY); }
 
         ImGui::Separator();
@@ -461,7 +460,7 @@ void GUICallback(GUIActions action)
         const char* currentText = isLog ? GuiLogBuffer.c_str() : GuiInfoBuffer.c_str();
 
         FileManager::GetFullPath( NULL, PT_SERVER_LOGS, log_name_dir );
-        Str::Format( log_name, "%sFOnlineServer_%s_%04u.%02u.%02u_%02u-%02u-%02u.log", 
+        Str::Format( log_name, "%sServer_%s_%04u.%02u.%02u_%02u-%02u-%02u.log", 
                      log_name_dir, isLog ? "Log" : UpdateLogName.c_str(), 
                      dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second );
 
@@ -470,10 +469,6 @@ void GUICallback(GUIActions action)
             fputs(currentText, f);
             fclose(f);
         }
-    }
-    else if( action == GUI_CREATE_DUMP )
-    {
-        CreateDump( "ManualDump" );
     }
     else if( action == GUI_SHOW_MEMORY )
     {
@@ -652,6 +647,9 @@ void UpdateLog()
 
 void GameLoopThread( void* )
 {
+    # ifdef FO_WINDOWS
+    BT_SetTerminate();
+    # endif
     GetServerOptions();
 
     if( Server.Init() )
@@ -707,7 +705,7 @@ void ServiceMain( bool as_service )
     SC_HANDLE manager = OpenSCManager( NULL, NULL, SC_MANAGER_ALL_ACCESS );
     if( !manager )
     {
-        MessageBox( NULL, "Can't open service manager.", "FOnlineServer", MB_OK | MB_ICONHAND );
+        MessageBox( NULL, "Can't open service manager.", "Server", MB_OK | MB_ICONHAND );
         return;
     }
 
@@ -717,9 +715,9 @@ void ServiceMain( bool as_service )
         SC_HANDLE service = OpenService( manager, "FOnlineServer", DELETE );
 
         if( service && DeleteService( service ) )
-            MessageBox( NULL, "Service deleted.", "FOnlineServer", MB_OK | MB_ICONASTERISK );
+            MessageBox( NULL, "Service deleted.", "Server", MB_OK | MB_ICONASTERISK );
         else
-            MessageBox( NULL, "Can't delete service.", "FOnlineServer", MB_OK | MB_ICONHAND );
+            MessageBox( NULL, "Can't delete service.", "Server", MB_OK | MB_ICONHAND );
 
         CloseServiceHandle( service );
         CloseServiceHandle( manager );
@@ -752,18 +750,18 @@ void ServiceMain( bool as_service )
                                  SERVICE_WIN32_OWN_PROCESS, SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL, path2, NULL, NULL, NULL, NULL, NULL );
 
         if( service )
-            MessageBox( NULL, "\'FOnlineServer\' service registered.", "FOnlineServer", MB_OK | MB_ICONASTERISK );
+            MessageBox( NULL, "\'FOnlineServer\' service registered.", "Server", MB_OK | MB_ICONASTERISK );
         else
-            MessageBox( NULL, "Can't register \'FOnlineServer\' service.", "FOnlineServer", MB_OK | MB_ICONHAND );
+            MessageBox( NULL, "Can't register \'FOnlineServer\' service.", "Server", MB_OK | MB_ICONHAND );
     }
     // Start service
     else
     {
         SERVICE_STATUS status;
         if( service && QueryServiceStatus( service, &status ) && status.dwCurrentState != SERVICE_STOPPED )
-            MessageBox( NULL, "Service already running.", "FOnlineServer", MB_OK | MB_ICONASTERISK );
+            MessageBox( NULL, "Service already running.", "Server", MB_OK | MB_ICONASTERISK );
         else if( service && !StartService( service, 0, NULL ) )
-            MessageBox( NULL, "Can't start service.", "FOnlineServer", MB_OK | MB_ICONHAND );
+            MessageBox( NULL, "Can't start service.", "Server", MB_OK | MB_ICONHAND );
     }
 
     // Close handles
@@ -776,7 +774,7 @@ void ServiceMain( bool as_service )
 VOID WINAPI FOServiceStart( DWORD argc, LPTSTR* argv )
 {
     Thread::SetCurrentName( "Service" );
-    LogToFile( "FOnlineServer.log" );
+    LogToFile( "Server.log" );
     WriteLog( "FOnline server service, version %04X-%02X.\n", SERVER_VERSION, FO_PROTOCOL_VERSION & 0xFF );
 
     FOServiceStatusHandle = RegisterServiceCtrlHandler( "FOnlineServer", FOServiceCtrlHandler );
@@ -902,7 +900,7 @@ int main( int argc, char** argv )
     # endif
 
     // Exceptions catcher
-    CatchExceptions( "FOnlineServer", SERVER_VERSION );
+    SetupExceptionHandler( "Server", SERVER_VERSION );
 
     // Timer
     Timer::Init();
@@ -923,7 +921,7 @@ int main( int argc, char** argv )
     LogWithThread( cfg.GetInt( "LoggingThread", 1 ) == 0 ? false : true );
     if( strstr( CommandLine, "-logdebugoutput" ) || strstr( CommandLine, "-LoggingDebugOutput" ) || cfg.GetInt( "LoggingDebugOutput", 0 ) != 0 )
         LogToDebugOutput( true );
-    LogToFile( "./FOnlineServerDaemon.log" );
+    LogToFile( "./ServerDaemon.log" );
 
     // Log version
     WriteLog( "FOnline server daemon, version %04X-%02X.\n", SERVER_VERSION, FO_PROTOCOL_VERSION & 0xFF );
@@ -1014,6 +1012,9 @@ void InitAdminManager( IniParser* cfg )
 
 void AdminManager( void* port_ )
 {
+    # ifdef FO_WINDOWS
+    BT_SetTerminate();
+    # endif
     // Listen socket
     #ifdef FO_WINDOWS
     WSADATA wsa;
@@ -1151,6 +1152,9 @@ void AdminManager( void* port_ )
 
 void AdminWork( void* session_ )
 {
+    # ifdef FO_WINDOWS
+    BT_SetTerminate();
+    # endif
     // Data
     Session* s = (Session*) session_;
     char     admin_name[ MAX_FOTEXT ] = { "Not authorized" };

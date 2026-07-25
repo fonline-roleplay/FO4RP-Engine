@@ -7,6 +7,8 @@
 #include <locale.h>
 #ifndef FO_WINDOWS
 # include <signal.h>
+#else
+# include "BugTrap/BugTrap.h"
 #endif
 
 extern "C" int main( int argc, char** argv ) // Handled by SDL
@@ -18,6 +20,9 @@ extern "C" int main( int argc, char** argv ) // Handled by SDL
     pthread_win32_process_attach_np();
     #endif
     Thread::SetCurrentName( "Main" );
+    # ifdef FO_WINDOWS
+    BT_SetTerminate();
+    # endif
 
     // Disable SIGPIPE signal
     #ifndef FO_WINDOWS
@@ -25,7 +30,7 @@ extern "C" int main( int argc, char** argv ) // Handled by SDL
     #endif
 
     // Exception
-    CatchExceptions( "FOnline", CLIENT_VERSION );
+    SetupExceptionHandler( "FOnline", CLIENT_VERSION );
 
     // Make command line
     SetCommandLine( argc, argv );
@@ -78,7 +83,7 @@ extern "C" int main( int argc, char** argv ) // Handled by SDL
         char       server_exe[ MAX_FOPATH ] = { 0 };
         char       server_path[ MAX_FOPATH ] = { 0 };
         char       server_cmdline[ MAX_FOPATH ] = { 0 };
-        cfg.GetStr( "ServerAppName", "FOnlineServer.exe", server_exe );
+        cfg.GetStr( "ServerAppName", "Server.exe", server_exe );
         cfg.GetStr( "ServerPath", "..\\Server\\", server_path );
         cfg.GetStr( "ServerCommandLine", "", server_cmdline );
 
