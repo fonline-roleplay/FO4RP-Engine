@@ -131,8 +131,8 @@ int main( int argc, char** argv )
 
     // Memory debugging
     MemoryDebugLevel = cfg.GetInt( "MemoryDebugLevel", 0 );
-    if( MemoryDebugLevel >= 3 )
-        Debugger::StartTraceMemory();
+    /*if( MemoryDebugLevel >= 3 )
+        Debugger::StartTraceMemory();*/
 
     // Make command line
     SetCommandLine( argc, argv );
@@ -910,8 +910,8 @@ int main( int argc, char** argv )
 
     // Memory debugging
     MemoryDebugLevel = cfg.GetInt( "MemoryDebugLevel", 0 );
-    if( MemoryDebugLevel >= 3 )
-        Debugger::StartTraceMemory();
+    /*if( MemoryDebugLevel >= 3 )
+        Debugger::StartTraceMemory();*/
 
     // Make command line
     SetCommandLine( argc, argv );

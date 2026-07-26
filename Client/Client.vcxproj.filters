@@ -1104,8 +1104,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\Source\AngelScript\as_callfunc_x64_msvc.asm">
+    <MASM Include="..\Source\AngelScript\as_callfunc_x64_msvc.asm">
       <Filter>AngelScript</Filter>
-    </CustomBuild>
+    </MASM>
   </ItemGroup>
 </Project>

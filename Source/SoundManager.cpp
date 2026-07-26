@@ -15,7 +15,7 @@ SoundManager SndMngr;
 #include "ogg/codec.h"
 #include "ogg/vorbisfile.h"
 #ifdef FO_MSVC
-# pragma comment ( lib, "libogg_static.lib" )
+# pragma comment ( lib, "libogg.lib" )
 # pragma comment ( lib, "libvorbis_static.lib" )
 # pragma comment ( lib, "libvorbisfile_static.lib" )
 #endif

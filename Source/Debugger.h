@@ -46,7 +46,7 @@ namespace Debugger
     void        MemoryStr( const char* block, int value );
     const char* GetMemoryStatistics();
 
-    void   StartTraceMemory();
+   // void   StartTraceMemory();
     string GetTraceMemory();
 };
 

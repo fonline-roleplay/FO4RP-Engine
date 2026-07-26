@@ -8,6 +8,8 @@
 **/Release/
 **/Release_MSVC/
 **/Release64_MSVC/
+**/Release64/
+**/BugTrap/bin/
 **/ReleaseD3D/
 **/Debug/
 **.vcxproj.user

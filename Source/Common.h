@@ -865,7 +865,7 @@ extern InterprocessData SingleplayerData;
 # endif
 
 # if defined ( FO_MSVC )
-#  pragma comment( lib, "pthreadVC2.lib" )
+#  pragma comment( lib, "libpthreadVC3.lib" )
 # endif
 
 class Thread

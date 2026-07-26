@@ -297,7 +297,7 @@ static uint                         MemoryAllocRecursion;
         }                                                \
     }
 
-#ifdef FO_WINDOWS
+/*#ifdef FO_WINDOWS
 // Stack
 # pragma warning( disable : 4748 )
 # include <DbgHelp.h>
@@ -645,7 +645,7 @@ void Debugger::StartTraceMemory()
 
     // Begin catching
     MemoryTrace = true;
-}
+}*/
 
 struct ChunkSorter
 {

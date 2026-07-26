@@ -123,7 +123,7 @@ struct _IMAGELIST { }; // unresolved typeref token
   #ifdef _DEBUG
    #pragma comment(lib, "zlibSD-x64.lib")
   #else
-   #pragma comment(lib, "zlibS-x64.lib")
+   #pragma comment(lib, "zlib.lib")
   #endif
  #endif
 #else
