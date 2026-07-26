@@ -106,7 +106,7 @@ bool FOMapper::Init()
     GameOpt.GetHashByName = &GetHashByName_::GetHashByName;
 
     // Input
-    Keyb::InitKeyb();
+    Keyb::Init();
 
     // Options
     GameOpt.ScrollCheck = false;

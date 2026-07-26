@@ -166,7 +166,7 @@ bool FOClient::Init()
     GameOpt.GetHashByName = &GetHashByName_::GetHashByName;
 
     // Input
-    Keyb::InitKeyb();
+    Keyb::Init();
 
     // Paths
     FileManager::SetDataPath( GameOpt.FoDataPath.c_str() );
@@ -460,7 +460,6 @@ void FOClient::Finish()
 {
     WriteLog( "Engine finish...\n" );
 
-    Keyb::Finish();
     NetDisconnect();
     ResMngr.Finish();
     HexMngr.Finish();
@@ -8655,18 +8654,6 @@ bool FOClient::IsCurInWindow()
 {
     if( !( SDL_GetWindowFlags( MainWindow ) & SDL_WINDOW_INPUT_FOCUS ) )
         return false;
-
-    if( !GameOpt.FullScreen )
-    {
-        if( IsLMenu() )
-            return true;
-
-        int mx = 0, my = 0;
-        SDL_GetMouseState( &mx, &my );
-		int w = 0, h = 0;
-		SDL_GetWindowPosition(MainWindow, &w, &h);
-		return mx >= 0 && mx <= w && my >= 0 && my <= h;
-    }
     return true;
 }
 
