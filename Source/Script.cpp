@@ -413,6 +413,7 @@ void Script::Finish()
     FinishEngine( Engine );     // Finish default engine
 
     delete JITCompiler;
+    JITCompiler = nullptr;
 
     #pragma MESSAGE("Client crashed here, disable finishing until fix angelscript.")
     #ifndef FONLINE_CLIENT
