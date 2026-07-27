@@ -697,7 +697,7 @@ void CScriptArray::Resize(int delta, asUINT at)
 	else if( delta > 0 )
 	{
 		// Make sure the array size isn't too large for us to handle
-		if( delta > 0 && !CheckMaxSize(buffer->numElements + delta) )
+		if( !CheckMaxSize(buffer->numElements + delta) )
 			return;
 
 		if( at > buffer->numElements )
@@ -706,14 +706,22 @@ void CScriptArray::Resize(int delta, asUINT at)
 
 	if( delta == 0 ) return;
 
-	if( buffer->maxElements < buffer->numElements + delta )
+	asUINT requiredElements = buffer->numElements + delta;
+
+	if( requiredElements > buffer->maxElements )
 	{
-		// Allocate memory for the buffer
-		SArrayBuffer *newBuffer = reinterpret_cast<SArrayBuffer*>(userAlloc(sizeof(SArrayBuffer)-1 + elementSize*(buffer->numElements + delta)));
+		// Exponential growth (Capacity expansion): newCapacity = capacity + capacity / 2 (1.5x)
+		asUINT newCapacity = buffer->maxElements + (buffer->maxElements >> 1);
+		if( newCapacity < requiredElements )
+			newCapacity = requiredElements;
+		if( newCapacity < 8 )
+			newCapacity = 8;
+
+		SArrayBuffer *newBuffer = reinterpret_cast<SArrayBuffer*>(userAlloc(sizeof(SArrayBuffer)-1 + elementSize*newCapacity));
 		if( newBuffer )
 		{
-			newBuffer->numElements = buffer->numElements + delta;
-			newBuffer->maxElements = newBuffer->numElements;
+			newBuffer->numElements = requiredElements;
+			newBuffer->maxElements = newCapacity;
 		}
 		else
 		{
@@ -744,7 +752,7 @@ void CScriptArray::Resize(int delta, asUINT at)
 		// As objects in arrays of objects are not stored inline, it is safe to use memmove here
 		// since we're just copying the pointers to objects and not the actual objects.
 		memmove(buffer->data + at*elementSize, buffer->data + (at-delta)*elementSize, (buffer->numElements - (at-delta))*elementSize);
-		buffer->numElements += delta;
+		buffer->numElements = requiredElements;
 	}
 	else
 	{
@@ -752,7 +760,7 @@ void CScriptArray::Resize(int delta, asUINT at)
 		// since we're just copying the pointers to objects and not the actual objects.
 		memmove(buffer->data + (at+delta)*elementSize, buffer->data + at*elementSize, (buffer->numElements - at)*elementSize);
 		Construct(buffer, at, at+delta);
-		buffer->numElements += delta;
+		buffer->numElements = requiredElements;
 	}
 }
 
@@ -962,6 +970,8 @@ void CScriptArray::DeleteBuffer(SArrayBuffer *buf)
 // internal
 void CScriptArray::Construct(SArrayBuffer *buf, asUINT start, asUINT end)
 {
+	if (start >= end) return;
+
 	if( (subTypeId & asTYPEID_MASK_OBJECT) && !(subTypeId & asTYPEID_OBJHANDLE) )
 	{
 		// Create an object using the default constructor/factory for each element
@@ -997,6 +1007,8 @@ void CScriptArray::Construct(SArrayBuffer *buf, asUINT start, asUINT end)
 // internal
 void CScriptArray::Destruct(SArrayBuffer *buf, asUINT start, asUINT end)
 {
+	if (start >= end) return;
+
 	if( subTypeId & asTYPEID_MASK_OBJECT )
 	{
 		asIScriptEngine *engine = objType->GetEngine();
