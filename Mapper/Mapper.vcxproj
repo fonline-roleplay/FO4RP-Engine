@@ -206,7 +206,7 @@
       <ResourceOutputFileName>$(IntDir)Mapper.res</ResourceOutputFileName>
     </ResourceCompile>
     <Link>
-      <OutputFile>$(OutDir)Mapper64.exe</OutputFile>
+      <OutputFile>$(OutDir)$(TargetFileName)</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <AdditionalLibraryDirectories>..\Lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ManifestFile>$(IntDir)Mapper.intermediate.manifest</ManifestFile>
