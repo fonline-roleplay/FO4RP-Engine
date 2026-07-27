@@ -253,6 +253,9 @@
     <ClInclude Include="..\Source\zlib\zip.h">
       <Filter>Zlib</Filter>
     </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\as_namespace.h">
+      <Filter>AngelScript</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Source\ASCompiler.cpp">
@@ -476,7 +479,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Source\AngelScript\as_callfunc_x64_msvc.asm">
+    <None Include="..\Source\AngelScript\as_callfunc_x64_msvc_asm.asm">
       <Filter>AngelScript</Filter>
     </None>
   </ItemGroup>

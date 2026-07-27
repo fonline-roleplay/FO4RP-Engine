@@ -50,9 +50,9 @@ void RegisterScriptFile_Native( asIScriptEngine* engine )
     assert( r >= 0 );
     r = engine->RegisterObjectMethod( "file", "bool isEndOfFile() const", asMETHOD( ScriptFile, IsEOF ), asCALL_THISCALL );
     assert( r >= 0 );
-    r = engine->RegisterObjectMethod( "file", "int readString(uint, string &out)", asMETHOD( ScriptFile, ReadString ), asCALL_THISCALL );
+    r = engine->RegisterObjectMethod( "file", "string@ readString(uint)", asMETHOD( ScriptFile, ReadString ), asCALL_THISCALL );
     assert( r >= 0 );
-    r = engine->RegisterObjectMethod( "file", "int readLine(string &out)", asMETHOD( ScriptFile, ReadLine ), asCALL_THISCALL );
+    r = engine->RegisterObjectMethod( "file", "string@ readLine()", asMETHOD( ScriptFile, ReadLine ), asCALL_THISCALL );
     assert( r >= 0 );
     r = engine->RegisterObjectMethod( "file", "int64 readInt(uint)", asMETHOD( ScriptFile, ReadInt ), asCALL_THISCALL );
     assert( r >= 0 );
@@ -175,16 +175,16 @@ asQWORD ScriptFile::ReadUint64()
     return data;
 }
 
-unsigned int ScriptFile::ReadData( unsigned int count, ScriptArray& data )
+unsigned int ScriptFile::ReadData( unsigned int count, CScriptArray& data )
 {
     if( !file )
         return 0;
 
     if( !count )
     {
-        unsigned int pos = ftell( file );
+        long pos = ftell( file );
         fseek( file, 0, SEEK_END );
-        count = ftell( file ) - pos;
+        count = (unsigned int) ( ftell( file ) - pos );
         fseek( file, pos, SEEK_SET );
         if( !count )
             return 0;
@@ -226,7 +226,7 @@ bool ScriptFile::WriteUint64( asQWORD data )
     return fwrite( &data, sizeof( data ), 1, file ) != 0;
 }
 
-bool ScriptFile::WriteData( ScriptArray& data, unsigned int count )
+bool ScriptFile::WriteData( CScriptArray& data, unsigned int count )
 {
     if( !file )
         return false;
@@ -265,12 +265,12 @@ ScriptFile::~ScriptFile()
 
 void ScriptFile::AddRef() const
 {
-    ++refCount;
+    asAtomicInc( refCount );
 }
 
 void ScriptFile::Release() const
 {
-    if( --refCount == 0 )
+    if( asAtomicDec( refCount ) == 0 )
         delete this;
 }
 
@@ -354,9 +354,9 @@ int ScriptFile::GetSize() const
     if( file == 0 )
         return -1;
 
-    int pos = ftell( file );
+    long pos = ftell( file );
     fseek( file, 0, SEEK_END );
-    int size = ftell( file );
+    int  size = (int) ftell( file );
     fseek( file, pos, SEEK_SET );
 
     return size;
@@ -367,7 +367,7 @@ int ScriptFile::GetPos() const
     if( file == 0 )
         return -1;
 
-    return ftell( file );
+    return (int) ftell( file );
 }
 
 int ScriptFile::SetPos( int pos )
@@ -392,32 +392,33 @@ int ScriptFile::MovePos( int delta )
     return r ? -1 : 0;
 }
 
-int ScriptFile::ReadString( unsigned int length, ScriptString& str )
+ScriptString* ScriptFile::ReadString( unsigned int length )
 {
     if( file == 0 )
         return 0;
 
     // Read the string
-    str.rawResize( length );
-    int size = (int) fread( (char*) str.c_str(), 1, length, file );
-    str.rawResize( size );
+    ScriptString* str = new ScriptString();
+    str->rawResize( length );
+    int           size = (int) fread( (char*) str->c_str(), 1, length, file );
+    str->rawResize( size );
 
-    return size;
+    return str;
 }
 
-int ScriptFile::ReadLine( ScriptString& str )
+ScriptString* ScriptFile::ReadLine()
 {
     if( file == 0 )
         return 0;
 
     // Read until the first new-line character
-    str = "";
-    char buf[ 256 ];
+    ScriptString* str = new ScriptString();
+    char          buf[ 256 ];
 
     do
     {
         // Get the current position so we can determine how many characters were read
-        int start = ftell( file );
+        long start = ftell( file );
 
         // Set the last byte to something different that 0, so that we can check if the buffer was filled up
         buf[ 255 ] = 1;
@@ -428,14 +429,14 @@ int ScriptFile::ReadLine( ScriptString& str )
             break;
 
         // Get the position after the read
-        int end = ftell( file );
+        long end = ftell( file );
 
         // Add the read characters to the output buffer
-        str.append( buf, end - start );
+        str->append( buf, (uint) ( end - start ) );
     }
     while( !feof( file ) && buf[ 255 ] == 0 && buf[ 254 ] != '\n' );
 
-    return int( str.length() );
+    return str;
 }
 
 asINT64 ScriptFile::ReadInt( asUINT bytes )
@@ -459,6 +460,9 @@ asINT64 ScriptFile::ReadInt( asUINT bytes )
         unsigned int n = 0;
         for( ; n < bytes; n++ )
             val |= asQWORD( buf[ n ] ) << ( ( bytes - n - 1 ) * 8 );
+
+        // Check the most significant byte to determine if the rest
+        // of the qword must be filled to give a negative value
         if( buf[ 0 ] & 0x80 )
             for( ; n < 8; n++ )
                 val |= asQWORD( 0xFF ) << ( n * 8 );
@@ -468,7 +472,10 @@ asINT64 ScriptFile::ReadInt( asUINT bytes )
         unsigned int n = 0;
         for( ; n < bytes; n++ )
             val |= asQWORD( buf[ n ] ) << ( n * 8 );
-        if( buf[ 0 ] & 0x80 )
+
+        // Check the most significant byte to determine if the rest
+        // of the qword must be filled to give a negative value
+        if( buf[ bytes - 1 ] & 0x80 )
             for( ; n < 8; n++ )
                 val |= asQWORD( 0xFF ) << ( n * 8 );
     }

@@ -5,6 +5,8 @@ BIND_ASSERT( engine->SetEngineProperty( asEP_SCRIPT_SCANNER, 1 ) );
 BIND_ASSERT( engine->SetEngineProperty( asEP_USE_CHARACTER_LITERALS, 1 ) );
 BIND_ASSERT( engine->SetEngineProperty( asEP_AUTO_GARBAGE_COLLECT, false ) );
 BIND_ASSERT( engine->SetEngineProperty( asEP_ALWAYS_IMPL_DEFAULT_CONSTRUCT, true ) );
+BIND_ASSERT( engine->SetEngineProperty( asEP_PROPERTY_ACCESSOR_MODE, 2 ) );
+BIND_ASSERT( engine->SetEngineProperty( asEP_REQUIRE_ENUM_SCOPE, false ) );
 
 #if defined ( BIND_CLIENT ) || defined ( BIND_SERVER )
 // Reference value

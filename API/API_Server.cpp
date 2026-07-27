@@ -24,7 +24,7 @@ bool Global_RunCritterScript( Critter* cr, const char* script_name, int p0, int 
 		p3 = new ScriptString(p3_raw);
 	}
 
-	ScriptArray*  p4 = NULL;
+	CScriptArray*  p4 = NULL;
 	if( p4_ptr && p4_size) {
 		p4 = Script::CreateArray( "int[]" );
 		if(p4) {
@@ -79,7 +79,7 @@ ScriptString* Global_GetMsgStr(size_t lang, size_t textMsg, uint strNum)
 
 	const char* c_str = msg.GetStr(strNum);
 
-	return new ScriptString(c_str);
+	return new ScriptString( c_str );
 }
 
 ScriptString* Item_GetLexems(Item* item)

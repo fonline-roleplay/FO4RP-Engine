@@ -11,6 +11,8 @@
 # include "BugTrap/BugTrap.h"
 #endif
 
+Thread SDLInputThread;
+
 extern "C" int main( int argc, char** argv ) // Handled by SDL
 {
     RestoreMainDirectory();

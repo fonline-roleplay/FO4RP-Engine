@@ -2229,7 +2229,7 @@ void Map::GenerateSequence( Critter* first_cr )
     // Collect all critters
     CrVec        critters;
     GetCritters( critters, true );
-    ScriptArray* script_critters = Script::CreateArray( "Critter@[]" );
+    CScriptArray* script_critters = Script::CreateArray( "Critter@[]" );
     Script::AppendVectorToArrayRef( critters, script_critters );
 
     // Pass to scripts
@@ -2473,7 +2473,7 @@ void Location::EventFinish( bool to_delete )
     }
 }
 
-bool Location::EventEnter( ScriptArray* group, uchar entrance )
+bool Location::EventEnter( CScriptArray* group, uchar entrance )
 {
     if( PrepareScriptFunc( LOCATION_EVENT_ENTER ) )
     {

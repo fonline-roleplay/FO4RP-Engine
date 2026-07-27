@@ -326,9 +326,6 @@
     <ClInclude Include="..\Source\AngelScript\scriptmath.h">
       <Filter>AngelScript</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\AngelScript\scriptstring.h">
-      <Filter>AngelScript</Filter>
-    </ClInclude>
     <ClInclude Include="..\Source\FileSystem.h">
       <Filter>Mapper</Filter>
     </ClInclude>
@@ -656,6 +653,9 @@
     <ClInclude Include="..\Source\zlib\zip.h">
       <Filter>Zlib</Filter>
     </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\scriptstdstring.h">
+      <Filter>AngelScript</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Source\Common.cpp">
@@ -898,9 +898,6 @@
     <ClCompile Include="..\Source\AngelScript\scriptmath.cpp">
       <Filter>AngelScript</Filter>
     </ClCompile>
-    <ClCompile Include="..\Source\AngelScript\scriptstring.cpp">
-      <Filter>AngelScript</Filter>
-    </ClCompile>
     <ClCompile Include="..\Source\FileSystem.cpp">
       <Filter>Mapper</Filter>
     </ClCompile>
@@ -946,10 +943,11 @@
     <ClCompile Include="..\Source\zlib\zip.c">
       <Filter>Zlib</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="..\Source\AngelScript\as_callfunc_x64_msvc.asm">
+    <ClCompile Include="..\Source\AngelScript\scriptstdstring.cpp">
       <Filter>AngelScript</Filter>
-    </CustomBuild>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\scriptstdstring_utils.cpp">
+      <Filter>AngelScript</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

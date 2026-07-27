@@ -305,9 +305,6 @@
     <ClCompile Include="..\Source\AngelScript\scriptmath.cpp">
       <Filter>AngelScript</Filter>
     </ClCompile>
-    <ClCompile Include="..\Source\AngelScript\scriptstring.cpp">
-      <Filter>AngelScript</Filter>
-    </ClCompile>
     <ClCompile Include="..\Source\AngelScript\preprocessor.cpp">
       <Filter>AngelScript</Filter>
     </ClCompile>
@@ -361,6 +358,21 @@
     </ClCompile>
     <ClCompile Include="..\Source\zlib\zip.c">
       <Filter>Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\scriptstring.cpp">
+      <Filter>AngelScript</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\as_jit.cpp">
+      <Filter>AngelScript</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\virtual_asm_windows.cpp">
+      <Filter>AngelScript</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\virtual_asm_x64.cpp">
+      <Filter>AngelScript</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\virtual_asm_x86.cpp">
+      <Filter>AngelScript</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -655,9 +667,6 @@
     <ClInclude Include="..\Source\FileSystem.h">
       <Filter>Server</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\AngelScript\scriptstring.h">
-      <Filter>AngelScript</Filter>
-    </ClInclude>
     <ClInclude Include="..\Source\AngelScript\scriptany.h">
       <Filter>AngelScript</Filter>
     </ClInclude>
@@ -736,9 +745,24 @@
     <ClInclude Include="..\Source\zlib\zip.h">
       <Filter>Zlib</Filter>
     </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\as_criticalsection.h">
+      <Filter>AngelScript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\as_namespace.h">
+      <Filter>AngelScript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\scriptstring.h">
+      <Filter>AngelScript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\as_jit.h">
+      <Filter>AngelScript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\virtual_asm.h">
+      <Filter>AngelScript</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="..\Source\AngelScript\as_callfunc_x64_msvc.asm">
+    <MASM Include="..\Source\AngelScript\as_callfunc_x64_msvc_asm.asm">
       <Filter>AngelScript</Filter>
     </MASM>
   </ItemGroup>

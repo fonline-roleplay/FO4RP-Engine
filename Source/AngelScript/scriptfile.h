@@ -20,8 +20,8 @@ public:
     #ifdef FONLINE_DLL
     static ScriptFile& Create()
     {
-        static int  typeId = ASEngine->GetTypeIdByDecl( "file" );
-        ScriptFile* scriptFile = (ScriptFile*) ASEngine->CreateScriptObject( typeId );
+        static asIObjectType* ot = ASEngine->GetObjectTypeByDecl( "file" );
+        ScriptFile*           scriptFile = (ScriptFile*) ASEngine->CreateScriptObject( ot );
         return *scriptFile;
     }
 protected:
@@ -44,12 +44,12 @@ public:
     virtual bool IsEOF() const;
 
     // Reading
-    virtual int     ReadString( unsigned int length, ScriptString& str );
-    virtual int     ReadLine( ScriptString& str );
-    virtual asINT64 ReadInt( asUINT bytes );
-    virtual asQWORD ReadUInt( asUINT bytes );
-    virtual float   ReadFloat();
-    virtual double  ReadDouble();
+    virtual ScriptString* ReadString( unsigned int length );
+    virtual ScriptString* ReadLine();
+    virtual asINT64       ReadInt( asUINT bytes );
+    virtual asQWORD       ReadUInt( asUINT bytes );
+    virtual float         ReadFloat();
+    virtual double        ReadDouble();
 
     // Writing
     virtual int WriteString( const ScriptString& str );
@@ -72,12 +72,12 @@ public:
     virtual unsigned short ReadUint16();
     virtual unsigned int   ReadUint32();
     virtual asQWORD        ReadUint64();
-    virtual unsigned int   ReadData( unsigned int count, ScriptArray& data );
+    virtual unsigned int   ReadData( unsigned int count, CScriptArray& data );
     virtual bool           WriteUint8( unsigned char data );
     virtual bool           WriteUint16( unsigned short data );
     virtual bool           WriteUint32( unsigned int data );
     virtual bool           WriteUint64( asQWORD data );
-    virtual bool           WriteData( ScriptArray& data, unsigned int count );
+    virtual bool           WriteData( CScriptArray& data, unsigned int count );
 
 protected:
     virtual ~ScriptFile();

@@ -140,10 +140,11 @@ namespace Script
     void CallbackException( asIScriptContext* ctx, void* param );
 
     // Arrays stuff
-    ScriptArray* CreateArray( const char* type );
+    CScriptArray* CreateArray( const char* type );
+    uint GetElementSize( CScriptArray& data );
 
     template< typename Type >
-    void AppendVectorToArray( vector< Type >& vec, ScriptArray* arr )
+    void AppendVectorToArray( vector< Type >& vec, CScriptArray* arr )
     {
         if( !vec.empty() && arr )
         {
@@ -157,7 +158,7 @@ namespace Script
         }
     }
     template< typename Type >
-    void AppendVectorToArrayRef( vector< Type >& vec, ScriptArray* arr )
+    void AppendVectorToArrayRef( vector< Type >& vec, CScriptArray* arr )
     {
         if( !vec.empty() && arr )
         {
@@ -172,7 +173,7 @@ namespace Script
         }
     }
     template< typename Type >
-    void AssignScriptArrayInVector( vector< Type >& vec, ScriptArray* arr )
+    void AssignScriptArrayInVector( vector< Type >& vec, CScriptArray* arr )
     {
         if( arr )
         {
@@ -193,30 +194,45 @@ namespace Script
 class CBytecodeStream: public asIBinaryStream
 {
 private:
-    int                   readPos;
-    int                   writePos;
-    std::vector< asBYTE > binBuf;
+    size_t readPos;
+    size_t writePos;
+    std::vector<asBYTE> binBuf;
 
 public:
-    CBytecodeStream()
+    CBytecodeStream() : readPos( 0 ), writePos( 0 ) {}
+
+    CBytecodeStream( const std::vector<asBYTE>& data ) : readPos( 0 ), writePos( 0 ), binBuf( data ) {}
+
+    int Write( const void* ptr, asUINT size ) override
     {
-        writePos = 0;
-        readPos = 0;
-    }
-    void Write( const void* ptr, asUINT size )
-    {
-        if( !ptr || !size ) return;
-        binBuf.resize( binBuf.size() + size );
-        memcpy( &binBuf[ writePos ], ptr, size );
+        if( size == 0 ) return 0;
+        if( !ptr ) return asERROR;
+
+        if( writePos + size > binBuf.size() )
+            binBuf.resize( writePos + size );
+
+        std::memcpy( &binBuf[writePos], ptr, size );
         writePos += size;
+
+        return asSUCCESS;
     }
-    void Read( void* ptr, asUINT size )
+
+    int Read( void* ptr, asUINT size ) override
     {
-        if( !ptr || !size ) return;
-        memcpy( ptr, &binBuf[ readPos ], size );
+        if( size == 0 ) return 0;
+        if( !ptr ) return asERROR;
+
+        if( readPos + size > binBuf.size() )
+            return asERROR;
+
+        std::memcpy( ptr, &binBuf[readPos], size );
         readPos += size;
+
+        return asSUCCESS;
     }
-    std::vector< asBYTE >& GetBuf() { return binBuf; }
+
+    const std::vector<asBYTE>& GetBuf() const { return binBuf; }
+    std::vector<asBYTE>& GetBuf() { return binBuf; }
 };
 
 #endif // __SCRIPT__

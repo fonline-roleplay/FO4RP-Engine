@@ -329,7 +329,7 @@ private:
 
 public:
     void EventFinish( bool to_delete );
-    bool EventEnter( ScriptArray* group, uchar entrance );
+    bool EventEnter( CScriptArray* group, uchar entrance );
 
 public:
     bool  IsNotValid;

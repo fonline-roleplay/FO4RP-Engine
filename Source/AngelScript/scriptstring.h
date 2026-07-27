@@ -12,8 +12,8 @@ public:
     #ifdef FONLINE_DLL
     static ScriptString& Create( const char* str = NULL )
     {
-        static int    typeId = ASEngine->GetTypeIdByDecl( "string" );
-        ScriptString* scriptStr = (ScriptString*) ASEngine->CreateScriptObject( typeId );
+        static asIObjectType* ot = ASEngine->GetObjectTypeByDecl( "string" );
+        ScriptString*         scriptStr = (ScriptString*) ASEngine->CreateScriptObject( ot );
         if( str )
             scriptStr->assign( str );
         return *scriptStr;
@@ -35,29 +35,22 @@ public:
 
     ScriptString& operator=( const ScriptString& other )
     {
-        // Workaround for pointer to reference coercion bug in AS.
-        const ScriptString* ptr = &other;
-        if( ptr == NULL ) {
-            asIScriptContext* ctx = asGetActiveContext();
-            ctx->SetException( "Null pointer string assign" );
-        } else {
-            assign( other.c_str(), other.length() );
-        }
+        assign( other.c_str(), (uint) other.length() );
         return *this;
     }
     ScriptString& operator+=( const ScriptString& other )
     {
-        append( other.c_str(), other.length() );
+        append( other.c_str(), (uint) other.length() );
         return *this;
     }
     ScriptString& operator=( const std::string& other )
     {
-        assign( other.c_str(), other.length() );
+        assign( other.c_str(), (uint) other.length() );
         return *this;
     }
     ScriptString& operator+=( const std::string& other )
     {
-        append( other.c_str(), other.length() );
+        append( other.c_str(), (uint) other.length() );
         return *this;
     }
     ScriptString& operator=( const char* other )
@@ -71,18 +64,22 @@ public:
         return *this;
     }
 
-    virtual void assign( const char* buf, uint count );
-    virtual void assign( const char* buf );
-    virtual void append( const char* buf, uint count );
-    virtual void append( const char* buf );
-    virtual void reserve( uint count );
-    virtual void rawResize( uint count );
-    virtual uint lengthUTF8() const;
-    virtual bool indexByteToUTF8( int& index, uint* length = NULL, uint offset = 0 );
+    virtual void  assign( const char* buf, uint count );
+    virtual void  assign( const char* buf );
+    virtual void  append( const char* buf, uint count );
+    virtual void  append( const char* buf );
+    virtual void  reserve( uint count );
+    virtual void  rawResize( uint count );
+    virtual uint  lengthUTF8() const;
+    virtual bool  indexByteToUTF8( int& index, uint* length = NULL, uint offset = 0 );
+    virtual int   toInt( int defaultValue ) const;
+    virtual float toFloat( float defaultValue ) const;
+    virtual bool  startsWith( const ScriptString& str ) const;
+    virtual bool  endsWith( const ScriptString& str ) const;
 
     const char*        c_str()     const { return buffer.c_str(); }
-    uint               length()    const { return buffer.length(); }
-    uint               capacity()  const { return buffer.capacity(); }
+    uint               length()    const { return (uint) buffer.length(); }
+    uint               capacity()  const { return (uint) buffer.capacity(); }
     const std::string& c_std_str() const { return buffer; }
     int                rcount()    const { return refCount; }
 

@@ -6,6 +6,77 @@
 
 #define assert( x )
 
+ScriptString* StringSubString( ScriptString* str, int start, int count );
+int           StringFindFirst( ScriptString* str, ScriptString* sub, int start );
+int           StringFindLast( ScriptString* str, ScriptString* sub, int start );
+int           StringFindFirstOf( ScriptString* str, ScriptString* chars, int start );
+int           StringFindFirstNotOf( ScriptString* str, ScriptString* chars, int start );
+int           StringFindLastOf( ScriptString* str, ScriptString* chars, int start );
+int           StringFindLastNotOf( ScriptString* str, ScriptString* chars, int start );
+CScriptArray*  StringSplit( ScriptString* str, ScriptString* delim );
+CScriptArray*  StringSplitEx( ScriptString* str, ScriptString* delim );
+ScriptString* StringJoin( CScriptArray* array, ScriptString* delim );
+ScriptString* StringStrLwr( ScriptString* str );
+ScriptString* StringStrUpr( ScriptString* str );
+
+int ScriptString::toInt( int defaultValue ) const
+{
+    const char* str = c_str();
+    while( *str == ' ' || *str == '\t' )
+        ++str;
+
+    char* end_str = NULL;
+    int   result;
+    if( str[ 0 ] && str[ 0 ] == '0' && ( str[ 1 ] == 'x' || str[ 1 ] == 'X' ) )
+        result = (int) strtol( str + 2, &end_str, 16 );
+    else
+        result = (int) strtol( str, &end_str, 10 );
+
+    if( !end_str || end_str == str )
+        return defaultValue;
+
+    while( *end_str == ' ' || *end_str == '\t' )
+        ++end_str;
+    if( *end_str )
+        return defaultValue;
+
+    return result;
+}
+
+float ScriptString::toFloat( float defaultValue ) const
+{
+    const char* str = c_str();
+    while( *str == ' ' || *str == '\t' )
+        ++str;
+
+    char* end_str = NULL;
+    float result = (float) strtod( str, &end_str );
+
+    if( !end_str || end_str == str )
+        return defaultValue;
+
+    while( *end_str == ' ' || *end_str == '\t' )
+        ++end_str;
+    if( *end_str )
+        return defaultValue;
+
+    return result;
+}
+
+bool ScriptString::startsWith( const ScriptString& str ) const
+{
+    if( buffer.length() < str.buffer.length() )
+        return false;
+    return buffer.compare( 0, str.buffer.length(), str.buffer ) == 0;
+}
+
+bool ScriptString::endsWith( const ScriptString& str ) const
+{
+    if( buffer.length() < str.buffer.length() )
+        return false;
+    return buffer.compare( buffer.length() - str.buffer.length(), str.buffer.length(), str.buffer ) == 0;
+}
+
 bool ScriptString::indexByteToUTF8( int& index, uint* length, uint offset )
 {
     if( index < 0 )
@@ -422,11 +493,40 @@ static void SetStringAt( int i, ScriptString& value, ScriptString& str )
 // AngelScript functions
 // -----------------------
 
-// This is the string factory that creates new strings for the script based on string literals
-static ScriptString* StringFactory( asUINT length, const char* s )
+class StringFactory : public asIStringFactory
 {
-    return new ScriptString( s, length );
-}
+public:
+    const void* GetStringConstant( const char* data, asUINT length ) override
+    {
+        return new ScriptString( data, length );
+    }
+    int         ReleaseStringConstant( const void* str ) override
+    {
+        if( !str ) return asERROR;
+        const ScriptString* realStr = static_cast<const ScriptString*>( str );
+        realStr->Release();
+        return asSUCCESS;
+    }
+    int         GetRawStringData( const void* str, char* data, asUINT* length ) const override
+    {
+        if( !str ) return asERROR;
+        const ScriptString* realStr = static_cast<const ScriptString*>( str );
+        if( length )
+        {
+            *length = static_cast<asUINT>( realStr->length() );
+        }
+
+        if( data )
+        {
+            memcpy( data, realStr->c_str(), realStr->length() );
+        }
+
+        return asSUCCESS;
+    }
+};
+
+StringFactory* StrFactory = nullptr;
+asITypeInfo* ArrayType = nullptr;
 
 // This is the default string factory, that is responsible for creating empty string objects, e.g. when a variable is declared
 static ScriptString* StringDefaultFactory()
@@ -437,13 +537,6 @@ static ScriptString* StringDefaultFactory()
 
 static ScriptString* StringCopyFactory( const ScriptString& other )
 {
-	// Workaround for pointer to reference coercion bug in AS.Add commentMore actions
-	const ScriptString* ptr = &other;
-    if( ptr == NULL ) {
-        asIScriptContext* ctx = asGetActiveContext();
-        ctx->SetException( "Null pointer string copy" );
-        return NULL;
-    }
     // Allocate and initialize with the copy constructor
     return new ScriptString( other );
 }
@@ -473,10 +566,12 @@ void RegisterScriptString( asIScriptEngine* engine )
     r = engine->RegisterObjectMethod( "string", "string &opAddAssign(const string &in)", asMETHODPR( ScriptString, operator+=, ( const ScriptString & ), ScriptString & ), asCALL_THISCALL );
     assert( r >= 0 );
 
+    StrFactory = new StringFactory();
+    assert( StrFactory );
     // Register the factory to return a handle to a new string
     // Note: We must register the string factory after the basic behaviours,
     // otherwise the library will not allow the use of object handles for this type
-    r = engine->RegisterStringFactory( "string@", asFUNCTION( StringFactory ), asCALL_CDECL );
+    r = engine->RegisterStringFactory( "string", StrFactory );
     assert( r >= 0 );
 
     r = engine->RegisterObjectMethod( "string", "bool opEquals(const string &in) const", asFUNCTION( StringEquals ), asCALL_CDECL_OBJFIRST );
@@ -504,11 +599,39 @@ void RegisterScriptString( asIScriptEngine* engine )
     r = engine->RegisterObjectMethod( "string", "void rawSet(uint, uint8)", asMETHODPR( ScriptString, rawSet, ( uint, char ), void ), asCALL_THISCALL );
     assert( r >= 0 );
 
-    // TODO: Add factory  string(const string &in str, int repeatCount)
+    // Conversion methods
+    r = engine->RegisterObjectMethod( "string", "int toInt(int defaultValue = 0) const", asMETHOD( ScriptString, toInt ), asCALL_THISCALL );
+    assert( r >= 0 );
+    r = engine->RegisterObjectMethod( "string", "float toFloat(float defaultValue = 0) const", asMETHOD( ScriptString, toFloat ), asCALL_THISCALL );
+    assert( r >= 0 );
 
-    // TODO: Add explicit type conversion via constructor and value cast
+    // Find methods
+    r = engine->RegisterObjectMethod( "string", "bool startsWith(const string &in) const", asMETHOD( ScriptString, startsWith ), asCALL_THISCALL );
+    assert( r >= 0 );
+    r = engine->RegisterObjectMethod( "string", "bool endsWith(const string &in) const", asMETHOD( ScriptString, endsWith ), asCALL_THISCALL );
+    assert( r >= 0 );
 
-    // TODO: Add parseInt and parseDouble. Two versions, one without parameter, one with an outparm that returns the number of characters parsed.
+    // Global functions to methods replacement
+    r = engine->RegisterObjectMethod( "string", "string@ substring(int start, int count = -1)", asFUNCTION( StringSubString ), asCALL_CDECL_OBJFIRST );
+    assert( r >= 0 );
+    r = engine->RegisterObjectMethod( "string", "int findFirst(const string &in, int start = 0)", asFUNCTION( StringFindFirst ), asCALL_CDECL_OBJFIRST );
+    assert( r >= 0 );
+    r = engine->RegisterObjectMethod( "string", "int findLast(const string &in, int start = 0)", asFUNCTION( StringFindLast ), asCALL_CDECL_OBJFIRST );
+    assert( r >= 0 );
+    r = engine->RegisterObjectMethod( "string", "int findFirstOf(const string &in, int start = 0)", asFUNCTION( StringFindFirstOf ), asCALL_CDECL_OBJFIRST );
+    assert( r >= 0 );
+    r = engine->RegisterObjectMethod( "string", "int findFirstNotOf(const string &in, int start = 0)", asFUNCTION( StringFindFirstNotOf ), asCALL_CDECL_OBJFIRST );
+    assert( r >= 0 );
+    r = engine->RegisterObjectMethod( "string", "int findLastOf(const string &in, int start = 0)", asFUNCTION( StringFindLastOf ), asCALL_CDECL_OBJFIRST );
+    assert( r >= 0 );
+    r = engine->RegisterObjectMethod( "string", "int findLastNotOf(const string &in, int start = 0)", asFUNCTION( StringFindLastNotOf ), asCALL_CDECL_OBJFIRST );
+    assert( r >= 0 );
+    r = engine->RegisterObjectMethod( "string", "array<string@>@ split(const string &in)", asFUNCTION( StringSplit ), asCALL_CDECL_OBJFIRST );
+    assert( r >= 0 );
+    r = engine->RegisterObjectMethod( "string", "string@ toLower()", asFUNCTION( StringStrLwr ), asCALL_CDECL_OBJFIRST );
+    assert( r >= 0 );
+    r = engine->RegisterObjectMethod( "string", "string@ toUpper()", asFUNCTION( StringStrUpr ), asCALL_CDECL_OBJFIRST );
+    assert( r >= 0 );
 
     // Automatic conversion from values
     r = engine->RegisterObjectMethod( "string", "string &opAssign(double)", asFUNCTION( AssignDoubleToString ), asCALL_CDECL_OBJLAST );
@@ -561,13 +684,13 @@ void RegisterScriptString( asIScriptEngine* engine )
 
 // This function returns a string containing the substring of the input string
 // determined by the starting index and count of characters.
-ScriptString* StringSubString( ScriptString* str, int start, uint count )
+ScriptString* StringSubString( ScriptString* str, int start, int count )
 {
     if( !str->indexByteToUTF8( start ) )
         return new ScriptString( "" );
-    int count_ = (int) count;
-    str->indexByteToUTF8( count_, NULL, start );
-    return new ScriptString( str->c_std_str().substr( start, count_ ) );
+    if( count >= 0 )
+        str->indexByteToUTF8( count, NULL, start );
+    return new ScriptString( str->c_std_str().substr( start, count >= 0 ? count : std::string::npos ) );
 }
 
 // This function returns the index of the first position where the substring
@@ -639,18 +762,21 @@ int StringFindLastNotOf( ScriptString* str, ScriptString* chars, int start )
 // The resulting array has the following elements:
 //
 // {"A", "B", "", "D"}
-ScriptArray* StringSplit( ScriptString* str, ScriptString* delim )
+CScriptArray* StringSplit( ScriptString* str, ScriptString* delim )
 {
     // Obtain a pointer to the engine
     asIScriptContext* ctx = asGetActiveContext();
     asIScriptEngine*  engine = ctx->GetEngine();
 
-    // TODO: This should only be done once
-    // TODO: This assumes that ScriptArray was already registered
-    asIObjectType* arrayType = engine->GetObjectTypeById( engine->GetTypeIdByDecl( "array<string@>" ) );
+    asITypeInfo* arrayType = ArrayType;
+    if( !arrayType )
+    {
+        ArrayType = engine->GetTypeInfoByName( "array<string@>" );
+        arrayType = ArrayType;
+    }
 
     // Create the array object
-    ScriptArray* array = new ScriptArray( 0, arrayType );
+    CScriptArray* array = CScriptArray::Create( arrayType, 0, NULL );
 
     // Find the existence of the delimiter in the input string
     int pos = 0, prev = 0, count = 0;
@@ -686,18 +812,21 @@ ScriptArray* StringSplit( ScriptString* str, ScriptString* delim )
 // The resulting array has the following elements:
 //
 // {"A", "B", "D", "E", "F"}
-ScriptArray* StringSplitEx( ScriptString* str, ScriptString* delim )
+CScriptArray* StringSplitEx( ScriptString* str, ScriptString* delim )
 {
     // Obtain a pointer to the engine
     asIScriptContext* ctx = asGetActiveContext();
     asIScriptEngine*  engine = ctx->GetEngine();
 
-    // TODO: This should only be done once
-    // TODO: This assumes that ScriptArray was already registered
-    asIObjectType* arrayType = engine->GetObjectTypeById( engine->GetTypeIdByDecl( "array<string@>" ) );
+    asITypeInfo* arrayType = ArrayType;
+    if( !arrayType )
+    {
+        ArrayType = engine->GetTypeInfoByName( "array<string@>" );
+        arrayType = ArrayType;
+    }
 
     // Create the array object
-    ScriptArray* array = new ScriptArray( 0, arrayType );
+    CScriptArray* array = CScriptArray::Create( arrayType, 0, NULL );
 
     // Find the existence of the delimiter in the input string
     const char* cstr = str->c_str();
@@ -747,15 +876,12 @@ ScriptArray* StringSplitEx( ScriptString* str, ScriptString* delim )
 // The resulting string is:
 //
 // "A|B||D"
-ScriptString* StringJoin( ScriptArray* array, ScriptString* delim )
+ScriptString* StringJoin( CScriptArray* array, ScriptString* delim )
 {
     // Create the new string
     ScriptString* str = new ScriptString();
-    const int arraySize = array->GetSize();
-	if (arraySize == 0)
-		return str;
-	int n = 0;
-	for (; n < arraySize - 1; n++)
+    int           n;
+    for( n = 0; n < (int) array->GetSize() - 1; n++ )
     {
         ScriptString* part = *(ScriptString**) array->At( n );
         *str += *part;
@@ -784,29 +910,11 @@ ScriptString* StringStrUpr( ScriptString* str )
     return new ScriptString( str_ );
 }
 
-// TODO: Implement the following functions
-//
-//       int64    parseInt(const string &in str, int &out bytesParsed);
-//       double   parseDouble(const string &in str, int &out bytesParsed);
-//       string @ formatString(int64, const string &in format);  // should use sprintf to format the string
-//       string @ formatDouble(double, const string &in format);
-//
-//       int16    byteStringToInt16(const string &in str, int start);
-//       int32    byteStringToInt32(const string &in str, int start);
-//       int64    byteStringtoInt64(const string &in str, int start);
-//       float    byteStringToFloat(const string &in str, int start);
-//       double   byteStringToDouble(const string &in str, int start);
-//       string @ int16ToByteString(int16);
-//       string @ int32ToByteString(int32);
-//       string @ int64ToByteString(int64);
-//       string @ floatToByteString(float);
-//       string @ doubleToByteString(double);
-
 void RegisterScriptStringUtils( asIScriptEngine* engine )
 {
     int r;
 
-    r = engine->RegisterGlobalFunction( "string@ substring(const string &in, int, uint)", asFUNCTION( StringSubString ), asCALL_CDECL );
+    r = engine->RegisterGlobalFunction( "string@ substring(const string &in, int start, int count = -1)", asFUNCTION( StringSubString ), asCALL_CDECL );
     assert( r >= 0 );
     r = engine->RegisterGlobalFunction( "int findFirst(const string &in, const string &in, int start = 0)", asFUNCTION( StringFindFirst ), asCALL_CDECL );
     assert( r >= 0 );

@@ -5266,7 +5266,7 @@ void FOClient::Net_OnCombatResult()
 
     CHECK_IN_BUFF_ERROR;
 
-    ScriptArray* arr = Script::CreateArray( "uint[]" );
+    CScriptArray* arr = Script::CreateArray( "uint[]" );
     if( !arr )
         return;
     arr->Resize( data_count );
@@ -6556,7 +6556,7 @@ void FOClient::Net_OnRunClientScript()
     ushort        p3len;
     ScriptString* p3 = NULL;
     ushort        p4size;
-    ScriptArray*  p4 = NULL;
+    CScriptArray*  p4 = NULL;
     Bin >> msg_len;
     Bin >> func_name_len;
     if( func_name_len && func_name_len < MAX_FOTEXT )
@@ -7140,7 +7140,7 @@ bool FOClient::RegCheckData( CritterCl* newcr )
     if( Script::PrepareContext( ClientFunctions.PlayerGenerationCheck, _FUNC_, "Registration" ) )
     {
         ScriptString* name = new ScriptString( newcr->Name );
-        ScriptArray*  arr = Script::CreateArray( "int[]" );
+        CScriptArray*  arr = Script::CreateArray( "int[]" );
 
         arr->Resize( MAX_PARAMS );
         for( int i = 0; i < MAX_PARAMS; i++ )
@@ -10042,7 +10042,7 @@ Item* FOClient::SScriptFunc::Crit_GetItem( CritterCl* cr, ushort proto_id, int s
     return NULL;
 }
 
-uint FOClient::SScriptFunc::Crit_GetItems( CritterCl* cr, int slot, ScriptArray* items )
+uint FOClient::SScriptFunc::Crit_GetItems( CritterCl* cr, int slot, CScriptArray* items )
 {
     if( cr->IsNotValid )
         SCRIPT_ERROR_R0( "This nullptr." );
@@ -10053,7 +10053,7 @@ uint FOClient::SScriptFunc::Crit_GetItems( CritterCl* cr, int slot, ScriptArray*
     return (uint) items_.size();
 }
 
-uint FOClient::SScriptFunc::Crit_GetItemsByType( CritterCl* cr, int type, ScriptArray* items )
+uint FOClient::SScriptFunc::Crit_GetItemsByType( CritterCl* cr, int type, CScriptArray* items )
 {
     if( cr->IsNotValid )
         SCRIPT_ERROR_R0( "This nullptr." );
@@ -10251,7 +10251,7 @@ CritterCl* FOClient::SScriptFunc::Global_GetChosen()
     return Self->Chosen;
 }
 
-uint FOClient::SScriptFunc::Global_GetChosenActions( ScriptArray* actions )
+uint FOClient::SScriptFunc::Global_GetChosenActions( CScriptArray* actions )
 {
     if( actions )
         actions->Resize( 0 );
@@ -10275,7 +10275,7 @@ uint FOClient::SScriptFunc::Global_GetChosenActions( ScriptArray* actions )
     return 0;
 }
 
-void FOClient::SScriptFunc::Global_SetChosenActions( ScriptArray* actions )
+void FOClient::SScriptFunc::Global_SetChosenActions( CScriptArray* actions )
 {
     if( actions && actions->GetSize() % 7 )
         SCRIPT_ERROR_R( "Wrong action array size." );
@@ -10329,7 +10329,7 @@ CritterCl* FOClient::SScriptFunc::Global_GetCritter( uint critter_id )
     return cr;
 }
 
-uint FOClient::SScriptFunc::Global_GetCritters( ushort hx, ushort hy, uint radius, int find_type, ScriptArray* critters )
+uint FOClient::SScriptFunc::Global_GetCritters( ushort hx, ushort hy, uint radius, int find_type, CScriptArray* critters )
 {
     if( hx >= Self->HexMngr.GetMaxHexX() || hy >= Self->HexMngr.GetMaxHexY() )
         SCRIPT_ERROR_R0( "Invalid hexes args." );
@@ -10351,7 +10351,7 @@ uint FOClient::SScriptFunc::Global_GetCritters( ushort hx, ushort hy, uint radiu
     return (uint) cr_vec.size();
 }
 
-uint FOClient::SScriptFunc::Global_GetCrittersByPids( ushort pid, int find_type, ScriptArray* critters )
+uint FOClient::SScriptFunc::Global_GetCrittersByPids( ushort pid, int find_type, CScriptArray* critters )
 {
     CritMap& crits = Self->HexMngr.GetCritters();
     CritVec  cr_vec;
@@ -10380,7 +10380,7 @@ uint FOClient::SScriptFunc::Global_GetCrittersByPids( ushort pid, int find_type,
     return (uint) cr_vec.size();
 }
 
-uint FOClient::SScriptFunc::Global_GetCrittersInPath( ushort from_hx, ushort from_hy, ushort to_hx, ushort to_hy, float angle, uint dist, int find_type, ScriptArray* critters )
+uint FOClient::SScriptFunc::Global_GetCrittersInPath( ushort from_hx, ushort from_hy, ushort to_hx, ushort to_hy, float angle, uint dist, int find_type, CScriptArray* critters )
 {
     CritVec cr_vec;
     Self->HexMngr.TraceBullet( from_hx, from_hy, to_hx, to_hy, dist, angle, NULL, false, &cr_vec, FIND_LIFE | FIND_KO, NULL, NULL, NULL, true );
@@ -10389,7 +10389,7 @@ uint FOClient::SScriptFunc::Global_GetCrittersInPath( ushort from_hx, ushort fro
     return (uint) cr_vec.size();
 }
 
-uint FOClient::SScriptFunc::Global_GetCrittersInPathBlock( ushort from_hx, ushort from_hy, ushort to_hx, ushort to_hy, float angle, uint dist, int find_type, ScriptArray* critters, ushort& pre_block_hx, ushort& pre_block_hy, ushort& block_hx, ushort& block_hy )
+uint FOClient::SScriptFunc::Global_GetCrittersInPathBlock( ushort from_hx, ushort from_hy, ushort to_hx, ushort to_hy, float angle, uint dist, int find_type, CScriptArray* critters, ushort& pre_block_hx, ushort& pre_block_hy, ushort& block_hx, ushort& block_hy )
 {
     CritVec    cr_vec;
     UShortPair block, pre_block;
@@ -10491,14 +10491,14 @@ ushort FOClient::SScriptFunc::Global_GetCurrentMapPid()
     return Self->HexMngr.GetCurPidMap();
 }
 
-uint FOClient::SScriptFunc::Global_GetMessageFilters( ScriptArray* filters )
+uint FOClient::SScriptFunc::Global_GetMessageFilters( CScriptArray* filters )
 {
     if( filters )
         Script::AppendVectorToArray( Self->MessBoxFilters, filters );
     return (uint) Self->MessBoxFilters.size();
 }
 
-void FOClient::SScriptFunc::Global_SetMessageFilters( ScriptArray* filters )
+void FOClient::SScriptFunc::Global_SetMessageFilters( CScriptArray* filters )
 {
     Self->MessBoxFilters.clear();
     if( filters )
@@ -11459,7 +11459,7 @@ ScriptString* FOClient::SScriptFunc::Global_GetCritterSoundName( uint cr_type )
     return new ScriptString( CritType::GetSoundName( cr_type ) );
 }
 
-void FOClient::SScriptFunc::Global_RunServerScript( ScriptString& func_name, int p0, int p1, int p2, ScriptString* p3, ScriptArray* p4 )
+void FOClient::SScriptFunc::Global_RunServerScript( ScriptString& func_name, int p0, int p1, int p2, ScriptString* p3, CScriptArray* p4 )
 {
     UIntVec dw;
     if( p4 )
@@ -11467,7 +11467,7 @@ void FOClient::SScriptFunc::Global_RunServerScript( ScriptString& func_name, int
     Self->Net_SendRunScript( false, func_name.c_str(), p0, p1, p2, p3 ? p3->c_str() : NULL, dw );
 }
 
-void FOClient::SScriptFunc::Global_RunServerScriptUnsafe( ScriptString& func_name, int p0, int p1, int p2, ScriptString* p3, ScriptArray* p4 )
+void FOClient::SScriptFunc::Global_RunServerScriptUnsafe( ScriptString& func_name, int p0, int p1, int p2, ScriptString* p3, CScriptArray* p4 )
 {
     UIntVec dw;
     if( p4 )
@@ -11605,7 +11605,7 @@ void FOClient::SScriptFunc::Global_ChosenRefreshMap()
 	Self->HexMngr.RefreshMap();
 }
 
-void FOClient::SScriptFunc::Global_DrawPrimitive( int primitive_type, ScriptArray& data )
+void FOClient::SScriptFunc::Global_DrawPrimitive( int primitive_type, CScriptArray& data )
 {
     if( !SpritesCanDraw )
         return;
@@ -11725,7 +11725,7 @@ Animation3dVec DrawCritter3dAnim;
 UIntVec        DrawCritter3dCrType;
 BoolVec        DrawCritter3dFailToLoad;
 int            DrawCritter3dLayers[ LAYERS3D_COUNT ];
-void FOClient::SScriptFunc::Global_DrawCritter3d( uint instance, uint crtype, uint anim1, uint anim2, ScriptArray* layers, ScriptArray* position, uint color )
+void FOClient::SScriptFunc::Global_DrawCritter3d( uint instance, uint crtype, uint anim1, uint anim2, CScriptArray* layers, CScriptArray* position, uint color )
 {
     // x y
     // rx ry rz
@@ -12287,7 +12287,7 @@ ScriptString* FOClient::SScriptFunc::Global_CustomCall( ScriptString& command, S
     return new ScriptString( "" );
 }
 
-void FOClient::SScriptFunc::Global_SetUserConfig( ScriptArray& key_values )
+void FOClient::SScriptFunc::Global_SetUserConfig( CScriptArray& key_values )
 {
     FileManager cfg_user;
     for( int i = 0, j = (int) key_values.GetSize(); i < j - 1; i += 2 )
@@ -12304,7 +12304,7 @@ void FOClient::SScriptFunc::Global_SetUserConfig( ScriptArray& key_values )
     cfg_user.SaveOutBufToFile( cfg_name, PT_ROOT );
 }
 
-uint FOClient::SScriptFunc::CraftItem_GetShowParams( CraftItem* craft, ScriptArray* nums, ScriptArray* vals, ScriptArray* ors )
+uint FOClient::SScriptFunc::CraftItem_GetShowParams( CraftItem* craft, CScriptArray* nums, CScriptArray* vals, CScriptArray* ors )
 {
 	if (nums)
 		Script::AppendVectorToArray(craft->ShowPNum, nums);
@@ -12316,7 +12316,7 @@ uint FOClient::SScriptFunc::CraftItem_GetShowParams( CraftItem* craft, ScriptArr
 	return (uint)craft->ShowPNum.size();
 }
 
-uint FOClient::SScriptFunc::CraftItem_GetNeedParams( CraftItem* craft, ScriptArray* nums, ScriptArray* vals, ScriptArray* ors )
+uint FOClient::SScriptFunc::CraftItem_GetNeedParams( CraftItem* craft, CScriptArray* nums, CScriptArray* vals, CScriptArray* ors )
 {
 	if (nums)
 		Script::AppendVectorToArray(craft->NeedPNum, nums);
@@ -12328,7 +12328,7 @@ uint FOClient::SScriptFunc::CraftItem_GetNeedParams( CraftItem* craft, ScriptArr
 	return (uint)craft->NeedPNum.size();
 }
 
-uint FOClient::SScriptFunc::CraftItem_GetNeedTools( CraftItem* craft, ScriptArray* pids, ScriptArray* vals, ScriptArray* ors )
+uint FOClient::SScriptFunc::CraftItem_GetNeedTools( CraftItem* craft, CScriptArray* pids, CScriptArray* vals, CScriptArray* ors )
 {
 	if (pids)
 		Script::AppendVectorToArray(craft->NeedTools, pids);
@@ -12340,7 +12340,7 @@ uint FOClient::SScriptFunc::CraftItem_GetNeedTools( CraftItem* craft, ScriptArra
 	return (uint)craft->NeedTools.size();
 }
 
-uint FOClient::SScriptFunc::CraftItem_GetNeedItems( CraftItem* craft, ScriptArray* pids, ScriptArray* vals, ScriptArray* ors )
+uint FOClient::SScriptFunc::CraftItem_GetNeedItems( CraftItem* craft, CScriptArray* pids, CScriptArray* vals, CScriptArray* ors )
 {
 	if (pids)
 		Script::AppendVectorToArray(craft->NeedItems, pids);
@@ -12352,7 +12352,7 @@ uint FOClient::SScriptFunc::CraftItem_GetNeedItems( CraftItem* craft, ScriptArra
 	return (uint)craft->NeedItems.size();
 }
 
-uint FOClient::SScriptFunc::CraftItem_GetOutItems( CraftItem* craft, ScriptArray* pids, ScriptArray* vals )
+uint FOClient::SScriptFunc::CraftItem_GetOutItems( CraftItem* craft, CScriptArray* pids, CScriptArray* vals )
 {
 	if (pids)
 		Script::AppendVectorToArray(craft->OutItems, pids);

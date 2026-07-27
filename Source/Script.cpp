@@ -10,6 +10,7 @@
 #include "AngelScript/scriptmath.h"
 #include "AngelScript/scriptarray.h"
 #include "AngelScript/preprocessor.h"
+#include "AngelScript/as_jit.h"
 #include <strstream>
 
 #ifdef FO_WINDOWS
@@ -51,6 +52,7 @@ public:
 typedef vector< BindFunction > BindFunctionVec;
 
 asIScriptEngine* Engine = NULL;
+asCJITCompiler*  JITCompiler = NULL;
 void*            EngineLogFile = NULL;
 int              ScriptsPath = PT_SCRIPTS;
 bool             LogDebugInfo = true;
@@ -409,6 +411,8 @@ void Script::Finish()
 	delete ScriptPreprocessor;
 
     FinishEngine( Engine );     // Finish default engine
+
+    delete JITCompiler;
 
     #pragma MESSAGE("Client crashed here, disable finishing until fix angelscript.")
     #ifndef FONLINE_CLIENT
@@ -948,7 +952,20 @@ asIScriptEngine* Script::CreateEngine( Preprocessor::Pragma::Callback* pragma_ca
         return NULL;
     }
 
+    if( !JITCompiler )
+    {
+        // Create JIT Compiler
+        JITCompiler = new asCJITCompiler( JIT_SYSCALL_FPU_NORESET );
+        if( !JITCompiler )
+        {
+            WriteLogF( _FUNC_, " - Can't create AS JIT Compiler.\n" );
+            return NULL;
+        }
+    }
+
     engine->SetMessageCallback( asFUNCTION( CallbackMessage ), NULL, asCALL_CDECL );
+    engine->SetEngineProperty( asEP_INCLUDE_JIT_INSTRUCTIONS, 1 );
+    engine->SetJITCompiler( JITCompiler );
     RegisterScriptArray( engine, true );
     RegisterScriptString( engine );
     RegisterScriptAny( engine );
@@ -1637,7 +1654,7 @@ public:
         IntVec bad_typeids_class;
         for( int m = 0, n = module->GetObjectTypeCount(); m < n; m++ )
         {
-            asIObjectType* ot = module->GetObjectTypeByIndex( m );
+            asITypeInfo* ot = Engine->GetTypeInfoById( m );
             for( int i = 0, j = ot->GetPropertyCount(); i < j; i++ )
             {
                 int type = 0;
@@ -1662,7 +1679,7 @@ public:
 
             while( type & asTYPEID_TEMPLATE )
             {
-                asIObjectType* obj = (asIObjectType*) Engine->GetObjectTypeById( type );
+                asITypeInfo* obj = Engine->GetTypeInfoById( type );
                 if( !obj )
                     break;
                 type = obj->GetSubTypeId();
@@ -2753,9 +2770,31 @@ void Script::CallbackException( asIScriptContext* ctx, void* param )
 /* Array                                                                */
 /************************************************************************/
 
-ScriptArray* Script::CreateArray( const char* type )
+CScriptArray* Script::CreateArray( const char* type )
 {
-    return new ScriptArray( 0, Engine->GetObjectTypeById( Engine->GetTypeIdByDecl( type ) ) );
+    asITypeInfo* array_type = Engine->GetTypeInfoByDecl( type );
+    if( !array_type ) return nullptr;
+
+    return CScriptArray::Create( array_type, asUINT(0) );
+}
+
+uint Script::GetElementSize( CScriptArray& data )
+{
+    asIScriptEngine* engine = data.GetArrayObjectType()->GetEngine();
+    int element_type_id = data.GetElementTypeId();
+    uint element_size = engine->GetSizeOfPrimitiveType( element_type_id );
+
+    if( element_size == 0 ) {
+        asITypeInfo* typeInfo = engine->GetTypeInfoById( element_type_id );
+        if( typeInfo ) {
+            element_size = typeInfo->GetSize();
+        }
+        else if( element_type_id & asTYPEID_OBJHANDLE ) {
+            element_size = sizeof( void* );
+        }
+    }
+
+    return element_size;
 }
 
 /************************************************************************/

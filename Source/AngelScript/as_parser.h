@@ -1,24 +1,24 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2012 Andreas Jonsson
+   Copyright (c) 2003-2018 Andreas Jonsson
 
-   This software is provided 'as-is', without any express or implied 
-   warranty. In no event will the authors be held liable for any 
+   This software is provided 'as-is', without any express or implied
+   warranty. In no event will the authors be held liable for any
    damages arising from the use of this software.
 
-   Permission is granted to anyone to use this software for any 
-   purpose, including commercial applications, and to alter it and 
+   Permission is granted to anyone to use this software for any
+   purpose, including commercial applications, and to alter it and
    redistribute it freely, subject to the following restrictions:
 
-   1. The origin of this software must not be misrepresented; you 
+   1. The origin of this software must not be misrepresented; you
       must not claim that you wrote the original software. If you use
-      this software in a product, an acknowledgment in the product 
+      this software in a product, an acknowledgment in the product
       documentation would be appreciated but is not required.
 
-   2. Altered source versions must be plainly marked as such, and 
+   2. Altered source versions must be plainly marked as such, and
       must not be misrepresented as being the original software.
 
-   3. This notice may not be removed or altered from any source 
+   3. This notice may not be removed or altered from any source
       distribution.
 
    The original version of this library can be located at:
@@ -53,7 +53,7 @@ public:
 	asCParser(asCBuilder *builder);
 	~asCParser();
 
-	int ParseFunctionDefinition(asCScriptCode *script);
+	int ParseFunctionDefinition(asCScriptCode *script, bool expectListPattern);
 	int ParsePropertyDeclaration(asCScriptCode *script);
 	int ParseDataType(asCScriptCode *script, bool isReturnType);
 	int ParseTemplateDecl(asCScriptCode *script);
@@ -66,7 +66,7 @@ public:
 	int ParseVarInit(asCScriptCode *script, asCScriptNode *init);
 	int ParseExpression(asCScriptCode *script);
 #endif
-	
+
 	asCScriptNode *GetScriptNode();
 
 protected:
@@ -76,6 +76,7 @@ protected:
 	void RewindTo(const sToken *token);
 	void SetPos(size_t pos);
 	void Error(const asCString &text, sToken *token);
+	void Warning(const asCString &text, sToken *token);
 	void Info(const asCString &text, sToken *token);
 
 	asCScriptNode *CreateNode(eScriptNode type);
@@ -83,15 +84,20 @@ protected:
 	asCScriptNode *ParseFunctionDefinition();
 	asCScriptNode *ParseParameterList();
 	asCScriptNode *SuperficiallyParseExpression();
-	asCScriptNode *ParseType(bool allowConst, bool allowVariableType = false);
+	asCScriptNode *ParseType(bool allowConst, bool allowVariableType = false, bool allowAuto = false);
 	asCScriptNode *ParseTypeMod(bool isParam);
 	void           ParseOptionalScope(asCScriptNode *node);
 	asCScriptNode *ParseRealType();
-	asCScriptNode *ParseDataType(bool allowVariableType = false);
+	asCScriptNode *ParseDataType(bool allowVariableType = false, bool allowAuto = false);
 	asCScriptNode *ParseIdentifier();
+	bool           ParseTemplTypeList(asCScriptNode *node, bool required = true);
+	void           ParseMethodAttributes(asCScriptNode *funcNode);
+
+	asCScriptNode *ParseListPattern();
 
 	bool IsRealType(int tokenType);
 	bool IsDataType(const sToken &token);
+	bool IdentifierIs(const sToken &t, const char *str);
 
 #ifndef AS_NO_COMPILER
 	// Statements
@@ -109,6 +115,7 @@ protected:
 	asCScriptNode *ParseReturn();
 	asCScriptNode *ParseBreak();
 	asCScriptNode *ParseContinue();
+	asCScriptNode *ParseTryCatch();
 
 	// Declarations
 	asCScriptNode *ParseDeclaration(bool isClassProp = false, bool isGlobalVar = false);
@@ -125,10 +132,11 @@ protected:
 	asCScriptNode *ParseVirtualPropertyDecl(bool isMethod, bool isInterface);
 	asCScriptNode *ParseEnumeration();
 	asCScriptNode *ParseTypedef();
-	void ParseMethodOverrideBehaviors(asCScriptNode *funcNode);
 	bool IsVarDecl();
 	bool IsVirtualPropertyDecl();
 	bool IsFuncDecl(bool isMethod);
+	bool IsLambda();
+	bool IsFunctionCall();
 
 	// Expressions
 	asCScriptNode *ParseAssignment();
@@ -140,23 +148,23 @@ protected:
 	asCScriptNode *ParseExprPreOp();
 	asCScriptNode *ParseExprPostOp();
 	asCScriptNode *ParseExprValue();
-	asCScriptNode *ParseArgList();
+	asCScriptNode *ParseArgList(bool withParenthesis = true);
 	asCScriptNode *ParseFunctionCall();
 	asCScriptNode *ParseVariableAccess();
 	asCScriptNode *ParseConstructCall();
 	asCScriptNode *ParseCast();
 	asCScriptNode *ParseConstant();
 	asCScriptNode *ParseStringConstant();
+	asCScriptNode *ParseLambda();
 
+	bool IsType(sToken &nextToken);
 	bool IsConstant(int tokenType);
 	bool IsOperator(int tokenType);
 	bool IsPreOperator(int tokenType);
 	bool IsPostOperator(int tokenType);
 	bool IsAssignOperator(int tokenType);
-	bool IsFunctionCall();
 
-	bool IdentifierIs(const sToken &t, const char *str);
-	bool CheckTemplateType(sToken &t);
+	bool CheckTemplateType(const sToken &t);
 #endif
 
 	asCScriptNode *ParseToken(int token);
@@ -166,6 +174,7 @@ protected:
 	asCString ExpectedTokens(const char *token1, const char *token2);
 	asCString ExpectedOneOf(int *tokens, int count);
 	asCString ExpectedOneOf(const char **tokens, int count);
+	asCString InsteadFound(sToken &t);
 
 	bool errorWhileParsing;
 	bool isSyntaxError;
@@ -176,6 +185,8 @@ protected:
 	asCBuilder      *builder;
 	asCScriptCode   *script;
 	asCScriptNode   *scriptNode;
+
+	asCString tempString; // Used for reduzing amount of dynamic allocations
 
 	sToken       lastToken;
 	size_t       sourcePos;
