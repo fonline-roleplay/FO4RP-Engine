@@ -1691,6 +1691,9 @@ public:
 /************************************************************************/
     AnyFrames* CurPDef, * CurPMove, * CurPMoveBlock, * CurPHand, * CurPUseItem, * CurPUseSkill, * CurPWait,
     * CurPScrRt, * CurPScrLt, * CurPScrUp, * CurPScrDw, * CurPScrRU, * CurPScrLU, * CurPScrRD, * CurPScrLD;
+    #ifdef FORP_ENGINE
+    AnyFrames* CurRTS, * CurRTSA;
+    #endif
 
     void CurDraw();
 
@@ -1829,6 +1832,8 @@ public:
 #define CUR_USE_SKILL                  ( 4 )
 #define CUR_WAIT                       ( 5 )
 #define CUR_HAND                       ( 6 )
+#define CUR_RTS						   ( 7 )
+#define CUR_RTSA					   ( 8 )
 
 // Lmenu
 #define LMENU_SHOW_TIME                ( 400 )

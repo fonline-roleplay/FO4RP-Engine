@@ -1078,6 +1078,10 @@ int FOClient::InitIface()
     CurPScrLU = SprMngr.LoadAnimation( "scrnwest.frm", PT_ART_INTRFACE, ANIM_USE_DUMMY );
     CurPScrRD = SprMngr.LoadAnimation( "scrseast.frm", PT_ART_INTRFACE, ANIM_USE_DUMMY );
     CurPScrLD = SprMngr.LoadAnimation( "scrswest.frm", PT_ART_INTRFACE, ANIM_USE_DUMMY );
+    #ifdef FORP_ENGINE
+    CurRTS = SprMngr.LoadAnimation( "rtscur.frm", PT_ART_INTRFACE, ANIM_USE_DUMMY );
+	CurRTSA = SprMngr.LoadAnimation( "rtsacur.frm", PT_ART_INTRFACE, ANIM_USE_DUMMY );
+    #endif 
     SprMngr.SurfType = RES_NONE;
     if( !CurPMove )
         return __LINE__;
@@ -1109,6 +1113,12 @@ int FOClient::InitIface()
         return __LINE__;
     if( !CurPScrLD )
         return __LINE__;
+    #ifdef FORP_ENGINE
+    if( !CurRTS )
+        return __LINE__;
+    if( !CurRTSA )
+        return __LINE__;
+    #endif
 
     // LMenu
     IfaceLoadSpr( LmenuPTalkOff, "LMenuTalkPic" );
@@ -2529,10 +2539,12 @@ void FOClient::GameKeyDown( uchar dik, const char* dik_text )
         switch( dik )
         {
         // Hot keys
+        #ifndef FORP_ENGINE
         case DIK_A:
             if( Chosen->ItemSlotMain->IsWeapon() && Chosen->GetUse() < MAX_USES )
                 SetCurMode( CUR_USE_WEAPON );
             break;
+        #endif
         case DIK_C:
             ShowScreen( SCREEN__CHARACTER );
             if( Chosen->Params[ ST_UNSPENT_PERKS ] )
@@ -9759,6 +9771,38 @@ void FOClient::CurDraw()
         }
         SprMngr.DrawSprite( CurPDef, x, y );
         break;
+    #ifdef FORP_ENGINE
+    case CUR_RTS:
+        if( !( si = SprMngr.GetSpriteInfo( CurRTS->GetCurSprId() ) ) )
+            return;
+        if( IsLMenu() )
+        {
+            x = LMenuRestoreCurX - ( si->Width / 2 ) + si->OffsX;
+            y = LMenuRestoreCurY - si->Height + si->OffsY;
+        }
+        else
+        {
+            x = GameOpt.MouseX - ( si->Width / 2 ) + si->OffsX;
+            y = GameOpt.MouseY - si->Height + si->OffsY;
+        }
+        SprMngr.DrawSprite( CurRTS, x, y );
+        break;
+    case CUR_RTSA:
+        if( !( si = SprMngr.GetSpriteInfo( CurRTSA->GetCurSprId() ) ) )
+            return;
+        if( IsLMenu() )
+        {
+            x = LMenuRestoreCurX - ( si->Width / 2 ) + si->OffsX;
+            y = LMenuRestoreCurY - si->Height + si->OffsY;
+        }
+        else
+        {
+            x = GameOpt.MouseX - ( si->Width / 2 ) + si->OffsX;
+            y = GameOpt.MouseY - si->Height + si->OffsY;
+        }
+        SprMngr.DrawSprite( CurRTSA, x, y );
+        break;
+    #endif
     case CUR_HAND:
         if( !Chosen )
             break;
