@@ -9789,6 +9789,7 @@ bool FOClient::ReloadScripts()
         return false;
     }
 
+    Script::RunAllModuleInitFunctions();
     WriteLog( "Load scripts complete.\n" );
     return true;
 }
