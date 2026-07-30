@@ -7,12 +7,14 @@
 #include "AngelScript/angelscript.h"
 #include "AngelScript/preprocessor.h"
 #include "AngelScript/as_config.h"
+#include "AngelScript/as_jit.h"
 #include "AngelScript/scriptany.h"
 #include "AngelScript/scriptdictionary.h"
 #include "AngelScript/scriptfile.h"
 #include "AngelScript/scriptmath.h"
 #include "AngelScript/scriptstring.h"
 #include "AngelScript/scriptarray.h"
+#include "AngelScript/scriptgrid.h"
 #include <stdio.h>
 #include <list>
 #include <set>
@@ -30,6 +32,7 @@ using namespace std;
 #endif
 
 asIScriptEngine* Engine = NULL;
+asCJITCompiler*  JITCompiler = NULL;
 bool             IsServer = true;
 bool             IsClient = false;
 bool             IsMapper = false;
@@ -294,7 +297,18 @@ int main( int argc, char* argv[] )
         printf( "Register failed.\n" );
         return -1;
     }
+
+    // Create JIT Compiler
+    JITCompiler = new asCJITCompiler( JIT_SYSCALL_FPU_NORESET );
+    if( !JITCompiler )
+    {
+        printf( "Can't create AS JIT Compiler.\n" );
+        return -1;
+    }
+
     Engine->SetMessageCallback( asFUNCTION( CallBack ), NULL, asCALL_CDECL );
+    Engine->SetEngineProperty( asEP_INCLUDE_JIT_INSTRUCTIONS, 1 );
+    Engine->SetJITCompiler( JITCompiler );
 
     // Extensions
     RegisterScriptArray( Engine, true );
@@ -303,6 +317,7 @@ int main( int argc, char* argv[] )
     RegisterScriptDictionary( Engine );
     RegisterScriptFile( Engine );
     RegisterScriptMath( Engine );
+    RegisterScriptGrid( Engine );
 
     // Stuff for run func
     if( !run_func.empty() )
@@ -435,7 +450,7 @@ int main( int argc, char* argv[] )
         vector< int > bad_typeids_class;
         for( int m = 0, n = module->GetObjectTypeCount(); m < n; m++ )
         {
-            asIObjectType* ot = module->GetObjectTypeByIndex( m );
+            asITypeInfo* ot = module->GetObjectTypeByIndex( m );
             for( int i = 0, j = ot->GetPropertyCount(); i < j; i++ )
             {
                 int type = 0;
@@ -461,7 +476,7 @@ int main( int argc, char* argv[] )
 
             while( type & asTYPEID_TEMPLATE )
             {
-                asIObjectType* obj = (asIObjectType*) Engine->GetObjectTypeById( type );
+                asITypeInfo* obj = Engine->GetTypeInfoById( type );
                 if( !obj )
                     break;
                 type = obj->GetSubTypeId();
@@ -519,6 +534,7 @@ int main( int argc, char* argv[] )
     if( Buf )
         delete Buf;
     Buf = NULL;
+    delete JITCompiler;
 
     return 0;
 }
