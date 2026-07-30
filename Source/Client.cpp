@@ -12055,8 +12055,13 @@ bool FOClient::SScriptFunc::Global_GetHexPos( ushort hx, ushort hy, int& x, int&
 
 bool FOClient::SScriptFunc::Global_GetMonitorHex( int x, int y, ushort& hx, ushort& hy, bool ignore_interface )
 {
+    hx = hy = 0;
+    if( !ignore_interface && Self->IsCurInInterface() )
+        return false;
+
     ushort hx_, hy_;
-    if( Self->GetCurHex( hx_, hy_, ignore_interface ) )
+
+    if( Self->HexMngr.GetHexPixel( x, y, hx_, hy_ ) )
     {
         hx = hx_;
         hy = hy_;
