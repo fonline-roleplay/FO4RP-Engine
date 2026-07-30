@@ -496,7 +496,16 @@ void* Script::LoadDynamicLibrary( const char* dll_name )
     // Load dynamic library
     void* dll = DLL_Load( dll_path );
     if( !dll )
-        return NULL;
+	{
+        #if defined ( FO_WINDOWS )		
+		WriteLog( "Dll nullptr <%s> error: %u\n", dll_path, GetLastError( ) );
+        #else
+        WriteLog( "Dll nullptr <%s> error: %s\n", dll_path, dlerror() );
+        #endif
+
+		return NULL;
+	}
+	WriteLog( "Dll loading <%s>\n", dll_path );
 
     // Verify compilation target
     size_t* ptr = DLL_GetAddress( dll, edata->DllTarget.c_str() );
