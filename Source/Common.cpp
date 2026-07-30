@@ -1068,6 +1068,7 @@ GameOptions::GameOptions()
 
     DisableTcpNagle = false;
     DisableZlibCompression = false;
+    NetSendBufferSize = 64 * 1024;
     FloodSize = 2048;
     NoAnswerShuffle = false;
     DialogDemandRecheck = false;

@@ -173,10 +173,7 @@ void BufferManager::Cut( uint len )
         WriteLogF( _FUNC_, " - Error!\n" );
         return;
     }
-    char* buf = bufData + bufReadPos;
-    for( uint i = 0; i + bufReadPos + len < bufEndPos; i++ )
-        buf[ i ] = buf[ i + len ];
-    bufEndPos -= len;
+    bufReadPos += len;
 }
 
 void BufferManager::CopyBuf( const char* from, char* to, const char* mask, uint crypt_key, uint len )

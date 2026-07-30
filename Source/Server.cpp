@@ -1221,7 +1221,7 @@ void FOServer::NetIO_Output( bufferevent* bev, void* arg )
     uint               write_len = 0;
     if( !GameOpt.DisableZlibCompression && !cl->DisableZlib )
     {
-        uint to_compr = cl->Bout.GetEndPos();
+        uint to_compr = cl->Bout.GetEndPos() - cl->Bout.GetCurPos();
         if( to_compr > output_buffer_len )
             to_compr = output_buffer_len;
 
@@ -1250,7 +1250,7 @@ void FOServer::NetIO_Output( bufferevent* bev, void* arg )
     // Without compressing
     else
     {
-        uint len = cl->Bout.GetEndPos();
+        uint len = cl->Bout.GetEndPos() - cl->Bout.GetCurPos();
         if( len > output_buffer_len )
             len = output_buffer_len;
         memcpy( output_buffer, cl->Bout.GetCurData(), len );
@@ -1375,14 +1375,14 @@ void FOServer::NetIO_Output( Client::NetIOArg* io )
     // Compress
     if( !GameOpt.DisableZlibCompression && !cl->DisableZlib )
     {
-        uint to_compr = cl->Bout.GetEndPos();
-        if( to_compr > WSA_BUF_SIZE )
-            to_compr = WSA_BUF_SIZE;
+        uint to_compr = cl->Bout.GetEndPos() - cl->Bout.GetCurPos();
+        if( to_compr > GameOpt.NetSendBufferSize )
+            to_compr = GameOpt.NetSendBufferSize;
 
         cl->Zstrm.next_in = (Bytef*) cl->Bout.GetCurData();
         cl->Zstrm.avail_in = to_compr;
         cl->Zstrm.next_out = (Bytef*) io->Buffer.buf;
-        cl->Zstrm.avail_out = WSA_BUF_SIZE;
+        cl->Zstrm.avail_out = GameOpt.NetSendBufferSize;
 
         if( deflate( &cl->Zstrm, Z_SYNC_FLUSH ) != Z_OK )
         {
@@ -1404,9 +1404,9 @@ void FOServer::NetIO_Output( Client::NetIOArg* io )
     // Without compressing
     else
     {
-        uint len = cl->Bout.GetEndPos();
-        if( len > WSA_BUF_SIZE )
-            len = WSA_BUF_SIZE;
+        uint len = cl->Bout.GetEndPos() - cl->Bout.GetCurPos();
+        if( len > GameOpt.NetSendBufferSize )
+            len = GameOpt.NetSendBufferSize;
         memcpy( io->Buffer.buf, cl->Bout.GetCurData(), len );
         io->Buffer.len = len;
         cl->Bout.Cut( len );

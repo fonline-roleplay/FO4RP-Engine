@@ -1264,6 +1264,7 @@ struct GameOptions
 
     int DisableTcpNagle;
     int DisableZlibCompression;
+    int NetSendBufferSize;
     int FloodSize;
     int NoAnswerShuffle;
     int DialogDemandRecheck;

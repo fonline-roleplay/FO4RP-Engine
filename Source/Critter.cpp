@@ -3540,20 +3540,20 @@ Client::Client(): ZstrmInit( false ), Access( ACCESS_DEFAULT ), pingOk( true ), 
     #if defined ( USE_LIBEVENT )
     NetIOArgPtr = NULL;
     #else // IOCP
-    MEMORY_PROCESS( MEMORY_CLIENT, WSA_BUF_SIZE * 2 );
+    MEMORY_PROCESS( MEMORY_CLIENT, WSA_RECV_BUF_SIZE + GameOpt.NetSendBufferSize );
     NetIOIn = new NetIOArg();
     memzero( &NetIOIn->OV, sizeof( NetIOIn->OV ) );
     NetIOIn->PClient = this;
-    NetIOIn->Buffer.buf = new char[ WSA_BUF_SIZE ];
-    NetIOIn->Buffer.len = WSA_BUF_SIZE;
+    NetIOIn->Buffer.buf = new char[ WSA_RECV_BUF_SIZE ];
+    NetIOIn->Buffer.len = WSA_RECV_BUF_SIZE;
     NetIOIn->Operation = WSAOP_RECV;
     NetIOIn->Flags = 0;
     NetIOIn->Bytes = 0;
     NetIOOut = new NetIOArg();
     memzero( &NetIOOut->OV, sizeof( NetIOOut->OV ) );
     NetIOOut->PClient = this;
-    NetIOOut->Buffer.buf = new char[ WSA_BUF_SIZE ];
-    NetIOOut->Buffer.len = WSA_BUF_SIZE;
+    NetIOOut->Buffer.buf = new char[ GameOpt.NetSendBufferSize ];
+    NetIOOut->Buffer.len = GameOpt.NetSendBufferSize;
     NetIOOut->Operation = WSAOP_FREE;
     NetIOOut->Flags = 0;
     NetIOOut->Bytes = 0;
@@ -3577,7 +3577,7 @@ Client::~Client()
     #if defined ( USE_LIBEVENT )
     SAFEDEL( NetIOArgPtr );
     #else // IOCP
-    MEMORY_PROCESS( MEMORY_CLIENT, -(int) ( WSA_BUF_SIZE * 2 ) );
+    MEMORY_PROCESS( MEMORY_CLIENT, -(int) ( WSA_RECV_BUF_SIZE + GameOpt.NetSendBufferSize ) );
     if( NetIOIn )
     {
         SAFEDELA( NetIOIn->Buffer.buf );

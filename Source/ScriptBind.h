@@ -1175,6 +1175,7 @@ BIND_ASSERT( engine->RegisterGlobalProperty( "const uint __FullSecond", &GameOpt
 
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __DisableTcpNagle", &GameOpt.DisableTcpNagle ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __DisableZlibCompression", &GameOpt.DisableZlibCompression ) );
+BIND_ASSERT( engine->RegisterGlobalProperty( "uint __NetSendBufferSize", &GameOpt.NetSendBufferSize ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "uint __FloodSize", &GameOpt.FloodSize ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __NoAnswerShuffle", &GameOpt.NoAnswerShuffle ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __DialogDemandRecheck", &GameOpt.DialogDemandRecheck ) );
