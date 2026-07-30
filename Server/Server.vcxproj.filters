@@ -374,6 +374,9 @@
     <ClCompile Include="..\Source\AngelScript\virtual_asm_x86.cpp">
       <Filter>AngelScript</Filter>
     </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\scriptgrid.cpp">
+      <Filter>AngelScript</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Source\Zlib\crc32.h">
@@ -758,6 +761,9 @@
       <Filter>AngelScript</Filter>
     </ClInclude>
     <ClInclude Include="..\Source\AngelScript\virtual_asm.h">
+      <Filter>AngelScript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\scriptgrid.h">
       <Filter>AngelScript</Filter>
     </ClInclude>
   </ItemGroup>
