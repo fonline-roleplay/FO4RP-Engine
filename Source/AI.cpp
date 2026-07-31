@@ -7,6 +7,7 @@
 #include "IniParser.h"
 
 NpcAIMngr AIMngr;
+uint ParseError = 0;
 
 /************************************************************************/
 /* Parsers                                                              */
@@ -22,6 +23,7 @@ string ParseBagComb( const char* str )
 NpcBagItems ParseBagItems( const char* str )
 {
     NpcBagItems items;
+    const char* begin_line = str;
 
 label_ParseNext:
     NpcBagItem i;
@@ -35,7 +37,11 @@ label_ParseNext:
     *pbuf = 0;
     int pid = ConstantsManager::GetItemPid( buf );
     if( pid < 0 )
+    {
+        WriteLog( "Error parse bag item pids: <%s>, line <%s>.\n", buf, begin_line );
+        ParseError++;
         return items;
+    }
     i.ItemPid = pid;
     // Parse place
     if( *str == '^' )
@@ -47,6 +53,21 @@ label_ParseNext:
             i.ItemSlot = SLOT_HAND2;
         else if( *str == 'a' )
             i.ItemSlot = SLOT_ARMOR;
+        else
+        {
+            pbuf = buf;
+            for( ; *str != '_'; str++, pbuf++ )
+                *pbuf = *str;
+            *pbuf = 0;
+            if( Str::Compare( buf, "slot" ) )
+            {
+                str++;
+                buf[0] = *str;
+                buf[1] = 0;
+                i.ItemSlot = atoi( buf );
+            }
+            else WriteLog( "Error parse bag items slot: <%s>, line <%s>.\n", str, begin_line );
+        }
         if( *str )
             str++;
     }
@@ -197,7 +218,7 @@ bool NpcAIMngr::LoadNpcBags()
 
     delete[] bag_str;
     WriteLog( "Loaded<%d> bags.\n", bag_count );
-    return true;
+    return ParseError == 0;
 }
 
 /************************************************************************/
