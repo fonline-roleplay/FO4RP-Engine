@@ -718,6 +718,17 @@ void FOServer::Logic_Work( void* data )
             if( map->IsNotValid )
                 continue;
 
+            if( map->IsRefreshVision() && ( Timer::FastTick() - map->LastVisionRefreshTick ) >= 500 )
+            {
+                CrVec& critters = map->GetCrittersNoLock();
+                for( uint i = 0, iend = critters.size(); i < iend; i++ )
+                {
+                    critters[i]->ProcessVisibleCritters();
+                    critters[i]->ProcessVisibleItems();
+                }
+                map->RefreshVisionCompleted();
+            }
+
 			// Npc proccess:
 			if( map->GetPlayersCount() != 0 || ( map->Data.ProccessSleep == 0 || map->Data.ProccessTick-- == 0 ) )
 			{
@@ -3434,6 +3445,9 @@ bool FOServer::InitReal()
     STATIC_ASSERT( sizeof( size_t ) == 8 );
     STATIC_ASSERT( sizeof( void* ) == 8 );
     #endif
+
+    // Check the sizes of engine-specific structures
+    STATIC_ASSERT( OFFSETOF( LookData, dir ) == 29 );
 
     // Critters parameters
     Critter::ParamsSendMsgLen = sizeof( Critter::ParamsSendCount );

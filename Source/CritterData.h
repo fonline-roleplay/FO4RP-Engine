@@ -5,6 +5,9 @@
 #include "FileManager.h"
 #include "AI.h"
 #include "Defines.h"
+#ifndef FONLINE_MAPPER
+#include "LookData.h"
+#endif
 
 #define MAX_CRIT_PROTOS         ( 10000 )
 #define MAX_STORED_LOCATIONS    ( 1000 )
@@ -20,7 +23,7 @@ struct CritData
     uchar      Dir;
     uchar      Cond;
     uchar      ReservedCE;
-    char       Reserved0;
+    bool       LookRefreshFlag;
     uint       ScriptId;
     uint       ShowCritterDist1;
     uint       ShowCritterDist2;
@@ -80,7 +83,12 @@ struct CritData
     uchar      Reserved21;
     uchar      BagSize;
     NpcBagItem Bag[ MAX_NPC_BAGS ];
-    uint       Reserved22[ 100 ];
+#ifndef FONLINE_MAPPER
+    LookData   Look;
+    uint       Reserved22[89];
+#else
+    uint       Reserved22[100];
+#endif //FONLINE_MAPPER
 };
 
 struct CritDataExt

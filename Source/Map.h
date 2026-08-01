@@ -5,6 +5,7 @@
 #include "ProtoMap.h"
 #include "Item.h"
 #include "Critter.h"
+#include "LookData.h"
 
 // Script events
 #define MAP_EVENT_FINISH                ( 0 )
@@ -57,7 +58,10 @@ public:
         uchar  MapDayColor[ 12 ];
         uint   ProccessSleep;
         uint   ProccessTick;
-        uint   Reserved[ 18 ];
+        LookData Look;
+        bool   RefreshVisionFlag;
+        uchar  Reserved1[ 3 ];
+        uint   Reserved2[ 6 ];
         int    UserData[ MAP_MAX_DATA ];
     } Data;
 
@@ -79,6 +83,9 @@ public:
     Location* GetLocation( bool lock );
     ushort    GetMaxHexX() { return Proto->Header.MaxHexX; }
     ushort    GetMaxHexY() { return Proto->Header.MaxHexY; }
+    void      RefreshVision() { Data.RefreshVisionFlag = true; }
+    void      RefreshVisionCompleted() { Data.RefreshVisionFlag = false; LastVisionRefreshTick = Timer::FastTick(); }
+    bool      IsRefreshVision() { return Data.RefreshVisionFlag; }
     void      SetLoopTime( uint loop_num, uint ms );
     uchar     GetRain();
     void      SetRain( uchar capacity );
@@ -146,6 +153,8 @@ public:
     bool IsHexesPassed( ushort hx, ushort hy, uint radius );
     bool IsMovePassed( ushort hx, ushort hy, uchar dir, uint multihex );
     bool IsHexItem( ushort hx, ushort hy ) { return FLAG( hexFlags[ hy * GetMaxHexX() + hx ], FH_ITEM ); }
+
+    bool IsHexWall( ushort hx, ushort hy ) { return FLAG( Proto->HexFlags[hy * GetMaxHexX() + hx], FH_WALL ); }
 
     bool IsHexTrigger( ushort hx, ushort hy ) { return FLAG( Proto->HexFlags[ hy * GetMaxHexX() + hx ], FH_TRIGGER ); }
     bool IsHexTrap( ushort hx, ushort hy )    { return FLAG( hexFlags[ hy * GetMaxHexX() + hx ], FH_WALK_ITEM ); }
@@ -240,6 +249,8 @@ public:
         RefCounter--;
         if( RefCounter <= 0 ) delete this;
     }
+
+    uint    LastVisionRefreshTick;
 };
 typedef map< uint, Map* > MapMap;
 typedef vector< Map* >    MapVec;

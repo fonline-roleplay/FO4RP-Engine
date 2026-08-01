@@ -295,6 +295,10 @@ void Critter::ProcessVisibleCritters()
     if( IsNotValid )
         return;
 
+    Data.LookRefreshFlag = false;
+    if( IsPlayer() )
+        ( (Client*)this )->LastVisionRefreshTick = Timer::FastTick();
+
     // Global map
     if( !GetMap() )
     {
@@ -345,6 +349,10 @@ void Critter::ProcessVisibleCritters()
     if( !map )
         return;
 
+    LookData look, crlook;
+    Data.Look.GetMixed( map->Data.Look, look );
+    look.InitCritter( *this );
+
     CrVec critters;
     map->GetCritters( critters, true );
 
@@ -355,6 +363,133 @@ void Critter::ProcessVisibleCritters()
             continue;
 
         int dist = DistGame( GetHexX(), GetHexY(), cr->GetHexX(), cr->GetHexY() );
+        
+        if( FLAG( GameOpt.LookChecks, LOOK_CHECK_LOOK_DATA ) )
+        {
+            cr->Data.Look.GetMixed( map->Data.Look, crlook );
+            crlook.InitCritter( *cr );
+
+            bool allow_self = LookData::CheckLook( *map, look, crlook ).IsLook;
+            bool allow_opp = LookData::CheckLook( *map, crlook, look ).IsLook;
+
+            if( allow_self )
+            {
+                if( cr->AddCrIntoVisVec( this ) )
+                {
+                    Send_AddCritter( cr );
+                    EventShowCritter( cr );
+                }
+            }
+            else
+            {
+                if( cr->DelCrFromVisVec( this ) )
+                {
+                    Send_RemoveCritter( cr );
+                    EventHideCritter( cr );
+                }
+            }
+
+            if( allow_opp )
+            {
+                if( AddCrIntoVisVec( cr ) )
+                {
+                    cr->Send_AddCritter( this );
+                    cr->EventShowCritter( this );
+                }
+            }
+            else
+            {
+                if( DelCrFromVisVec( cr ) )
+                {
+                    cr->Send_RemoveCritter( this );
+                    cr->EventHideCritter( this );
+                }
+            }
+
+            if( show_cr )
+            {
+                if( show_cr1 )
+                {
+                    if( (int)Data.ShowCritterDist1 >= dist )
+                    {
+                        if( AddCrIntoVisSet1( cr->GetId() ) )
+                            EventShowCritter1( cr );
+                    }
+                    else
+                    {
+                        if( DelCrFromVisSet1( cr->GetId() ) )
+                            EventHideCritter1( cr );
+                    }
+                }
+                if( show_cr2 )
+                {
+                    if( (int)Data.ShowCritterDist2 >= dist )
+                    {
+                        if( AddCrIntoVisSet2( cr->GetId() ) )
+                            EventShowCritter2( cr );
+                    }
+                    else
+                    {
+                        if( DelCrFromVisSet2( cr->GetId() ) )
+                            EventHideCritter2( cr );
+                    }
+                }
+                if( show_cr3 )
+                {
+                    if( (int)Data.ShowCritterDist3 >= dist )
+                    {
+                        if( AddCrIntoVisSet3( cr->GetId() ) )
+                            EventShowCritter3( cr );
+                    }
+                    else
+                    {
+                        if( DelCrFromVisSet3( cr->GetId() ) )
+                            EventHideCritter3( cr );
+                    }
+                }
+            }
+
+            if( ( cr->FuncId[CRITTER_EVENT_SHOW_CRITTER_1] > 0 || cr->FuncId[CRITTER_EVENT_HIDE_CRITTER_1] > 0 ) && cr->Data.ShowCritterDist1 > 0 )
+            {
+                if( (int)cr->Data.ShowCritterDist1 >= dist )
+                {
+                    if( cr->AddCrIntoVisSet1( GetId() ) )
+                        cr->EventShowCritter1( this );
+                }
+                else
+                {
+                    if( cr->DelCrFromVisSet1( GetId() ) )
+                        cr->EventHideCritter1( this );
+                }
+            }
+            if( ( cr->FuncId[CRITTER_EVENT_SHOW_CRITTER_2] > 0 || cr->FuncId[CRITTER_EVENT_HIDE_CRITTER_2] > 0 ) && cr->Data.ShowCritterDist2 > 0 )
+            {
+                if( (int)cr->Data.ShowCritterDist2 >= dist )
+                {
+                    if( cr->AddCrIntoVisSet2( GetId() ) )
+                        cr->EventShowCritter2( this );
+                }
+                else
+                {
+                    if( cr->DelCrFromVisSet2( GetId() ) )
+                        cr->EventHideCritter2( this );
+                }
+            }
+            if( ( cr->FuncId[CRITTER_EVENT_SHOW_CRITTER_3] > 0 || cr->FuncId[CRITTER_EVENT_HIDE_CRITTER_3] > 0 ) && cr->Data.ShowCritterDist3 > 0 )
+            {
+                if( (int)cr->Data.ShowCritterDist3 >= dist )
+                {
+                    if( cr->AddCrIntoVisSet3( GetId() ) )
+                        cr->EventShowCritter3( this );
+                }
+                else
+                {
+                    if( cr->DelCrFromVisSet3( GetId() ) )
+                        cr->EventHideCritter3( this );
+                }
+            }
+            continue;
+        }
 
         if( FLAG( GameOpt.LookChecks, LOOK_CHECK_SCRIPT ) )
         {
@@ -2655,6 +2790,12 @@ void Critter::Send_CritterLexems( Critter* cr )
         ( (Client*) this )->Send_CritterLexems( cr );
 }
 
+void Critter::Send_LookData()
+{
+    if( IsPlayer() )
+        ( (Client*)this )->Send_LookData();
+}
+
 void Critter::SendA_Move( uint move_params )
 {
     if( VisCr.empty() )
@@ -3519,7 +3660,8 @@ Client::SendCallback Client::SendData = NULL;
 Client::Client(): ZstrmInit( false ), Access( ACCESS_DEFAULT ), pingOk( true ), LanguageMsg( 0 ),
                   GameState( STATE_NONE ), IsDisconnected( false ), DisconnectTick( 0 ), DisableZlib( false ),
                   LastSendScoresTick( 0 ), LastSendCraftTick( 0 ), LastSendEntrancesTick( 0 ), LastSendEntrancesLocId( 0 ),
-                  ScreenCallbackBindId( 0 ), ConnectTime( 0 ), LastSendedMapTick( 0 ), RadioMessageSended( 0 )
+                  ScreenCallbackBindId( 0 ), ConnectTime( 0 ), LastSendedMapTick( 0 ), RadioMessageSended( 0 ),
+                  LastVisionRefreshTick( 0 )
 {
     CritterIsNpc = false;
     MEMORY_PROCESS( MEMORY_CLIENT, sizeof( Client ) + sizeof( GlobalMapGroup ) + 40 + sizeof( Item ) * 2 );
@@ -5008,6 +5150,25 @@ void Client::Send_SomeItem( Item* item )
     Bout << item->GetProtoId();
     Bout << item->AccCritter.Slot;
     Bout.Push( (char*) &item->Data, Item::ItemData::SendMask[ ITEM_DATA_MASK_CRITTER ], sizeof( item->Data ) );
+    BOUT_END( this );
+}
+
+void Client::Send_LookData()
+{
+    BOUT_BEGIN( this );
+    Bout << NETMSG_SEND_LOOK_DATA;
+    Bout.Push( (char*)&Data.Look, OFFSETOF( LookData, dir ) );
+
+    if( this->GetMap() != 0 )
+    {
+        Map* map = MapMngr.GetMap( this->GetMap() );
+        Bout.Push( (char*)&map->Data.Look, OFFSETOF( LookData, dir ) );
+    }
+    else
+    {
+        char dummy[OFFSETOF( LookData, dir )] = { 0 };
+        Bout.Push( dummy, OFFSETOF( LookData, dir ) );
+    }
     BOUT_END( this );
 }
 

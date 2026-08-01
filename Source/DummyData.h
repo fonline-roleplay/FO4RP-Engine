@@ -766,6 +766,8 @@ struct BindClass
     static void Crit_EventGlobalInvite()         {}
     static void Crit_EventTurnBasedProcess()     {}
     static void Crit_EventSmthTurnBasedProcess() {}
+    static void Crit_GetLookData()               {}
+    static void Crit_UpdateLookData()            {}
 
     static void Global_GetGlobalVar() {}
     static void Global_GetLocalVar()  {}
@@ -847,6 +849,7 @@ struct BindClass
     static void Map_GetHeight()                {}
     static void Map_MoveHexByDir()             {}
     static void Map_VerifyTrigger()            {}
+    static void Map_GetLookData()              {}
 
     static void Map_EventFinish()           {}
     static void Map_EventLoop0()            {}
@@ -1049,6 +1052,10 @@ struct BindClass
 	static void CraftItem_GetNeedItems()		{}
 	static void CraftItem_GetOutItems()			{}
 	static void CraftItem_GetScriptName()		{}
+
+    static void Global_SetDebugLookMode() {}
+    static void Global_IsDebugLookMode() {}
+    static void Global_ChangeViewBorder() {}
 
     static int  ConsoleActive;
     static int  GmapActive, GmapWait;

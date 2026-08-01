@@ -261,6 +261,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\Source\LookData.cpp" />
     <ClCompile Include="..\Source\Zlib\adler32.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -671,6 +672,7 @@
     <ClInclude Include="..\Source\imgui\imstb_rectpack.h" />
     <ClInclude Include="..\Source\imgui\imstb_textedit.h" />
     <ClInclude Include="..\Source\imgui\imstb_truetype.h" />
+    <ClInclude Include="..\Source\LookData.h" />
     <ClInclude Include="..\Source\Zlib\crc32.h" />
     <ClInclude Include="..\Source\zlib\crypt.h" />
     <ClInclude Include="..\Source\Zlib\deflate.h" />

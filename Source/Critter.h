@@ -387,6 +387,7 @@ public:
     void Send_PlaySound( uint crid_synchronize, const char* sound_name );
     void Send_PlaySoundType( uint crid_synchronize, uchar sound_type, uchar sound_type_ext, uchar sound_id, uchar sound_id_ext );
     void Send_CritterLexems( Critter* cr );
+    void Send_LookData();
 
     // Send all
     void SendA_Move( uint move_params );
@@ -412,7 +413,7 @@ public:
     void Send_AllQuests();
     void Send_AllAutomapsInfo();
 
-    bool        IsPlayer()    { return !CritterIsNpc; }
+    bool        IsPlayer() const { return !CritterIsNpc; }
     bool        IsNpc()       { return CritterIsNpc; }
     uint        GetId()       { return Data.Id; }
     uint        GetMap()      { return Data.MapId; }
@@ -421,9 +422,9 @@ public:
     const char* GetName() { return NameStr.c_str(); }
     const char* GetInfo();
     uint        GetCrType() { return Data.BaseType; }
-    ushort      GetHexX()   { return Data.HexX; }
-    ushort      GetHexY()   { return Data.HexY; }
-    uchar       GetDir()    { return Data.Dir; }
+    ushort      GetHexX() const { return Data.HexX; }
+    ushort      GetHexY() const { return Data.HexY; }
+    uchar       GetDir() const { return Data.Dir; }
     bool        IsCanWalk();
     bool        IsCanRun();
     uint        GetTimeWalk();
@@ -767,6 +768,7 @@ public:
     void Send_ItemLexemsNull( Item* item ); // Without checks!
     void Send_CheckUIDS();
     void Send_SomeItem( Item* item );       // Without checks!
+    void Send_LookData();
 
     // Locations
     bool CheckKnownLocById( uint loc_id );
@@ -811,6 +813,8 @@ public:
 
     // Screen callback
     int ScreenCallbackBindId;
+
+    uint LastVisionRefreshTick;
 
     Client();
     ~Client();

@@ -1129,6 +1129,10 @@ BIND_ASSERT( engine->RegisterGlobalFunction( "void ChosenRefreshMap()", asFUNCTI
 BIND_ASSERT( engine->RegisterGlobalFunction( "string@ CustomCall(string& command, string& separator = \" \")", asFUNCTION( BIND_CLASS Global_CustomCall ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "void SetUserConfig(string[]& keyValues)", asFUNCTION( BIND_CLASS Global_SetUserConfig ), asCALL_CDECL ) );
 
+BIND_ASSERT( engine->RegisterGlobalFunction( "void SetDebugLookMode( bool isDebug )", asFUNCTION( BIND_CLASS Global_SetDebugLookMode ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "bool IsDebugLookMode( )", asFUNCTION( BIND_CLASS Global_IsDebugLookMode ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "void ChangeViewBorder()", asFUNCTION( BIND_CLASS Global_ChangeViewBorder ), asCALL_CDECL ) );
+
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __ConsoleActive", &BIND_CLASS ConsoleActive ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __GmapActive", &BIND_CLASS GmapActive ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __GmapWait", &BIND_CLASS GmapWait ) );
@@ -1663,6 +1667,86 @@ BIND_ASSERT( engine->RegisterGlobalFunction( "bool LoadConstants(int constCollec
 BIND_ASSERT( engine->RegisterGlobalFunction( "void AllowSlot(uint8 index, string& slotName)", asFUNCTION( BIND_CLASS Global_AllowSlot ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "uint DecodeUTF8(const string& text, uint& length)", asFUNCTION( BIND_CLASS Global_DecodeUTF8 ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "string@ EncodeUTF8(uint ucs)", asFUNCTION( BIND_CLASS Global_EncodeUTF8 ), asCALL_CDECL ) );
+
+#ifndef BIND_MAPPER
+
+BIND_ASSERT( engine->RegisterObjectType( "LookData", 0, asOBJ_REF ) );
+
+BIND_ASSERT( engine->RegisterObjectBehaviour( "LookData", asBEHAVE_ADDREF, "void f()", asMETHOD( LookData, AddRef ), asCALL_THISCALL ) );
+BIND_ASSERT( engine->RegisterObjectBehaviour( "LookData", asBEHAVE_RELEASE, "void f()", asMETHOD( LookData, Release ), asCALL_THISCALL ) );
+
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 ViewDirMultiplier_0", OFFSETOF( LookData, ViewDirMultiplier[0] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 ViewDirMultiplier_1", OFFSETOF( LookData, ViewDirMultiplier[1] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 ViewDirMultiplier_2", OFFSETOF( LookData, ViewDirMultiplier[2] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 ViewDirMultiplier_3", OFFSETOF( LookData, ViewDirMultiplier[3] ) ) );
+
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HearDirMultiplier_0", OFFSETOF( LookData, HearDirMultiplier[0] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HearDirMultiplier_1", OFFSETOF( LookData, HearDirMultiplier[1] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HearDirMultiplier_2", OFFSETOF( LookData, HearDirMultiplier[2] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HearDirMultiplier_3", OFFSETOF( LookData, HearDirMultiplier[3] ) ) );
+
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint16 RunningNoiseMultiplier", OFFSETOF( LookData, RunningNoiseMultiplier ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 RunningHearMultiplier", OFFSETOF( LookData, RunningHearMultiplier ) ) );
+
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "int8 MaxView", OFFSETOF( LookData, MaxView ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "int8 MaxHear", OFFSETOF( LookData, MaxHear ) ) );
+
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 Vision", OFFSETOF( LookData, Vision ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 Invis", OFFSETOF( LookData, Invis ) ) );
+
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HideViewDirMultiplier_0", OFFSETOF( LookData, HideViewDirMultiplier[0] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HideViewDirMultiplier_1", OFFSETOF( LookData, HideViewDirMultiplier[1] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HideViewDirMultiplier_2", OFFSETOF( LookData, HideViewDirMultiplier[2] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HideViewDirMultiplier_3", OFFSETOF( LookData, HideViewDirMultiplier[3] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HideViewDirMultiplier_4", OFFSETOF( LookData, HideViewDirMultiplier[4] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HideViewDirMultiplier_5", OFFSETOF( LookData, HideViewDirMultiplier[5] ) ) );
+
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HideHearDirMultiplier_0", OFFSETOF( LookData, HideHearDirMultiplier[0] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HideHearDirMultiplier_1", OFFSETOF( LookData, HideHearDirMultiplier[1] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HideHearDirMultiplier_2", OFFSETOF( LookData, HideHearDirMultiplier[2] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HideHearDirMultiplier_3", OFFSETOF( LookData, HideHearDirMultiplier[3] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HideHearDirMultiplier_4", OFFSETOF( LookData, HideHearDirMultiplier[4] ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HideHearDirMultiplier_5", OFFSETOF( LookData, HideHearDirMultiplier[5] ) ) );
+
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HideViewMultiplier", OFFSETOF( LookData, HideViewMultiplier ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 HideHearMultiplier", OFFSETOF( LookData, HideHearMultiplier ) ) );
+
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 WorkDir", OFFSETOF( LookData, dir ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint16 WorkHexX", OFFSETOF( LookData, hexx ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint16 WorkHexY", OFFSETOF( LookData, hexy ) ) );
+
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "bool WorkIsPlayer", OFFSETOF( LookData, isplayer ) ) );
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "bool WorkIsRuning", OFFSETOF( LookData, isruning ) ) );
+
+BIND_ASSERT( engine->RegisterObjectProperty( "LookData", "uint8 WorkAccess", OFFSETOF( LookData, access ) ) );
+
+BIND_ASSERT( engine->RegisterGlobalFunction( "uint8 get_WallMaterialHearMultiplier( uint index )", asFUNCTION( LookData::GetWallMaterialHearMultiplier ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "void set_WallMaterialHearMultiplier( uint index, uint8 value )", asFUNCTION( LookData::SetWallMaterialHearMultiplier ), asCALL_CDECL ) );
+
+BIND_ASSERT( engine->RegisterGlobalProperty( "LookData HotLookData_0", &LookData::ScriptLookData0 ) );
+BIND_ASSERT( engine->RegisterGlobalProperty( "LookData HotLookData_1", &LookData::ScriptLookData1 ) );
+
+BIND_ASSERT( engine->RegisterObjectMethod( "LookData", "LookData& opAssign(LookData& look)", asMETHODPR( LookData, operator=, ( const LookData& ), LookData& ), asCALL_THISCALL ) );
+
+#ifdef BIND_SERVER
+
+BIND_ASSERT( engine->RegisterGlobalProperty( "LookData ItemLookData", &LookData::ItemLookData ) );
+BIND_ASSERT( engine->RegisterGlobalProperty( "LookData ItemLightLookData", &LookData::ItemLightLookData ) );
+
+BIND_ASSERT( engine->RegisterObjectMethod( "Critter", "LookData@ get_Look()", asFUNCTION( BIND_CLASS Crit_GetLookData ), asCALL_CDECL_OBJFIRST ) );
+BIND_ASSERT( engine->RegisterObjectMethod( "Map", "LookData@ get_Look()", asFUNCTION( BIND_CLASS Map_GetLookData ), asCALL_CDECL_OBJFIRST ) );
+
+BIND_ASSERT( engine->RegisterObjectMethod( "Critter", "void LookData_Update()", asFUNCTION( BIND_CLASS Crit_UpdateLookData ), asCALL_CDECL_OBJFIRST ) );
+
+BIND_ASSERT( engine->RegisterGlobalFunction( "bool CheckLook( Map& map, LookData& look, LookData& hide, bool&out isView = void, bool&out isHear = void, bool isDebug = false )", asFUNCTION( BIND_CLASS CheckLook ), asCALL_CDECL ) );
+
+BIND_ASSERT( engine->RegisterObjectMethod( "LookData", "void WorkItem(const Item&in item)", asMETHODPR( LookData, InitItem, ( const Item& item ), void ), asCALL_THISCALL ) );
+BIND_ASSERT( engine->RegisterObjectMethod( "LookData", "void WorkMap(const Map&in map)", asMETHODPR( LookData, InitMap, ( const Map& map ), void ), asCALL_THISCALL ) );
+BIND_ASSERT( engine->RegisterObjectMethod( "LookData", "void WorkCritter(const Critter&in critter)", asMETHODPR( LookData, InitCritter, ( const Critter& critter ), void ), asCALL_THISCALL ) );
+
+#endif // BIND_SERVER
+
+#endif // BIND_MAPPER
 
 /************************************************************************/
 /*                                                                      */

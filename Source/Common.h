@@ -91,7 +91,7 @@ const char* GetLastSocketError();
           delete[] ( x ); ( x ) = NULL; }
 
 #define STATIC_ASSERT( a )                static_assert( a, # a )
-#define OFFSETOF( s, m )                  ( (size_t) ( &reinterpret_cast< s* >( 100000 )->m ) - 100000 )
+#define OFFSETOF( s, m )                  ( offsetof(s, m) )
 #define UNUSED_VARIABLE( x )              (void) ( x )
 #define memzero( ptr, size )              memset( ptr, 0, size )
 

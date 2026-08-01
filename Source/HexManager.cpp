@@ -3394,7 +3394,8 @@ bool HexManager::CutPath( CritterCl* cr, ushort start_x, ushort start_y, ushort&
 }
 
 bool HexManager::TraceBullet( ushort hx, ushort hy, ushort tx, ushort ty, uint dist, float angle, CritterCl* find_cr, bool find_cr_safe,
-                              CritVec* critters, int find_type, UShortPair* pre_block, UShortPair* block, UShortPairVec* steps, bool check_passed )
+                              CritVec* critters, int find_type, UShortPair* pre_block, UShortPair* block, UShortPairVec* steps, bool check_passed,
+                              std::vector<Field*>* fields )
 {
     if( IsShowTrack() )
         ClearHexTrack();
@@ -3443,6 +3444,14 @@ bool HexManager::TraceBullet( ushort hx, ushort hy, ushort tx, ushort ty, uint d
                 return true;
             if( find_cr_safe )
                 return false;
+        }
+
+        if( fields )
+        {
+            if( !f.Items.empty() )
+            {
+                fields->push_back( &f );
+            }
         }
 
         old_cx = cx;

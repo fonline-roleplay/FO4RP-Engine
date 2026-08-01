@@ -78,6 +78,9 @@ void FOServer::ProcessCritter( Critter* cr )
     if( !cr->GetMap() && cr->GroupMove && cr == cr->GroupMove->Rule )
         MapMngr.GM_GroupMove( cr->GroupMove );
 
+    if( cr->Data.LookRefreshFlag )
+        cr->ProcessVisibleCritters();
+
     // Client
     if( cr->IsPlayer() )
     {
@@ -457,8 +460,16 @@ bool FOServer::Act_Move( Critter* cr, ushort hx, ushort hy, uint move_params )
     }
 
     cr->SendA_Move( move_params );
-    cr->ProcessVisibleCritters();
-    cr->ProcessVisibleItems();
+    if( cr->IsPlayer() && ( Timer::FastTick() - ( (Client*)cr )->LastVisionRefreshTick ) >= 250 )
+    {
+        cr->ProcessVisibleCritters();
+        cr->ProcessVisibleItems();
+    }
+    else if( cr->IsNpc() )
+    {
+        cr->ProcessVisibleCritters();
+        cr->ProcessVisibleItems();
+    }
 
     if( cr->GetMap() == map->GetId() )
     {
@@ -2431,6 +2442,7 @@ void FOServer::Process_LogIn( ClientPtr& cl )
     cl->Bin.SetEncryptKey( bin_seed );
     cl->Bout.SetEncryptKey( bout_seed );
     cl->Send_LoadMap( NULL );
+    cl->Send_LookData();
 }
 
 void FOServer::Process_SingleplayerSaveLoad( Client* cl )
@@ -3758,9 +3770,13 @@ void FOServer::Process_Dir( Client* cl )
     }
 
     cl->Data.Dir = dir;
-	cl->ProcessVisibleCritters();
-	cl->ProcessVisibleItems();
     cl->SendA_Dir();
+
+    if( ( Timer::FastTick() - cl->LastVisionRefreshTick ) >= 250 )
+    {
+        cl->ProcessVisibleCritters();
+        cl->ProcessVisibleItems();
+    }
 }
 
 void FOServer::Process_SetUserHoloStr( Client* cl )

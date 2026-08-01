@@ -31,7 +31,7 @@ Map::Map(): RefCounter( 1 ), IsNotValid( false ), hexFlags( NULL ),
             mapLocation( NULL ), Proto( NULL ), NeedProcess( false ),
             IsTurnBasedOn( false ), TurnBasedEndTick( 0 ), TurnSequenceCur( 0 ),
             IsTurnBasedTimeout( false ), TurnBasedBeginSecond( 0 ), NeedEndTurnBased( false ),
-            TurnBasedRound( 0 ), TurnBasedTurn( 0 ), TurnBasedWholeTurn( 0 )
+            TurnBasedRound( 0 ), TurnBasedTurn( 0 ), TurnBasedWholeTurn( 0 ), LastVisionRefreshTick( 0 )
 {
     MEMORY_PROCESS( MEMORY_MAP, sizeof( Map ) );
     memzero( &Data, sizeof( Data ) );
@@ -652,6 +652,18 @@ bool Map::AddItem( Item* item, ushort hx, ushort hy )
     GetCritters( critters, true );
 
     item->ViewPlaceOnMap = true;
+
+    static LookData hideitem;
+    static LookData lookdata;
+
+    if( item->IsLight() )
+        hideitem = LookData::ItemLightLookData;
+    else
+        hideitem = LookData::ItemLookData;
+
+    hideitem.GetMixed( Data.Look, hideitem );
+    hideitem.InitItem( *item );
+
     for( auto it = critters.begin(), end = critters.end(); it != end; ++it )
     {
         Critter* cr = *it;
@@ -673,10 +685,9 @@ bool Map::AddItem( Item* item, ushort hx, ushort hy )
                 }
                 else
                 {
-                    int dist = DistGame( cr->GetHexX(), cr->GetHexY(), hx, hy );
-                    if( item->IsTrap() )
-                        dist += item->TrapGetValue();
-                    allowed = dist <= cr->GetLook();
+                    cr->Data.Look.GetMixed( Data.Look, lookdata );
+                    lookdata.InitCritter( *cr );
+                    allowed = LookData::CheckLook( *this, lookdata, hideitem ).IsLook;
                 }
                 if( !allowed )
                     continue;
@@ -798,6 +809,17 @@ void Map::ChangeViewItem( Item* item )
     CrVec critters;
     GetCritters( critters, true );
 
+    LookData* hideitem;
+    LookData* lookdata;
+
+    if( item->IsLight() )
+        hideitem = &LookData::ItemLightLookData;
+    else
+        hideitem = &LookData::ItemLookData;
+
+    hideitem->GetMixed( Data.Look, *hideitem );
+    hideitem->InitItem( *item );
+
     for( auto it = critters.begin(), end = critters.end(); it != end; ++it )
     {
         Critter* cr = *it;
@@ -826,10 +848,9 @@ void Map::ChangeViewItem( Item* item )
                 }
                 else
                 {
-                    int dist = DistGame( cr->GetHexX(), cr->GetHexY(), item->AccHex.HexX, item->AccHex.HexY );
-                    if( item->IsTrap() )
-                        dist += item->TrapGetValue();
-                    allowed = dist <= cr->GetLook();
+                    cr->Data.Look.GetMixed( Data.Look, *lookdata );
+                    lookdata->InitCritter( *cr );
+                    allowed = LookData::CheckLook( *this, *lookdata, *hideitem ).IsLook;
                 }
                 if( !allowed )
                 {
@@ -857,10 +878,9 @@ void Map::ChangeViewItem( Item* item )
                 }
                 else
                 {
-                    int dist = DistGame( cr->GetHexX(), cr->GetHexY(), item->AccHex.HexX, item->AccHex.HexY );
-                    if( item->IsTrap() )
-                        dist += item->TrapGetValue();
-                    allowed = dist <= cr->GetLook();
+                    cr->Data.Look.GetMixed( Data.Look, *lookdata );
+                    lookdata->InitCritter( *cr );
+                    allowed = LookData::CheckLook( *this, *lookdata, *hideitem ).IsLook;
                 }
                 if( !allowed )
                     continue;

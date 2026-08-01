@@ -22,6 +22,7 @@
 #include "zlib/zlib.h"
 #include "IniParser.h"
 #include "MsgFiles.h"
+#include "LookData.h"
 
 // Video
 #include "Theora/theoradec.h"
@@ -33,6 +34,9 @@ class FOClient
 {
 public:
     static FOClient* Self;
+    static LookData* ChosenLookData;
+    static LookData* MapLookData;
+
     FOClient();
     bool Init();
     void Finish();
@@ -210,6 +214,8 @@ public:
     void Net_OnAutomapsInfo();
     void Net_OnCheckUID4();
     void Net_OnViewMap();
+
+    void Net_OnLookData();
 
     void OnText( const char* str, uint crid, int how_say, ushort intellect );
     void OnMapText( const char* str, ushort hx, ushort hy, uint color, ushort intellect );
@@ -657,6 +663,10 @@ public:
 		static uint			 CraftItem_GetOutItems( CraftItem* craft, CScriptArray* pids, CScriptArray* vals );
 		static CraftItem*	 Global_GetCraftItem( uint num );
 		static ScriptString* CraftItem_GetScriptName( CraftItem* craft );
+
+        static void Global_SetDebugLookMode( bool isDebug );
+        static bool Global_IsDebugLookMode();
+        static void Global_ChangeViewBorder();
 
         static bool&         ConsoleActive;
         static bool&         GmapActive, & GmapWait;
@@ -1722,9 +1732,19 @@ public:
 
     bool IsTurnBasedMyTurn() { return IsTurnBased && Timer::GameTick() < TurnBasedTime && Chosen && Chosen->GetId() == TurnBasedCurCritterId && Chosen->GetAllAp() > 0; }
 
-    bool     RebuildLookBorders;
-    bool     DrawLookBorders, DrawShootBorders;
-    PointVec LookBorders, ShootBorders;
+    class VisualLookBorder
+    {
+    public:
+
+        bool IsRebuild;
+        bool IsDrawView, IsDrawHear;
+        PointVec View, Hear;
+
+        void Clear();
+        void Prepare( uchar direction, ushort hexx, ushort hexy, int colorView, int colorHear );
+        void Draw();
+
+    } ChosenLookBorder, DebugLookBorder;
 
     void LookBordersPrepare();
     void LookBordersDraw();

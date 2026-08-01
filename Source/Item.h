@@ -91,7 +91,7 @@ extern const char* ItemEventFuncName[ ITEM_EVENT_MAX ];
 #define ITEM_SHOOT_THRU               ( 0x00000008 )
 #define ITEM_LIGHT_THRU               ( 0x00000010 )
 #define ITEM_MULTI_HEX                ( 0x00000020 ) // Not used
-#define ITEM_WALL_TRANS_END           ( 0x00000040 ) // Not used
+#define ITEM_VIEW_BLOCKS              ( 0x00000040 )
 #define ITEM_TWO_HANDS                ( 0x00000080 )
 #define ITEM_BIG_GUN                  ( 0x00000100 )
 #define ITEM_ALWAYS_VIEW              ( 0x00000200 )
@@ -116,7 +116,7 @@ extern const char* ItemEventFuncName[ ITEM_EVENT_MAX ];
 #define ITEM_CAN_USE                  ( 0x10000000 )
 #define ITEM_HOLODISK                 ( 0x20000000 )
 #define ITEM_RADIO                    ( 0x40000000 )
-#define ITEM_CACHED                   ( 0x80000000 ) // Not used
+#define ITEM_HEAR_BLOCK               ( 0x80000000 )
 
 // Material
 #define MATERIAL_GLASS                ( 0 )
@@ -237,11 +237,20 @@ public:
     // User data, binded with 'bindfield' pragma
     union
 	{
-		int UserData[PROTO_ITEM_USER_DATA_SIZE / sizeof(int)];
+		char UserData[PROTO_ITEM_USER_DATA_SIZE];
 		struct 
 		{
-			int Unknown[ ( PROTO_ITEM_USER_DATA_SIZE / sizeof(int) ) - 1];
-			uint EffectSpeed;
+			char Unknown0[339];
+
+            unsigned char Look_BlockDir[6]; // 6
+            unsigned char Look_Block; // 1
+
+            unsigned char Hear_BlockDir[6]; // 6
+            unsigned char Hear_Block; // 1
+
+            char Unknown1[152];
+
+			uint EffectSpeed; // 4
 		} FORPData;
 	};
 
@@ -308,8 +317,13 @@ public:
     bool IsGeneric()   { return Type == ITEM_TYPE_GENERIC; }
     bool IsCar()       { return Type == ITEM_TYPE_CAR; }
 	bool IsEffect()    { return Type == ITEM_TYPE_EFFECT; }
+    bool IsPassed()    { return FLAG( Flags, ITEM_NO_BLOCK ); }
 
     bool IsBlocks() { return BlockLines[ 0 ] != 0; }
+
+    bool IsViewBlocks() { return FLAG( Flags, ITEM_VIEW_BLOCKS ); }
+    bool IsHearBlocks() { return FLAG( Flags, ITEM_HEAR_BLOCK ); }
+
     bool LockerIsChangeble()
     {
         if( IsDoor() ) return true;
@@ -485,6 +499,9 @@ public:
 
     bool IsStackable() { return Proto->Stackable; }
     bool IsBlocks()    { return Proto->IsBlocks(); }
+
+    bool IsViewBlocks() const { return FLAG( Data.Flags, ITEM_VIEW_BLOCKS ); }
+    bool IsHearBlocks() const { return FLAG( Data.Flags, ITEM_HEAR_BLOCK ); }
 
     bool IsPassed()           { return FLAG( Data.Flags, ITEM_NO_BLOCK ) && FLAG( Data.Flags, ITEM_SHOOT_THRU ); }
     bool IsRaked()            { return FLAG( Data.Flags, ITEM_SHOOT_THRU ); }

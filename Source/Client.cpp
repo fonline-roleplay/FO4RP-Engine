@@ -16,11 +16,15 @@ void* zlib_alloc_( void* opaque, unsigned int items, unsigned int size ) { retur
 void  zlib_free_( void* opaque, void* address )                          { free( address ); }
 
 FOClient*    FOClient::Self = NULL;
+LookData*    FOClient::ChosenLookData = NULL;
+LookData*    FOClient::MapLookData = NULL;
 bool         FOClient::SpritesCanDraw = false;
 static uint* UID4 = NULL;
 FOClient::FOClient(): Active( false )
 {
     Self = this;
+    ChosenLookData = new LookData();
+    MapLookData = new LookData();
 
     ComLen = 4096;
     ComBuf = new char[ ComLen ];
@@ -403,14 +407,11 @@ bool FOClient::Init()
     ScreenMirrorTexture = NULL;
     ScreenMirrorEndTick = 0;
     ScreenMirrorStart = false;
-    RebuildLookBorders = false;
-    DrawLookBorders = false;
-    DrawShootBorders = false;
 
     UID_PREPARE_UID4_5;
 
-    LookBorders.clear();
-    ShootBorders.clear();
+    ChosenLookBorder.Clear();
+    DebugLookBorder.Clear();
 
     UID_PREPARE_UID4_6;
 
@@ -529,104 +530,21 @@ void FOClient::EraseCritter( uint remid )
 
 void FOClient::LookBordersPrepare()
 {
-    if( !DrawLookBorders && !DrawShootBorders )
+    if( !Chosen )
         return;
+    ChosenLookBorder.Prepare( Chosen->GetDir(), Chosen->GetHexX(), Chosen->GetHexY(), COLOR_ARGB( 255, 0, 255, 0 ), COLOR_TEXT_GREEN_RED );
 
-    LookBorders.clear();
-    ShootBorders.clear();
-    if( HexMngr.IsMapLoaded() && Chosen )
     {
-        uint   dist = Chosen->GetLook();
-        ushort base_hx = Chosen->GetHexX();
-        ushort base_hy = Chosen->GetHexY();
-        int    hx = base_hx;
-        int    hy = base_hy;
-        int    chosen_dir = Chosen->GetDir();
-        uint   dist_shoot = Chosen->GetAttackDist();
-        ushort maxhx = HexMngr.GetMaxHexX();
-        ushort maxhy = HexMngr.GetMaxHexY();
-        bool   seek_start = true;
-        for( int i = 0; i < ( GameOpt.MapHexagonal ? 6 : 4 ); i++ )
-        {
-            int dir = ( GameOpt.MapHexagonal ? ( i + 2 ) % 6 : ( ( i + 1 ) * 2 ) % 8 );
-
-            for( uint j = 0, jj = ( GameOpt.MapHexagonal ? dist : dist * 2 ); j < jj; j++ )
-            {
-                if( seek_start )
-                {
-                    // Move to start position
-                    for( uint l = 0; l < dist; l++ )
-                        MoveHexByDirUnsafe( hx, hy, GameOpt.MapHexagonal ? 0 : 7 );
-                    seek_start = false;
-                    j = -1;
-                }
-                else
-                {
-                    // Move to next hex
-                    MoveHexByDirUnsafe( hx, hy, dir );
-                }
-
-                ushort hx_ = CLAMP( hx, 0, maxhx - 1 );
-                ushort hy_ = CLAMP( hy, 0, maxhy - 1 );
-                if( FLAG( GameOpt.LookChecks, LOOK_CHECK_DIR ) )
-                {
-                    int dir_ = GetFarDir( base_hx, base_hy, hx_, hy_ );
-                    int ii = ( chosen_dir > dir_ ? chosen_dir - dir_ : dir_ - chosen_dir );
-                    if( ii > DIRS_COUNT / 2 )
-                        ii = DIRS_COUNT - ii;
-                    uint       dist_ = dist - dist * GameOpt.LookDir[ ii ] / 100;
-                    UShortPair block;
-                    HexMngr.TraceBullet( base_hx, base_hy, hx_, hy_, dist_, 0.0f, NULL, false, NULL, 0, NULL, &block, NULL, false );
-                    hx_ = block.first;
-                    hy_ = block.second;
-                }
-
-                if( FLAG( GameOpt.LookChecks, LOOK_CHECK_TRACE ) )
-                {
-                    UShortPair block;
-                    HexMngr.TraceBullet( base_hx, base_hy, hx_, hy_, 0, 0.0f, NULL, false, NULL, 0, NULL, &block, NULL, true );
-                    hx_ = block.first;
-                    hy_ = block.second;
-                }
-
-                ushort     hx__ = hx_;
-                ushort     hy__ = hy_;
-                uint       dist_look = DistGame( base_hx, base_hy, hx_, hy_ );
-                UShortPair block;
-                HexMngr.TraceBullet( base_hx, base_hy, hx_, hy_, min( dist_look, dist_shoot ), 0.0f, NULL, false, NULL, 0, NULL, &block, NULL, true );
-                hx__ = block.first;
-                hy__ = block.second;
-
-                int x, y, x_, y_;
-                HexMngr.GetHexCurrentPosition( hx_, hy_, x, y );
-                HexMngr.GetHexCurrentPosition( hx__, hy__, x_, y_ );
-                LookBorders.push_back( PrepPoint( x + HEX_OX, y + HEX_OY, COLOR_ARGB( 255, 0, 255, 0 ), (short*) &GameOpt.ScrOx, (short*) &GameOpt.ScrOy ) );
-                ShootBorders.push_back( PrepPoint( x_ + HEX_OX, y_ + HEX_OY, COLOR_ARGB( 255, 255, 0, 0 ), (short*) &GameOpt.ScrOx, (short*) &GameOpt.ScrOy ) );
-            }
-        }
-
-        if( LookBorders.size() < 2 )
-            LookBorders.clear();
-        else
-            LookBorders.push_back( *LookBorders.begin() );
-        if( ShootBorders.size() < 2 )
-            ShootBorders.clear();
-        else
-            ShootBorders.push_back( *ShootBorders.begin() );
+        ushort hx = 0, hy = 0;
+        if( SScriptFunc::Global_GetMonitorHex( GameOpt.MouseX, GameOpt.MouseY, hx, hy, true ) )
+            DebugLookBorder.Prepare( GetFarDir( hx, hy, Chosen->GetHexX(), Chosen->GetHexY() ), hx, hy, COLOR_TEXT_DWHITE, COLOR_TEXT_SAND );
     }
 }
 
 void FOClient::LookBordersDraw()
 {
-    if( RebuildLookBorders )
-    {
-        LookBordersPrepare();
-        RebuildLookBorders = false;
-    }
-    if( DrawLookBorders )
-        SprMngr.DrawPoints( LookBorders, PRIMITIVE_LINESTRIP, &GameOpt.SpritesZoom );
-    if( DrawShootBorders )
-        SprMngr.DrawPoints( ShootBorders, PRIMITIVE_LINESTRIP, &GameOpt.SpritesZoom );
+    ChosenLookBorder.Draw();
+    DebugLookBorder.Draw();
 }
 
 int FOClient::MainLoop()
@@ -1489,6 +1407,13 @@ void FOClient::ParseMouse()
     GameOpt.MouseX = CLAMP( GameOpt.MouseX, 0, GameOpt.ScreenWidth - 1 );
     GameOpt.MouseY = CLAMP( GameOpt.MouseY, 0, GameOpt.ScreenHeight - 1 );
 
+    if( DebugLookBorder.IsDrawView )
+    {
+        ushort hx = 0, hy = 0;
+        if( SScriptFunc::Global_GetMonitorHex( GameOpt.MouseX, GameOpt.MouseY, hx, hy, true ) )
+            DebugLookBorder.Prepare( GetFarDir( hx, hy, Chosen->GetHexX(), Chosen->GetHexY() ), hx, hy, COLOR_TEXT_DWHITE, COLOR_TEXT_SAND );
+    }
+
     // Stop processing if window not active
     if( !( SDL_GetWindowFlags( MainWindow ) & SDL_WINDOW_INPUT_FOCUS ) )
     {
@@ -1747,7 +1672,7 @@ void FOClient::ParseMouse()
                 if( IsMainScreen( SCREEN_GAME ) && ( screen == SCREEN_NONE || screen == SCREEN__TOWN_VIEW ) )
                 {
                     HexMngr.ChangeZoom( 0 );
-                    RebuildLookBorders = true;
+                    ChosenLookBorder.IsRebuild = true;
                 }
             }
         }
@@ -2222,7 +2147,7 @@ void FOClient::ProcessMouseWheel( int data )
             if( !ConsoleActive && GameOpt.MapZooming && IsMainScreen( SCREEN_GAME ) && GameOpt.SpritesZoomMin != GameOpt.SpritesZoomMax )
             {
                 HexMngr.ChangeZoom( data > 0 ? -1 : 1 );
-                RebuildLookBorders = true;
+                ChosenLookBorder.IsRebuild = true;
             }
         }
         else if( IsMainScreen( SCREEN_GLOBAL_MAP ) )
@@ -3184,6 +3109,9 @@ void FOClient::NetProcess()
         case NETMSG_ITEM_PROTOS:
             Net_OnProtoItemData();
             break;
+        case NETMSG_SEND_LOOK_DATA:
+            Net_OnLookData();
+            break;
 
         default:
             if( GameOpt.DebugNet )
@@ -3391,6 +3319,8 @@ void FOClient::Net_SendDir()
 
     Bout << NETMSG_DIR;
     Bout << (uchar) Chosen->GetDir();
+
+    ChosenLookBorder.IsRebuild = true;
 }
 
 void FOClient::Net_SendMove( UCharVec steps )
@@ -4032,6 +3962,14 @@ void FOClient::Net_OnTextMsg( bool with_lexems )
     }
 }
 
+void FOClient::Net_OnLookData()
+{
+    Bin.Pop((char*)ChosenLookData, OFFSETOF(LookData, dir));
+    Bin.Pop((char*)MapLookData, OFFSETOF(LookData, dir));
+    CHECK_IN_BUFF_ERROR;
+    ChosenLookBorder.IsRebuild = true;
+}
+
 void FOClient::OnText( const char* str, uint crid, int how_say, ushort intellect )
 {
     char fstr[ MAX_FOTEXT ];
@@ -4394,6 +4332,9 @@ void FOClient::Net_OnCritterDir()
     if( !cr )
         return;
     cr->SetDir( dir );
+
+    if( cr->IsChosen() )
+        ChosenLookBorder.IsRebuild = true;
 }
 
 void FOClient::Net_OnCritterMove()
@@ -4842,7 +4783,7 @@ void FOClient::Net_OnCritterXY()
             // SetAction(CHOSEN_NONE);
             MoveDirs.clear();
             Chosen->MoveSteps.clear();
-            RebuildLookBorders = true;
+            ChosenLookBorder.IsRebuild = true;
         }
     }
 
@@ -4882,7 +4823,7 @@ void FOClient::Net_OnChosenParams()
         Chosen->AnimateStay();
 
     // Refresh borders
-    RebuildLookBorders = true;
+    ChosenLookBorder.IsRebuild = true;
 
     WriteLog( "complete.\n" );
 }
@@ -5036,7 +4977,7 @@ void FOClient::Net_OnChosenParam()
 
     if( IsScreenPresent( SCREEN__CHARACTER ) )
         ChaPrepareSwitch();
-    RebuildLookBorders = true;     // Maybe changed some parameter influencing on look borders
+    ChosenLookBorder.IsRebuild = true;     // Maybe changed some parameter influencing on look borders
 }
 
 void FOClient::Net_OnChosenClearItems()
@@ -5104,7 +5045,7 @@ void FOClient::Net_OnChosenAddItem()
     }
 
     if( slot == SLOT_HAND1 || prev_slot == SLOT_HAND1 )
-        RebuildLookBorders = true;
+        ChosenLookBorder.IsRebuild = true;
     if( item->LightGetHash() != prev_light_hash && ( slot != SLOT_INV || prev_slot != SLOT_INV ) )
         HexMngr.RebuildLight();
     if( item->IsHidden() )
@@ -5183,7 +5124,7 @@ void FOClient::Net_OnAddItemOnMap()
 
     // Refresh borders
     if( item && !item->IsRaked() )
-        RebuildLookBorders = true;
+        ChosenLookBorder.IsRebuild = true;
 }
 
 void FOClient::Net_OnChangeItemOnMap()
@@ -5211,7 +5152,7 @@ void FOClient::Net_OnChangeItemOnMap()
 
     // Refresh borders
     if( item && is_raked != item->IsRaked() )
-        RebuildLookBorders = true;
+        ChosenLookBorder.IsRebuild = true;
 }
 
 void FOClient::Net_OnEraseItemFromMap()
@@ -5232,7 +5173,7 @@ void FOClient::Net_OnEraseItemFromMap()
 
     // Refresh borders
     if( item && !item->IsRaked() )
-        RebuildLookBorders = true;
+        ChosenLookBorder.IsRebuild = true;
 }
 
 void FOClient::Net_OnAnimateItem()
@@ -5687,8 +5628,14 @@ void FOClient::Net_OnLoadMap()
     HexMngr.SetWeather( map_time, map_rain );
     SetDayTime( true );
     Net_SendLoadMapOk();
-    LookBorders.clear();
-    ShootBorders.clear();
+    bool isview = ChosenLookBorder.IsDrawView,
+        ishear = ChosenLookBorder.IsDrawHear;
+    ChosenLookBorder.Clear();
+    DebugLookBorder.Clear( );
+    ChosenLookBorder.IsDrawView = isview;
+    ChosenLookBorder.IsDrawHear = ishear;
+    ChosenLookBorder.IsRebuild = true;
+    DebugLookBorder.IsRebuild = true;
     if( IsVideoPlayed() )
         MusicAfterVideo = MsgGM->GetStr( STR_MAP_MUSIC_( map_pid ) );
     else
@@ -7640,7 +7587,7 @@ label_EndMove:
             Chosen->ApRegenerationTick = 0;
 #endif
             HexMngr.SetCursorPos( GameOpt.MouseX, GameOpt.MouseY, Keyb::CtrlDwn, true );
-            RebuildLookBorders = true;
+            ChosenLookBorder.IsRebuild = true;
         }
 
         // Send about move
@@ -7689,7 +7636,7 @@ label_EndMove:
         }
         Chosen->SetDir( dir );
         Net_SendDir();
-		RebuildLookBorders = true;
+        ChosenLookBorder.IsRebuild = true;
     }
     break;
     case CHOSEN_USE_ITEM:
@@ -8083,7 +8030,7 @@ label_EndMove:
 
         // Light
         if( to_slot == SLOT_HAND1 || from_slot == SLOT_HAND1 )
-            RebuildLookBorders = true;
+            ChosenLookBorder.IsRebuild = true;
         if( item->IsLight() && ( to_slot == SLOT_INV || ( from_slot == SLOT_INV && to_slot != SLOT_GROUND ) ) )
             HexMngr.RebuildLight();
 
@@ -12199,16 +12146,6 @@ ScriptString* FOClient::SScriptFunc::Global_CustomCall( ScriptString& command, S
         }
 		SprMngr.RefreshViewPort();
     }
-    else if( cmd == "SwitchLookBorders" )
-    {
-        Self->DrawLookBorders = !Self->DrawLookBorders;
-        Self->RebuildLookBorders = true;
-    }
-    else if( cmd == "SwitchShootBorders" )
-    {
-        Self->DrawShootBorders = !Self->DrawShootBorders;
-        Self->RebuildLookBorders = true;
-    }
     else if( cmd == "SwitchSingleplayerPause" )
     {
         SingleplayerData.Pause = !SingleplayerData.Pause;
@@ -12379,6 +12316,36 @@ ScriptString* FOClient::SScriptFunc::CraftItem_GetScriptName(CraftItem* craft)
 	return new ScriptString(c_str);
 }
 
+void FOClient::SScriptFunc::Global_SetDebugLookMode( bool isDebug )
+{
+    Self->DebugLookBorder.Clear();
+    Self->DebugLookBorder.IsDrawView = Self->DebugLookBorder.IsDrawHear = isDebug;
+    if( isDebug )
+    {
+        Self->DebugLookBorder.IsRebuild = true;
+    }
+}
+
+bool FOClient::SScriptFunc::Global_IsDebugLookMode()
+{
+    return Self->DebugLookBorder.IsDrawView;
+}
+
+void FOClient::SScriptFunc::Global_ChangeViewBorder()
+{
+    if( Self->ChosenLookBorder.IsDrawView )
+    {
+        if( Self->ChosenLookBorder.IsDrawHear )
+        {
+            Self->ChosenLookBorder.IsDrawHear = false;
+            Self->ChosenLookBorder.IsDrawView = false;
+        }
+        else Self->ChosenLookBorder.IsDrawHear = true;
+    }
+    else Self->ChosenLookBorder.IsDrawView = true;
+    Self->ChosenLookBorder.IsRebuild = true;
+}
+
 bool&  FOClient::SScriptFunc::ConsoleActive = FOClient::ConsoleActive;
 bool&  FOClient::SScriptFunc::GmapActive = FOClient::GmapActive;
 bool&  FOClient::SScriptFunc::GmapWait = FOClient::GmapWait;
@@ -12390,3 +12357,263 @@ int&   FOClient::SScriptFunc::GmapGroupCurY = FOClient::GmapGroupCurY;
 int&   FOClient::SScriptFunc::GmapGroupToX = FOClient::GmapGroupToX;
 int&   FOClient::SScriptFunc::GmapGroupToY = FOClient::GmapGroupToY;
 float& FOClient::SScriptFunc::GmapGroupSpeed = FOClient::GmapGroupSpeed;
+
+void FOClient::VisualLookBorder::Clear()
+{
+    IsRebuild = false;
+    IsDrawView = false;
+    IsDrawHear = false;
+
+    View.clear();
+    Hear.clear();
+}
+
+void FOClient::VisualLookBorder::Prepare( uchar chosendir, ushort base_hx, ushort base_hy, int colorView, int colorHear )
+{
+    if( !IsDrawView && !IsDrawHear )
+        return;
+
+    Hear.clear();
+    View.clear();
+
+    if( FOClient::Self->HexMngr.IsMapLoaded() && FOClient::Self->Chosen )
+    {
+        uint   dist = FOClient::Self->Chosen->GetLook();
+        uint   dist_hear = dist;
+
+        LookData look;
+        FOClient::Self->ChosenLookData->GetMixed( *MapLookData, look );
+        int    hx = base_hx;
+        int    hy = base_hy;
+
+        ushort maxhx = FOClient::Self->HexMngr.GetMaxHexX();
+        ushort maxhy = FOClient::Self->HexMngr.GetMaxHexY();
+        bool   seek_start = true;
+
+        std::vector<Field*> fields;
+
+        if( FLAG( GameOpt.LookChecks, LOOK_CHECK_LOOK_DATA ) )
+        {
+            dist = look.MaxView;
+            dist_hear = look.MaxHear;
+
+            if( FOClient::Self->Chosen->IsRunning && !FOClient::Self->ChosenAction.empty() && FOClient::Self->ChosenAction[0].Type == CHOSEN_MOVE )
+                dist_hear = (uint)( dist_hear * look.RunningHearMultiplier * 0.01 );
+
+            Field& chosenfield = FOClient::Self->HexMngr.GetField( base_hx, base_hy );
+            for( auto it = chosenfield.Items.begin(), it_end = chosenfield.Items.end(); it != it_end; it++ )
+            {
+                auto item = *it;
+                if( item->IsViewBlocks() )
+                    dist = (uint)( dist * item->Proto->FORPData.Look_Block * 0.01 );
+                if( item->IsHearBlocks() )
+                    dist_hear = (uint)( dist_hear * item->Proto->FORPData.Hear_Block * 0.01 );
+            }
+        }
+
+        for( int i = 0; i < ( GameOpt.MapHexagonal ? 6 : 4 ); i++ )
+        {
+            int dir = ( GameOpt.MapHexagonal ? ( i + 2 ) % 6 : ( ( i + 1 ) * 2 ) % 8 );
+
+            for( uint j = 0, jj = ( GameOpt.MapHexagonal ? dist : dist * 2 ); j < jj; j++ )
+            {
+                if( seek_start )
+                {
+                    // Move to start position
+                    for( uint l = 0; l < dist; l++ )
+                        MoveHexByDirUnsafe( hx, hy, GameOpt.MapHexagonal ? 0 : 7 );
+                    seek_start = false;
+                    j = -1;
+                }
+                else
+                {
+                    // Move to next hex
+                    MoveHexByDirUnsafe( hx, hy, dir );
+                }
+
+                ushort hx_ = CLAMP( hx, 0, maxhx - 1 );
+                ushort hy_ = CLAMP( hy, 0, maxhy - 1 );
+
+                if( FLAG( GameOpt.LookChecks, LOOK_CHECK_LOOK_DATA ) )
+                {
+                    int dir_ = GetFarDir( base_hx, base_hy, hx_, hy_ );
+                    uchar ii = ( chosendir > dir_ ? chosendir - dir_ : dir_ - chosendir ); // = i8::abs(start_dir as i8 - cr.Dir as i8); //Направление
+                    if( ii > 3 )
+                        ii = 6 - ii;
+
+                    uint dist_ = (uint)( dist * look.ViewDirMultiplier[ii] * 0.01 );
+
+                    UShortPair block;
+                    fields.clear();
+                    if( dist_ == 0 )
+                        dist_ = 1;
+                    FOClient::Self->HexMngr.TraceBullet( base_hx, base_hy, hx_, hy_, dist_, 0.0f, NULL, false, NULL, 0, NULL, &block, NULL, true, &fields );
+
+                    uint newdist = dist_;
+                    if( !fields.empty() )
+                    {
+                        for( auto it_filed = fields.begin(), itf_end = fields.end(); it_filed != itf_end; it_filed++ )
+                        {
+                            Field* f = *it_filed;
+                            for( auto it = f->Items.begin(), it_end = f->Items.end(); it != it_end; it++ )
+                            {
+                                auto item = *it;
+                                if( !item->IsViewBlocks() )
+                                    continue;
+
+                                uint disttoitem = DistGame( base_hx, base_hy, item->HexX, item->HexY );
+                                uint distchange = newdist - disttoitem;
+                                if( disttoitem >= newdist )
+                                    continue;
+
+                                newdist = disttoitem + (uint)( distchange * item->Proto->FORPData.Look_BlockDir[GetFarDir( base_hx, base_hy, item->HexX, item->HexY )] * 0.01 );
+                            }
+                        }
+                    }
+
+                    if( newdist == 0 )
+                        newdist = 1;
+                    FOClient::Self->HexMngr.TraceBullet( base_hx, base_hy, hx_, hy_, newdist, 0.0f, NULL, false, NULL, 0, NULL, &block, NULL, true );
+                    hx_ = block.first;
+                    hy_ = block.second;
+
+                }
+                else
+                {
+                    if( FLAG( GameOpt.LookChecks, LOOK_CHECK_DIR ) )
+                    {
+                        int dir_ = GetFarDir( base_hx, base_hy, hx_, hy_ );
+                        int ii = ( dir > dir_ ? dir - dir_ : dir_ - dir );
+                        if( ii > DIRS_COUNT / 2 )
+                            ii = DIRS_COUNT - ii;
+                        uint       dist_ = dist - dist * GameOpt.LookDir[ii] / 100;
+                        UShortPair block;
+                        FOClient::Self->HexMngr.TraceBullet( base_hx, base_hy, hx_, hy_, dist_, 0.0f, NULL, false, NULL, 0, NULL, &block, NULL, false );
+                        hx_ = block.first;
+                        hy_ = block.second;
+                    }
+
+                    if( FLAG( GameOpt.LookChecks, LOOK_CHECK_TRACE ) )
+                    {
+                        UShortPair block;
+                        FOClient::Self->HexMngr.TraceBullet( base_hx, base_hy, hx_, hy_, 0, 0.0f, NULL, false, NULL, 0, NULL, &block, NULL, true );
+                        hx_ = block.first;
+                        hy_ = block.second;
+                    }
+                }
+
+                int x, y;
+                FOClient::Self->HexMngr.GetHexCurrentPosition( hx_, hy_, x, y );
+                View.push_back( PrepPoint( x + HEX_OX, y + HEX_OY, colorView, (short*)&GameOpt.ScrOx, (short*)&GameOpt.ScrOy ) );
+            }
+        }
+
+        hx = base_hx;
+        hy = base_hy;
+
+        seek_start = true;
+
+        if( FLAG( GameOpt.LookChecks, LOOK_CHECK_LOOK_DATA ) )
+        {
+            for( int i = 0; i < ( GameOpt.MapHexagonal ? 6 : 4 ); i++ )
+            {
+                int dir = ( GameOpt.MapHexagonal ? ( i + 2 ) % 6 : ( ( i + 1 ) * 2 ) % 8 );
+
+                for( uint j = 0, jj = ( GameOpt.MapHexagonal ? dist_hear : dist_hear * 2 ); j < jj; j++ )
+                {
+                    if( seek_start )
+                    {
+                        // Move to start position
+                        for( uint l = 0; l < dist_hear; l++ )
+                            MoveHexByDirUnsafe( hx, hy, GameOpt.MapHexagonal ? 0 : 7 );
+                        seek_start = false;
+                        j = -1;
+                    }
+                    else
+                    {
+                        // Move to next hex
+                        MoveHexByDirUnsafe( hx, hy, dir );
+                    }
+
+                    ushort hx_ = CLAMP( hx, 0, maxhx - 1 );
+                    ushort hy_ = CLAMP( hy, 0, maxhy - 1 );
+
+                    int dir_ = GetFarDir( base_hx, base_hy, hx_, hy_ );
+                    uchar ii = ( chosendir > dir_ ? chosendir - dir_ : dir_ - chosendir ); // = i8::abs(start_dir as i8 - cr.Dir as i8); //Направление
+                    if( ii > 3 )
+                        ii = 6 - ii;
+
+                    uint dist_ = (uint)( dist_hear * look.HearDirMultiplier[ii] * 0.01 );
+                    UShortPair block;
+
+                    fields.clear();
+                    if( dist_ == 0 )
+                        dist_ = 1;
+                    FOClient::Self->HexMngr.TraceBullet( base_hx, base_hy, hx_, hy_, dist_, 0.0f, NULL, false, NULL, 0, NULL, &block, NULL, false, &fields );
+
+                    uint newdist = dist_;
+                    if( !fields.empty() )
+                    {
+                        for( auto it_fieled = fields.begin(), itf_end = fields.end(); it_fieled != itf_end; it_fieled++ )
+                        {
+                            Field* field = *it_fieled;
+                            for( auto it = field->Items.begin(), it_end = field->Items.end(); it != it_end; it++ )
+                            {
+                                auto item = *it;
+                                if( item->IsHearBlocks() )
+                                {
+                                    uint disttoitem = DistGame( base_hx, base_hy, item->HexX, item->HexY );
+                                    uint distchange = newdist - disttoitem;
+                                    if( disttoitem < newdist )
+                                        newdist = disttoitem + (uint)( distchange * item->Proto->FORPData.Hear_BlockDir[GetFarDir( base_hx, base_hy, item->HexX, item->HexY )] * 0.01 );
+                                }
+
+                                if( item->IsWall() && !item->IsPassed() )
+                                {
+                                    uint disttoitem = DistGame( base_hx, base_hy, item->HexX, item->HexY );
+                                    uint distchange = newdist - disttoitem;
+                                    if( disttoitem < newdist )
+                                        newdist = disttoitem + (uint)( distchange * LookData::WallMaterialHearMultiplier[item->Proto->Material] * 0.01 );
+
+                                    //AddMess( FOMB_GAME, Str::FormatBuf( "%u", item->GetProtoId() ) );
+                                }
+                            }
+                        }
+                    }
+                    if( newdist == 0 )
+                        newdist = 1;
+                    FOClient::Self->HexMngr.TraceBullet( base_hx, base_hy, hx_, hy_, newdist, 0.0f, NULL, false, NULL, 0, NULL, &block, NULL, false );
+                    hx_ = block.first;
+                    hy_ = block.second;
+
+                    int x, y;
+                    FOClient::Self->HexMngr.GetHexCurrentPosition( hx_, hy_, x, y );
+                    Hear.push_back( PrepPoint( x + HEX_OX, y + HEX_OY, colorHear /*COLOR_ARGB(80, 0, 0, 255)*/, (short*)&GameOpt.ScrOx, (short*)&GameOpt.ScrOy ) );
+                }
+            }
+        }
+
+        if( View.size() < 2 )
+            View.clear();
+        else
+            View.push_back( *View.begin() );
+
+        if( Hear.size() < 2 )
+            Hear.clear();
+        else
+            Hear.push_back( *Hear.begin() );
+    }
+}
+
+void FOClient::VisualLookBorder::Draw()
+{
+    if( IsRebuild )
+    {
+        FOClient::Self->LookBordersPrepare();
+        IsRebuild = false;
+    }
+    if( IsDrawView )
+        SprMngr.DrawPoints( View, PRIMITIVE_LINESTRIP, &GameOpt.SpritesZoom );
+    if( IsDrawHear )
+        SprMngr.DrawPoints( Hear, PRIMITIVE_LINESTRIP, &GameOpt.SpritesZoom );
+}

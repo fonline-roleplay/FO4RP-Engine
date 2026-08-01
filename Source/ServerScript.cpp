@@ -3,6 +3,7 @@
 #include "AngelScript/preprocessor.h"
 #include "Version.h"
 #include "ScriptPragmas.h"
+#include "LookData.h"
 
 extern Preprocessor* ScriptPreprocessor;
 
@@ -6496,7 +6497,61 @@ void FOServer::SScriptFunc::Global_Resynchronize()
         SCRIPT_ERROR_R( "Invalid call." );
 }
 
+LookData* FOServer::SScriptFunc::Crit_GetLookData( Critter* critter )
+{
+    if( critter->IsNotValid )
+        SCRIPT_ERROR_R0( "This nullptr." );
 
+    return &critter->Data.Look;
+}
+
+LookData* FOServer::SScriptFunc::Map_GetLookData( Map* map )
+{
+    if( map->IsNotValid )
+        SCRIPT_ERROR_R0( "This nullptr." );
+
+    return &map->Data.Look;
+}
+
+void FOServer::SScriptFunc::Crit_UpdateLookData( Critter* critter )
+{
+    if( critter->IsNotValid )
+        SCRIPT_ERROR_R( "This nullptr." );
+
+    critter->Data.LookRefreshFlag = true;
+    critter->Send_LookData();
+}
+
+// LookData::Result LookData::CheckLook( Map& map, LookData& look, LookData& hide )
+bool FOServer::SScriptFunc::CheckLook( Map& map, LookData& look, LookData& hide, bool& isView, bool& isHear, bool isDebug )
+{
+    if( map.IsNotValid )
+        SCRIPT_ERROR_R0( "This nullptr." );
+
+    LookData mixLook, mixHide;
+    look.GetMixed( map.Data.Look, mixLook );
+    hide.GetMixed( map.Data.Look, mixHide );
+
+
+    mixLook.dir = look.dir;
+    mixLook.hexx = look.hexx;
+    mixLook.hexy = look.hexy;
+    mixLook.isplayer = look.isplayer;
+    mixLook.isruning = look.isruning;
+    mixLook.access = look.access;
+
+    mixHide.dir = hide.dir;
+    mixHide.hexx = hide.hexx;
+    mixHide.hexy = hide.hexy;
+    mixHide.isplayer = hide.isplayer;
+    mixHide.isruning = hide.isruning;
+    mixHide.access = hide.access;
+
+    auto result = LookData::CheckLook( map, mixLook, mixHide, isDebug );
+    isView = result.IsView;
+    isHear = result.IsHear;
+    return result.IsLook;
+}
 
 /************************************************************************/
 /*                                                                      */
