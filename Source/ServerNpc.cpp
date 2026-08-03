@@ -401,8 +401,10 @@ void FOServer::ProcessAI( Npc* npc )
 /************************************************************************/
     case AI_PLANE_ATTACK:
     {
+        #ifndef FORP_ENGINE
         if( map->Data.IsTurnBasedAviable && !map->IsTurnBasedOn )
             map->BeginTurnBased( npc );
+        #endif
 
         /************************************************************************/
         /* Target is visible                                                    */
@@ -507,6 +509,7 @@ void FOServer::ProcessAI( Npc* npc )
             npc->ItemSlotMain->SetMode( MAKE_ITEM_MODE( use, 0 ) );
 
             // Load weapon
+            #ifndef FORP_ENGINE
             if( !npc->IsRawParam( MODE_UNLIMITED_AMMO ) && weap->WeapGetMaxAmmoCount() && weap->WeapIsEmpty() )
             {
                 Item* ammo = npc->GetAmmoForWeapon( weap );
@@ -523,6 +526,14 @@ void FOServer::ProcessAI( Npc* npc )
             }
             else if( npc->IsRawParam( MODE_UNLIMITED_AMMO ) && weap->WeapGetMaxAmmoCount() )
                 weap->WeapLoadHolder();
+            #else
+            if( weap->WeapGetMaxAmmoCount() && weap->WeapIsEmpty() )
+            {
+                Item* ammo = npc->GetAmmoForWeapon( weap );
+                AI_ReloadWeapon( npc, map, weap, ammo ? ammo->GetId() : 0 );
+                break;
+            }
+            #endif
 
             /************************************************************************/
             /* Step 2: Move to target                                               */
