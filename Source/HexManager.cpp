@@ -2791,6 +2791,17 @@ ItemHex* HexManager::GetItemPixel( int x, int y, bool& item_egg )
     {
         static bool ByTreeIndex( ItemHex* o1, ItemHex* o2 )   { return o1->SprTemp->TreeIndex > o2->SprTemp->TreeIndex; }
         static bool ByTransparent( ItemHex* o1, ItemHex* o2 ) { return !o1->IsTransparent() && o2->IsTransparent(); }
+        static bool ByBad( ItemHex* o1, ItemHex* o2 )         { return o1->IsBadItem() && !o2->IsBadItem(); }
+
+        static inline void sort( ItemHexVec& items )
+        {
+            if( items.size() > 1 )
+            {
+                std::sort( items.begin(), items.end(), ByTreeIndex );
+                std::sort( items.begin(), items.end(), ByTransparent );
+                std::sort( items.begin(), items.end(), ByBad );
+            }
+        }
     };
 
     // Egg items
@@ -2798,20 +2809,13 @@ ItemHex* HexManager::GetItemPixel( int x, int y, bool& item_egg )
     {
         if( pix_item_egg.empty() )
             return NULL;
-        if( pix_item_egg.size() > 1 )
-        {
-            std::sort( pix_item_egg.begin(), pix_item_egg.end(), Sorter::ByTreeIndex );
-            std::sort( pix_item_egg.begin(), pix_item_egg.end(), Sorter::ByTransparent );
-        }
+        Sorter::sort( pix_item_egg );
         item_egg = true;
         return pix_item_egg[ 0 ];
     }
-
-    // Visible items
-    if( pix_item.size() > 1 )
+    else // Visible items
     {
-        std::sort( pix_item.begin(), pix_item.end(), Sorter::ByTreeIndex );
-        std::sort( pix_item.begin(), pix_item.end(), Sorter::ByTransparent );
+        Sorter::sort( pix_item_egg );
     }
     item_egg = false;
     return pix_item[ 0 ];
