@@ -738,12 +738,14 @@ bool FOServer::Act_Reload( Critter* cr, uint weap_id, uint ammo_id )
 {
     cr->SetBreakTime( GameOpt.Breaktime );
 
+    #ifndef FORP_ENGINE
     if( !cr->CheckMyTurn( NULL ) )
     {
         WriteLogF( _FUNC_, " - Is not critter<%s> turn.\n", cr->GetInfo() );
         cr->Send_Param( ST_CURRENT_AP );
         return false;
     }
+    #endif
 
     Item* weap = cr->GetItem( weap_id, true );
     if( !weap )
@@ -758,11 +760,13 @@ bool FOServer::Act_Reload( Critter* cr, uint weap_id, uint ammo_id )
         return false;
     }
 
+    #ifndef FORP_ENGINE
     if( !weap->WeapGetMaxAmmoCount() )
     {
         WriteLogF( _FUNC_, " - Weapon is not have holder, id<%u>, critter<%s>.\n", weap_id, cr->GetInfo() );
         return false;
     }
+    #endif
 
     int ap_cost = ( GameOpt.GetUseApCost ? GameOpt.GetUseApCost( cr, weap, USE_RELOAD ) : 1 );
     if( cr->GetParam( ST_CURRENT_AP ) < ap_cost && !Singleplayer )
@@ -774,6 +778,7 @@ bool FOServer::Act_Reload( Critter* cr, uint weap_id, uint ammo_id )
     cr->SubAp( ap_cost );
 
     Item* ammo = ( ammo_id ? cr->GetItem( ammo_id, true ) : NULL );
+    #ifndef FORP_ENGINE
     if( ammo_id && !ammo )
     {
         WriteLogF( _FUNC_, " - Unable to find ammo, id<%u>, critter<%s>.\n", ammo_id, cr->GetInfo() );
@@ -791,6 +796,7 @@ bool FOServer::Act_Reload( Critter* cr, uint weap_id, uint ammo_id )
         WriteLogF( _FUNC_, " - Weapon is full, id<%u>, critter<%s>.\n", weap_id, cr->GetInfo() );
         return false;
     }
+    #endif
 
     if( !Script::PrepareContext( ServerFunctions.CritterReloadWeapon, _FUNC_, cr->GetInfo() ) )
         return false;
@@ -801,9 +807,11 @@ bool FOServer::Act_Reload( Critter* cr, uint weap_id, uint ammo_id )
         return false;
 
     cr->SendAA_Action( ACTION_RELOAD_WEAPON, 0, weap );
+    #ifndef FORP_ENGINE
     Map* map = MapMngr.GetMap( cr->GetMap() );
     if( map && map->IsTurnBasedOn && !cr->GetAllAp() )
         map->EndCritterTurn();
+    #endif
     return true;
 }
 
