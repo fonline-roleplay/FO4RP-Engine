@@ -349,6 +349,8 @@ public:
     void SetText( const char* str, uint color, uint text_delay );
     void GetNameTextInfo( bool& nameVisible, int& x, int& y, int& w, int& h, int& lines );
     void DrawTextOnHead();
+    void FormatTextPoint( int& x, int& y );
+    void DropTextOnHeadPosition();
 
 private:
     Rect   textRect;
@@ -357,6 +359,9 @@ private:
     uint   tickStartText;
     uint   tickTextDelay;
     uint   textOnHeadColor;
+
+    int textOnHeadPointX;
+    int textOnHeadPointY;
 
     // Ap cost
 public:
