@@ -845,8 +845,21 @@ void Critter::ProcessVisibleItems()
     if( !map )
         return;
 
-    int        look = GetLook();
-    ItemPtrVec items = map->GetItemsNoLock();
+    ProcessVisibleItemVec( map->GetItemsNoLock() );
+    if( IsPlayer() )
+        ProcessVisibleItemVec( map->GetDecalsNoLock() );
+}
+
+void Critter::ProcessVisibleItemVec( ItemPtrVec& items )
+{
+    Map* map = MapMngr.GetMap( GetMap() );
+    if( !map )
+        return;
+
+    static LookData hideitem;
+    static LookData lookdata;
+    Data.Look.GetMixed( map->Data.Look, lookdata );
+    lookdata.InitCritter( *this );
     for( auto it = items.begin(), end = items.end(); it != end; ++it )
     {
         Item* item = *it;
@@ -877,10 +890,14 @@ void Critter::ProcessVisibleItems()
             }
             else
             {
-                int dist = DistGame( Data.HexX, Data.HexY, item->AccHex.HexX, item->AccHex.HexY );
-                if( item->IsTrap() )
-                    dist += item->TrapGetValue();
-                allowed = look >= dist;
+                if( item->IsLight() )
+                    hideitem = LookData::ItemLightLookData;
+                else
+                    hideitem = LookData::ItemLookData;
+
+                hideitem.GetMixed( map->Data.Look, hideitem );
+                hideitem.InitItem( *item );
+                allowed = LookData::CheckLook( *map, lookdata, hideitem ).IsLook;
             }
 
             if( allowed )
