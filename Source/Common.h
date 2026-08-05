@@ -302,6 +302,7 @@ struct ClientScriptFunctions
     int FilenameLogfile;
     int FilenameScreenshot;
     int CritterCheckMoveItem;
+    int CritterGetMoney;
 } extern ClientFunctions;
 
 struct MapperScriptFunctions

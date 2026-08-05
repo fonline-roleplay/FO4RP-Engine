@@ -677,13 +677,26 @@ void CritterCl::DrawStay( Rect r )
     }
 }
 
-#pragma MESSAGE("Exclude PID_BOTTLE_CAPS.")
 const char* CritterCl::GetMoneyStr()
 {
-    static char money_str[ 64 ];
-    uint        money_count = CountItemPid( 41 /*PID_BOTTLE_CAPS*/ );
-    Str::Format( money_str, "%u$", money_count );
-    return money_str;
+#ifndef FONLINE_MAPPER
+    if( Script::PrepareContext( ClientFunctions.CritterGetMoney, _FUNC_, "Game" ) )
+    {
+        Script::SetArgObject( this );
+        if( Script::RunPrepared() )
+        {
+            ScriptString* result = (ScriptString*)Script::GetReturnedObject();
+            if( result )
+            {
+                static char money_str[64];
+                Str::Copy( money_str, result->c_str() );
+                return money_str[0] ? money_str : NULL;
+            }
+        }
+    }
+#endif
+
+    return Str::FormatBuf( "<error>" );
 }
 
 bool CritterCl::NextRateItem( bool prev )
