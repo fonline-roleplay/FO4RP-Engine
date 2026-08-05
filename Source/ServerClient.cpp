@@ -650,7 +650,11 @@ bool FOServer::Act_Attack( Critter* cr, uchar rate_weap, uint target_id )
         return false;
     }
 
+    #ifndef FORP_ENGINE
     int ap_cost = ( GameOpt.GetUseApCost ? GameOpt.GetUseApCost( cr, weap, rate_weap ) : 1 );
+    #else // FORP_ENGINE
+    int ap_cost = 0;
+    #endif // FORP_ENGINE
     if( cr->GetParam( ST_CURRENT_AP ) < ap_cost && !Singleplayer )
     {
         cr->Send_Param( ST_CURRENT_AP );
@@ -768,7 +772,11 @@ bool FOServer::Act_Reload( Critter* cr, uint weap_id, uint ammo_id )
     }
     #endif
 
+    #ifndef FORP_ENGINE
     int ap_cost = ( GameOpt.GetUseApCost ? GameOpt.GetUseApCost( cr, weap, USE_RELOAD ) : 1 );
+    #else // FORP_ENGINE
+    int ap_cost = 0;
+    #endif // FORP_ENGINE
     if( cr->GetParam( ST_CURRENT_AP ) < ap_cost && !Singleplayer )
     {
         WriteLogF( _FUNC_, " - Not enough AP, critter<%s>.\n", cr->GetInfo() );
@@ -839,7 +847,12 @@ bool FOServer::Act_Use( Critter* cr, uint item_id, int skill, int target_type, u
         }
     }
 
+    #ifndef FORP_ENGINE
     int ap_cost = ( item_id ? ( GameOpt.GetUseApCost ? GameOpt.GetUseApCost( cr, item, USE_USE ) : 1 ) : cr->GetApCostUseSkill() );
+    #else // FORP_ENGINE
+    int ap_cost = 0;
+    #endif // FORP_ENGINE
+
     if( cr->GetParam( ST_CURRENT_AP ) < ap_cost && !Singleplayer )
     {
         cr->Send_Param( ST_CURRENT_AP );
@@ -1119,7 +1132,12 @@ bool FOServer::Act_PickItem( Critter* cr, ushort hx, ushort hy, ushort pid )
         return false;
     }
 
+    #ifndef FORP_ENGINE
     int ap_cost = cr->GetApCostPickItem();
+    #else // FORP_ENGINE
+    int ap_cost = 0;
+    #endif // FORP_ENGINE
+
     if( cr->GetParam( ST_CURRENT_AP ) < ap_cost && !Singleplayer )
     {
         WriteLogF( _FUNC_, " - Not enough AP, critter<%s>.\n", cr->GetInfo() );

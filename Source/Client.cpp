@@ -7385,6 +7385,7 @@ void FOClient::CrittersProcess()
     }
 
     ActionEvent act = ChosenAction[ 0 ];
+    #ifndef FORP_ENGINE
     #define CHECK_NEED_AP( need_ap )                                                                                                                                                                                                                                                                                                       \
         { if( IsTurnBased && !IsTurnBasedMyTurn() )                                                                                                                                                                                                                                                                                        \
               break; if( Chosen->GetParam( ST_ACTION_POINTS ) < (int) ( need_ap ) ) { AddMess( FOMB_GAME, FmtCombatText( STR_COMBAT_NEED_AP, need_ap ) ); break; } if( Chosen->GetParam( ST_CURRENT_AP ) < (int) ( need_ap ) ) { if( IsTurnBased ) { if( Chosen->GetParam( ST_CURRENT_AP ) )                                               \
@@ -7396,7 +7397,20 @@ void FOClient::CrittersProcess()
               break; if( Chosen->GetParam( ST_ACTION_POINTS ) * AP_DIVIDER < (int) ( need_ap ) ) { AddMess( FOMB_GAME, FmtCombatText( STR_COMBAT_NEED_AP, ( need_ap ) / AP_DIVIDER ) ); break; } if( Chosen->GetRealAp() < (int) ( need_ap ) ) { if( IsTurnBased ) { if( Chosen->GetRealAp() )                                                                              \
                                                                                                                                                                                                                                                                          AddMess( FOMB_GAME, FmtCombatText( STR_COMBAT_NEED_AP, ( need_ap ) / AP_DIVIDER ) ); break; } else \
                                                                                                                                                                                                                                                      return; } }
-
+    #else // !FORP_ENGINE
+    #define CHECK_NEED_AP( need_ap )                                                                                                                                                         \
+        { if( IsTurnBased && !IsTurnBasedMyTurn() )                                                                                                                                          \
+              break; if( Chosen->GetParam( ST_CURRENT_AP ) < 0 ) { if( IsTurnBased ) { if( Chosen->GetParam( ST_CURRENT_AP ) )                                                               \
+                                                                                                           AddMess( FOMB_GAME, FmtCombatText( STR_COMBAT_NEED_AP, need_ap ) ); break; } else \
+																																												   return; } \
+        }
+    #define CHECK_NEED_REAL_AP( need_ap )                                                                                                                                                    \
+        { if( IsTurnBased && !IsTurnBasedMyTurn() )                                                                                                                                          \
+              break; if( Chosen->GetRealAp() < 0 ) { if( IsTurnBased ) { if( Chosen->GetRealAp() )                                                                                           \
+                                                                                          AddMess( FOMB_GAME, FmtCombatText( STR_COMBAT_NEED_AP, ( need_ap ) / AP_DIVIDER ) ); break; } else \
+                                                                                                                                                                                 return; } }
+    #endif // FORP_ENGINE
+    
     // Force end move
     if( act.Type != CHOSEN_MOVE && act.Type != CHOSEN_MOVE_TO_CRIT && MoveDirs.size() )
     {
@@ -7884,7 +7898,9 @@ label_EndMove:
         else
             Chosen->Action( ACTION_USE_ITEM, 0, item );
 
+        #ifndef FORP_ENGINE
         Chosen->SubAp( ap_cost );
+        #endif
 
         if( is_attack && !aim && Keyb::ShiftDwn )               // Continue battle after attack
         {

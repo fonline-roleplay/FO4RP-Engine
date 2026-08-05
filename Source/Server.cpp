@@ -1561,7 +1561,9 @@ void FOServer::Process( ClientPtr& cl )
             #define CHECK_IS_GLOBAL                  \
                 if( cl->GetMap() || !cl->GroupMove ) \
                     break;
-                #define CHECK_AP_MSG                                                                                                      \
+
+        #ifndef FORP_ENGINE
+        #define CHECK_AP_MSG                                                                                                      \
                     uchar ap; cl->Bin >> ap; if( !Singleplayer ) { if( !cl->IsTurnBased() ) { if( ap > cl->GetParam( ST_ACTION_POINTS ) ) \
                                                                                                   break; if( (int) ap > cl->GetParam( ST_CURRENT_AP ) ) { cl->Bin.MoveReadPos( -int( sizeof( msg ) + sizeof( ap ) ) ); BIN_END( cl ); return; } } }
         #define CHECK_AP( ap )                                                                                     \
@@ -1570,6 +1572,16 @@ void FOServer::Process( ClientPtr& cl )
         #define CHECK_REAL_AP( ap )                                                                                             \
             if( !Singleplayer ) { if( !cl->IsTurnBased() ) { if( (int) ( ap ) > cl->GetParam( ST_ACTION_POINTS ) * AP_DIVIDER ) \
                                                                  break; if( (int) ( ap ) > cl->GetRealAp() ) { cl->Bin.MoveReadPos( -int( sizeof( msg ) ) ); BIN_END( cl ); return; } } }
+        #else // !FORP_ENGINE
+        #define CHECK_AP_MSG                                                                                                      \
+                    uchar ap; cl->Bin >> ap; if( !Singleplayer ) { if( !cl->IsTurnBased() ) { if( cl->GetParam( ST_CURRENT_AP ) < 0 ) { cl->Bin.MoveReadPos( -int( sizeof( msg ) + sizeof( ap ) ) ); BIN_END( cl ); return; } } }
+        #define CHECK_AP( ap )                                                                                     \
+            if( !Singleplayer ) { if( !cl->IsTurnBased() ) { if( cl->GetParam( ST_CURRENT_AP ) < 0 ) \
+                                                                 break; } }
+        #define CHECK_REAL_AP( ap )                                                                                             \
+            if( !Singleplayer ) { if( !cl->IsTurnBased() ) { if( cl->GetParam( ST_CURRENT_AP ) < 0 ) \
+                                                                 break; } }
+        #endif // FORP_ENGINE
 
         for( int i = 0; i < MESSAGES_PER_CYCLE; i++ )
         {
