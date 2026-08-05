@@ -28,6 +28,7 @@ public:
     uint     Color;
     uint     FlashMask;
     Effect** DrawEffect;
+    float    Scale;
     bool*    ValidCallback;
     bool     Valid;
 
@@ -46,6 +47,7 @@ public:
     void SetAlpha( uchar* alpha );
     void SetFlash( uint mask );
     void SetLight( uchar* light, int maxhx, int maxhy );
+    void SetScale( float scale );
 };
 typedef vector< Sprite* > SpriteVec;
 

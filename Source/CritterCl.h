@@ -32,6 +32,7 @@ public:
     uint         BaseType, BaseTypeAlias;
     uint         ApRegenerationTick;
     short        Multihex;
+    float        Scale;
     Effect*      DrawEffect;
 
     ScriptString Name;

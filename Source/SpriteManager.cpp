@@ -3490,16 +3490,17 @@ void SpriteManager::GetDrawRect( Sprite* prep, Rect& rect )
 
     if( !si->Anim3d )
     {
-        int x = prep->ScrX - si->Width / 2 + si->OffsX;
-        int y = prep->ScrY - si->Height + si->OffsY;
+        float scale = prep->Scale;
+        int x = prep->ScrX + (int) ( ( -si->Width / 2 + si->OffsX ) * scale );
+        int y = prep->ScrY + (int) ( ( -si->Height + si->OffsY ) * scale );
         if( prep->OffsX )
             x += *prep->OffsX;
         if( prep->OffsY )
             y += *prep->OffsY;
         rect.L = x;
         rect.T = y;
-        rect.R = x + si->Width;
-        rect.B = y + si->Height;
+        rect.R = x + (int) ( si->Width * scale );
+        rect.B = y + (int) ( si->Height * scale );
     }
     else
     {
@@ -3608,7 +3609,16 @@ bool SpriteManager::DrawSprites( Sprites& dtree, bool collect_contours, bool use
             x += *spr->OffsX;
         if( spr->OffsY )
             y += *spr->OffsY;
+        float scale = ( !si->Anim3d ? spr->Scale : 1.0f );
         float zoom = GameOpt.SpritesZoom;
+
+        if( !si->Anim3d && scale != 1.0f )
+        {
+            int anchor_x = spr->ScrX + GameOpt.ScrOx + ( spr->OffsX ? *spr->OffsX : 0 );
+            int anchor_y = spr->ScrY + GameOpt.ScrOy + ( spr->OffsY ? *spr->OffsY : 0 );
+            x = anchor_x + (int) ( ( x - anchor_x ) * scale );
+            y = anchor_y + (int) ( ( y - anchor_y ) * scale );
+        }
 
         // Base color
         uint cur_color;
@@ -3696,7 +3706,7 @@ bool SpriteManager::DrawSprites( Sprites& dtree, bool collect_contours, bool use
         }
 
         // Check borders
-        if( x / zoom > GameOpt.ScreenWidth || ( x + si->Width ) / zoom < 0 || y / zoom > GameOpt.ScreenHeight || ( y + si->Height ) / zoom < 0 )
+        if( x / zoom > GameOpt.ScreenWidth || ( x + si->Width * scale ) / zoom < 0 || y / zoom > GameOpt.ScreenHeight || ( y + si->Height * scale ) / zoom < 0 )
             continue;
 
         // 2d sprite
@@ -3767,8 +3777,8 @@ bool SpriteManager::DrawSprites( Sprites& dtree, bool collect_contours, bool use
         // Casts
         float xf = (float) x / zoom;
         float yf = (float) y / zoom;
-        float wf = (float) si->Width / zoom;
-        float hf = (float) si->Height / zoom;
+        float wf = (float) si->Width * scale / zoom;
+        float hf = (float) si->Height * scale / zoom;
 
         // Fill buffer
         int mulpos = curSprCnt * 4;
@@ -4247,7 +4257,8 @@ bool SpriteManager::DrawContours()
 
 bool SpriteManager::CollectContour( int x, int y, SpriteInfo* si, Sprite* spr )
 {
-    Rect     borders = Rect( x - 1, y - 1, x + si->Width + 1, y + si->Height + 1 );
+    float    scale = ( !si->Anim3d ? spr->Scale : 1.0f );
+    Rect     borders = Rect( x - 1, y - 1, x + (int) ( si->Width * scale ) + 1, y + (int) ( si->Height * scale ) + 1 );
     Texture* texture = si->Surf->TextureOwner;
     RectF    textureuv, sprite_border;
     float    zoom = ( si->Anim3d ? 1.0f : GameOpt.SpritesZoom );
@@ -4284,7 +4295,7 @@ bool SpriteManager::CollectContour( int x, int y, SpriteInfo* si, Sprite* spr )
     {
         RectF& sr = si->SprRect;
         borders( (int) ( x / zoom ), (int) ( y / zoom ),
-                 (int) ( ( x + si->Width ) / zoom ), (int) ( ( y + si->Height ) / zoom ) );
+                 (int) ( ( x + si->Width * scale ) / zoom ), (int) ( ( y + si->Height * scale ) / zoom ) );
         RectF bordersf( (float) borders.L, (float) borders.T, (float) borders.R, (float) borders.B );
         float mid_height = rtContoursMid.TargetTexture->SizeData[ 1 ];
 
