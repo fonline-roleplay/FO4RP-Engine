@@ -29,7 +29,7 @@ CritterCl::CritterCl(): CrDir( 0 ), SprId( 0 ), Id( 0 ), Pid( 0 ), NameColor( 0 
                         staySprDir( 0 ), staySprTick( 0 ), needReSet( false ), reSetTick( 0 ), CurMoveStep( 0 ),
                         Visible( true ), SprDrawValid( false ), IsNotValid( false ), RefCounter( 1 ),
                         OxExtI( 0 ), OyExtI( 0 ), OxExtF( 0 ), OyExtF( 0 ), OxExtSpeed( 0 ), OyExtSpeed( 0 ), OffsExtNextTick( 0 ),
-                        Anim3d( NULL ), Anim3dStay( NULL ), Layers3d( NULL ), Multihex( 0 ), textOnHeadPointX( -1000 ), textOnHeadPointY( -1000 )
+                        Anim3d( NULL ), Anim3dStay( NULL ), Layers3d( NULL ), Multihex( 0 ), Scale( 1.0f ), textOnHeadPointX( -1000 ), textOnHeadPointY( -1000 )
 {
     Name = "";
     NameOnHead = "";
@@ -611,12 +611,14 @@ void CritterCl::ProcessChangedParams()
             }
             else if( index == ST_SCALE_FACTOR )
             {
+                int   value = Params[ ST_SCALE_FACTOR ];
+                Scale = max( 0.001f, (float) ( value ? value : 1000 ) / 1000.0f );
+                if( SprDrawValid )
+                    SprDraw->SetScale( Scale );
                 if( Anim3d )
-                {
-                    int   value = Params[ ST_SCALE_FACTOR ];
-                    float scale = (float) ( value ? value : 1000 ) / 1000.0f;
-                    Anim3d->SetScale( scale, scale, scale );
-                }
+                    Anim3d->SetScale( Scale, Scale, Scale );
+                if( Anim3dStay )
+                    Anim3dStay->SetScale( Scale, Scale, Scale );
             }
         }
         ParamsChanged.clear();

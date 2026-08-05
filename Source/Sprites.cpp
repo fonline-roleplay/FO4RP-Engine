@@ -66,6 +66,7 @@ SPRITE_SETTER2( SetContour, int, ContourType, uint, ContourColor );
 SPRITE_SETTER( SetColor, uint, Color );
 SPRITE_SETTER( SetAlpha, uchar *, Alpha );
 SPRITE_SETTER( SetFlash, uint, FlashMask );
+SPRITE_SETTER( SetScale, float, Scale );
 
 void Sprite::SetLight( uchar* light, int maxhx, int maxhy )
 {
@@ -135,6 +136,7 @@ Sprite& Sprites::PutSprite( uint index, int draw_order, int hx, int hy, int cut,
     spr->Color = 0;
     spr->FlashMask = 0;
     spr->DrawEffect = effect;
+    spr->Scale = 1.0f;
     spr->Parent = NULL;
     spr->Child = NULL;
 

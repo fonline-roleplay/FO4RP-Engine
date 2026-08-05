@@ -1043,6 +1043,7 @@ void HexManager::RebuildMap( int rx, int ry )
                                                   f.ScrX + HEX_OX, f.ScrY + HEX_OY, 0, &cr->SprId, &cr->SprOx, &cr->SprOy,
                                                   &cr->Alpha, &cr->DrawEffect, &cr->SprDrawValid );
                 spr.SetLight( hexLight, maxHexX, maxHexY );
+                spr.SetScale( cr->Scale );
                 cr->SprDraw = &spr;
 
                 cr->SetSprRect();
@@ -1069,6 +1070,7 @@ void HexManager::RebuildMap( int rx, int ry )
                                                       f.ScrX + HEX_OX, f.ScrY + HEX_OY, 0, &cr->SprId, &cr->SprOx, &cr->SprOy,
                                                       &cr->Alpha, &cr->DrawEffect, &cr->SprDrawValid );
                     spr.SetLight( hexLight, maxHexX, maxHexY );
+                    spr.SetScale( cr->Scale );
 
 					//dead critters containers
 					if ( GameOpt.ShowContourDeadCritters && !cr->IsRawParam( MODE_NO_LOOT ) )
@@ -2447,7 +2449,8 @@ void HexManager::SetCrit( CritterCl* cr )
         Sprite& spr = mainTree.InsertSprite( DRAW_ORDER_CRIT_AUTO( cr ), hx, hy, 0, f.ScrX + HEX_OX, f.ScrY + HEX_OY,
                                              0, &cr->SprId, &cr->SprOx, &cr->SprOy, &cr->Alpha, &cr->DrawEffect, &cr->SprDrawValid );
         spr.SetLight( hexLight, maxHexX, maxHexY );
-        cr->SprDraw = &spr;
+        spr.SetScale( cr->Scale );
+		cr->SprDraw = &spr;
 
         cr->SetSprRect();
         cr->FixLastHexes();
@@ -2848,7 +2851,8 @@ CritterCl* HexManager::GetCritterPixel( int x, int y, bool ignore_dead_and_chose
         // Check sprite hit
         if( x >= ( cr->DRect.L + GameOpt.ScrOx ) / GameOpt.SpritesZoom && x <= ( cr->DRect.R + GameOpt.ScrOx ) / GameOpt.SpritesZoom &&
             y >= ( cr->DRect.T + GameOpt.ScrOy ) / GameOpt.SpritesZoom && y <= ( cr->DRect.B + GameOpt.ScrOy ) / GameOpt.SpritesZoom &&
-            SprMngr.IsPixNoTransp( cr->SprId, (int) ( x - ( cr->DRect.L + GameOpt.ScrOx ) / GameOpt.SpritesZoom ), (int) ( y - ( cr->DRect.T + GameOpt.ScrOy ) / GameOpt.SpritesZoom ) ) )
+            SprMngr.IsPixNoTransp( cr->SprId, (int) ( ( x - ( cr->DRect.L + GameOpt.ScrOx ) / GameOpt.SpritesZoom ) / cr->Scale ),
+                                  (int) ( ( y - ( cr->DRect.T + GameOpt.ScrOy ) / GameOpt.SpritesZoom ) / cr->Scale ) ) )
         {
             crits.push_back( cr );
         }
