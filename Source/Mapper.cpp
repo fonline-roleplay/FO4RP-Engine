@@ -2793,6 +2793,13 @@ void FOMapper::IntLMouseDown()
             else if( !Keyb::CtrlDwn )
                 SelectClear();
 
+            if( Keyb::AltDwn )
+            {
+                PipCursorObj();
+                IntHold = INT_NONE;
+                return;
+            }
+
             // HexMngr.ClearHexTrack();
             // HexMngr.RefreshMap();
             IntHold = INT_SELECT;
@@ -3422,6 +3429,176 @@ void FOMapper::SetTabIndex( uint index )
     if( IntMode < TAB_COUNT )
         TabsActive[ IntMode ]->Index = index;
     TabIndex[ IntMode ] = index;
+}
+
+void FOMapper::PipCursorObj()
+{
+    ItemHex* item;
+    CritterCl* cr;
+    HexMngr.GetSmthPixel( GameOpt.MouseX, GameOpt.MouseY, item, cr );
+
+    int tabIndex = -1;
+    SubTab* stab;
+    int destIntMode = -1;
+
+    if( item )
+    {
+        ushort pid = item->GetProtoId();
+
+        if( pid <= 0 )
+            return;
+
+        stab = &Tabs[INT_MODE_FAST][DEFAULT_SUB_TAB];
+        for( int i = 0, len = stab->ItemProtos.size(); i < len; i++ )
+        {
+            if( stab->ItemProtos[i].ProtoId == pid )
+            {
+                tabIndex = i;
+                destIntMode = INT_MODE_FAST;
+                break;
+            }
+        }
+        if( tabIndex == -1 )
+        {
+            for( auto it = Tabs[INT_MODE_ITEM].begin(); it != Tabs[INT_MODE_ITEM].end(); it++ )
+            {
+                if( ( *it ).first == DEFAULT_SUB_TAB ) continue;
+                stab = &( *it ).second;
+                bool shouldBreak = false;
+                for( int i = 0, len = stab->ItemProtos.size(); i < len; i++ )
+                {
+                    if( stab->ItemProtos[i].ProtoId == pid )
+                    {
+                        tabIndex = i;
+                        shouldBreak = true;
+                        destIntMode = INT_MODE_ITEM;
+                        break;
+                    }
+                }
+
+                if( shouldBreak )
+                    break;
+            }
+        }
+        if( tabIndex == -1 )
+        {
+            stab = &Tabs[INT_MODE_ITEM][DEFAULT_SUB_TAB];
+            for( int i = 0, len = stab->ItemProtos.size(); i < len; i++ )
+            {
+                if( stab->ItemProtos[i].ProtoId == pid )
+                {
+                    tabIndex = i;
+                    destIntMode = INT_MODE_ITEM;
+                    break;
+                }
+            }
+        }
+    }
+    else if( cr )
+    {
+        MapObject* mobj = FindMapObject( cr->GetHexX(), cr->GetHexY(), MAP_OBJECT_CRITTER, cr->Flags, true );
+        if( !mobj )
+            return;
+        ushort pid = mobj->ProtoId;
+
+        if( pid <= 0 )
+            return;
+        for( auto it = Tabs[INT_MODE_CRIT].begin(); it != Tabs[INT_MODE_CRIT].end(); it++ )
+        {
+            if( ( *it ).first == DEFAULT_SUB_TAB ) continue;
+            stab = &( *it ).second;
+            bool shouldBreak = false;
+            for( int i = 0, len = stab->NpcProtos.size(); i < len; i++ )
+            {
+                if( stab->NpcProtos[i]->ProtoId == pid )
+                {
+                    tabIndex = i;
+                    shouldBreak = true;
+                    break;
+                }
+            }
+
+            if( shouldBreak )
+                break;
+        }
+        if( tabIndex == -1 )
+        {
+            stab = &Tabs[INT_MODE_CRIT][DEFAULT_SUB_TAB];
+            for( int i = 0, len = stab->NpcProtos.size(); i < len; i++ )
+            {
+                if( stab->NpcProtos[i]->ProtoId == pid )
+                {
+                    tabIndex = i;
+                    break;
+                }
+            }
+        }
+
+        destIntMode = INT_MODE_CRIT;
+    }
+    else if( tabIndex == -1 && !cr && !item )
+    {
+        ushort hx = 0, hy = 0;
+        if( !HexMngr.GetHexPixel( GameOpt.MouseX, GameOpt.MouseY, hx, hy ) )
+            return;
+
+        // To make it by tile-grid
+        hx = ( hx >> 1 ) * 2;
+        hy = ( hy >> 1 ) * 2;
+
+        ProtoMap::TileVec& tiles = CurProtoMap->GetTiles( hx, hy, false );
+        if( tiles.size() <= 0 )
+            return;
+
+        uint tileHash = tiles[0].NameHash;
+        if( tileHash == 0 )
+            return;
+        for( auto it = Tabs[INT_MODE_TILE].begin(); it != Tabs[INT_MODE_TILE].end(); it++ )
+        {
+            if( ( *it ).first == DEFAULT_SUB_TAB ) continue;
+            stab = &( *it ).second;
+            bool shouldBreak = false;
+            for( int i = 0, len = stab->TileHashes.size(); i < len; i++ )
+            {
+                if( stab->TileHashes[i] == tileHash )
+                {
+                    tabIndex = i;
+                    shouldBreak = true;
+                    break;
+                }
+            }
+
+            if( shouldBreak )
+                break;
+        }
+        if( tabIndex == -1 )
+        {
+            stab = &Tabs[INT_MODE_TILE][DEFAULT_SUB_TAB];
+            for( int i = 0, len = stab->TileHashes.size(); i < len; i++ )
+            {
+                if( stab->TileHashes[i] == tileHash )
+                {
+                    tabIndex = i;
+                    break;
+                }
+            }
+        }
+
+        destIntMode = INT_MODE_TILE;
+    }
+
+    if( tabIndex == -1 )
+        return;
+
+    if( IntMode != destIntMode )
+        IntSetMode( destIntMode );
+    TabsActive[IntMode] = stab;
+    RefreshCurProtos();
+    SetTabIndex( tabIndex );
+    if( CurProtoScroll )
+        ( *CurProtoScroll ) = ( tabIndex - ( int( ProtosOnScreen ) / 2 ) ) > 0 ? ( tabIndex - ( int( ProtosOnScreen ) / 2 ) ) : tabIndex;
+
+    CurMode = CUR_MODE_PLACE_OBJECT;
 }
 
 void FOMapper::RefreshCurProtos()
