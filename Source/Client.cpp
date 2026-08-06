@@ -12507,13 +12507,13 @@ void FOClient::SScriptFunc::Global_SetConsoleMode( bool shouldEnable )
         Self->ConsoleHistoryCur = (int)Self->ConsoleHistory.size();
 
         if( Keyb::CtrlDwn )
-            Self->Net_SendText( Self->ConsoleStr, SAY_SHOUT );
+            Self->Net_SendText( Self->ConsoleStr.c_str(), SAY_SHOUT);
         else if( Keyb::AltDwn )
-            Self->Net_SendText( Self->ConsoleStr, SAY_WHISP );
+            Self->Net_SendText( Self->ConsoleStr.c_str(), SAY_WHISP );
         else if( Keyb::ShiftDwn )
-            Self->Net_SendText( Self->ConsoleStr, SAY_RADIO );
+            Self->Net_SendText( Self->ConsoleStr.c_str(), SAY_RADIO );
         else
-            Self->Net_SendText( Self->ConsoleStr, SAY_NORM );
+            Self->Net_SendText( Self->ConsoleStr.c_str(), SAY_NORM );
 
         Self->ConsoleStr[0] = 0;
         Self->ConsoleCur = 0;
