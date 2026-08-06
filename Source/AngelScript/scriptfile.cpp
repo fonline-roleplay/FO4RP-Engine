@@ -1,4 +1,5 @@
 #include "scriptfile.h"
+#include "as_config.h"
 #include <new>
 #include <assert.h>
 #include <string>
@@ -281,6 +282,18 @@ int ScriptFile::Open( const ScriptString& filename, const ScriptString& mode )
         Close();
 
     std::string myFilename = filename.c_std_str();
+
+    // Change to valid slash
+    for( auto it = myFilename.begin(); it != myFilename.end(); ++it )
+    {
+        #ifdef AS_WIN
+        if( *it == '/' )
+            *it = '\\';
+        #else
+        if( *it == '\\' )
+            *it = '/';
+        #endif
+    }
 
     // Validate the mode
     string m;
