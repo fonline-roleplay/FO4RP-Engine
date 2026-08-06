@@ -1633,6 +1633,7 @@ BIND_ASSERT( engine->RegisterGlobalProperty( "uint8 __SoundVolume", &GameOpt.Sou
 BIND_ASSERT( engine->RegisterGlobalProperty( "uint8 __MusicVolume", &GameOpt.MusicVolume ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __NewChatFont", &GameOpt.NewChatFont ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __ConsoleActive", &BIND_CLASS ConsoleActive ) );
+BIND_ASSERT( engine->RegisterGlobalProperty( "bool __DebugInfo", &GameOpt.DebugInfo ) );
 #endif
 
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __MapHexagonal", &GameOpt.MapHexagonal ) );
