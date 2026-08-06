@@ -2380,9 +2380,19 @@ void FOServer::Process_LogIn( ClientPtr& cl )
         {
             WriteLogF( _FUNC_, " - Error add critter to map, client<%s>.\n", cl->GetInfo() );
             cl->Send_TextMsg( cl, STR_NET_HEXES_BUSY, SAY_NETMSG, TEXTMSG_GAME );
+            #ifndef FORP_ENGINE
             cl->Disconnect();
             cl->Data.Id = 0;
             cl->SetMaps( 0, 0 );
+            #else
+            if( !MapMngr.TransitToGlobal( cl, 0, FOLLOW_FORCE, true ) )
+            {
+                WriteLogF( _FUNC_, " - Can't kick client<%s> to global.\n", cl->GetInfo() );
+                cl->Disconnect();
+                cl->Data.Id = 0;
+                cl->SetMaps( 0, 0 );
+            }
+            #endif
             return;
         }
 
