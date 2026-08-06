@@ -2544,15 +2544,17 @@ void FOClient::GameKeyDown( uchar dik, const char* dik_text )
             if( Chosen->ItemSlotMain->IsWeapon() && Chosen->GetUse() < MAX_USES )
                 SetCurMode( CUR_USE_WEAPON );
             break;
-        #endif
+        
         case DIK_C:
             ShowScreen( SCREEN__CHARACTER );
             if( Chosen->Params[ ST_UNSPENT_PERKS ] )
                 ShowScreen( SCREEN__PERK );
             break;
+        #endif // FORP_ENGINE
         case DIK_G:
             TryPickItemOnGround();
             break;
+        #ifndef FORP_ENGINE
         case DIK_I:
             ShowScreen( SCREEN__INVENTORY );
             break;
@@ -2562,6 +2564,7 @@ void FOClient::GameKeyDown( uchar dik, const char* dik_text )
         case DIK_F:
             ShowScreen( SCREEN__FIX_BOY );
             break;
+        #endif // FORP_ENGINE
         // case DIK_Z: PipBoy clock
         case DIK_O:
             ShowScreen( SCREEN__MENU_OPTION );
@@ -6712,9 +6715,11 @@ void FOClient::GmapKeyDown( uchar dik, const char* dik_text )
     case DIK_O:
         ShowScreen( SCREEN__MENU_OPTION );
         break;
+    #ifndef FORP_ENGINE
     case DIK_SLASH:
         AddMess( FOMB_GAME, Str::FormatBuf( "Time: %02d.%02d.%d %02d:%02d:%02d x%u", GameOpt.Day, GameOpt.Month, GameOpt.Year, GameOpt.Hour, GameOpt.Minute, GameOpt.Second, GameOpt.TimeMultiplier ) );
         break;
+    #endif
     case DIK_EQUALS:
     case DIK_ADD:
         GameOpt.Light += 5;

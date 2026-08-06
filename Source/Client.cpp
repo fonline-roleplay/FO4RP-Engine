@@ -1198,9 +1198,11 @@ void FOClient::ParseKeyboard()
             // F Buttons
             switch( dikdw )
             {
+            #ifndef FORP_ENGINE
             case DIK_F1:
                 GameOpt.HelpInfo = !GameOpt.HelpInfo;
                 break;
+            #endif
             case DIK_F2:
                 if( SaveLogFile() )
                     AddMess( FOMB_GAME, MsgGame->GetStr( STR_LOG_SAVED ) );
@@ -1221,6 +1223,7 @@ void FOClient::ParseKeyboard()
                 IntAddMess = !IntAddMess;
                 MessBoxGenerate();
                 break;
+            #ifndef FORP_ENGINE
             case DIK_F6:
                 GameOpt.ShowPlayerNames = !GameOpt.ShowPlayerNames;
                 break;
@@ -1237,7 +1240,7 @@ void FOClient::ParseKeyboard()
                 GameOpt.ScrollMouseDown = false;
                 GameOpt.ScrollMouseUp = false;
                 break;
-
+            #endif
             case DIK_F9:
                 if( GameOpt.DebugInfo )
                     HexMngr.SwitchShowTrack();
@@ -1295,6 +1298,7 @@ void FOClient::ParseKeyboard()
             {
                 switch( dikdw )
                 {
+                #ifndef FORP_ENGINE
                 case DIK_C:
                     if( GetActiveScreen() == SCREEN__CHARACTER )
                     {
@@ -1327,6 +1331,7 @@ void FOClient::ParseKeyboard()
                         continue;
                     }
                     break;
+                #endif // FORP_ENGINE
                 case DIK_SPACE:
                     if( Singleplayer )
                         SingleplayerData.Pause = !SingleplayerData.Pause;
@@ -1340,6 +1345,7 @@ void FOClient::ParseKeyboard()
         {
             switch( dikdw )
             {
+            #ifndef FORP_ENGINE
             case DIK_F6:
                 if( GameOpt.DebugInfo && Keyb::CtrlDwn )
                     GameOpt.ShowCritId = !GameOpt.ShowCritId;
@@ -1348,6 +1354,7 @@ void FOClient::ParseKeyboard()
                 if( GameOpt.DebugInfo && Keyb::CtrlDwn )
                     GameOpt.ShowCritId = !GameOpt.ShowCritId;
                 break;
+            #endif // FORP_ENGINE
             case DIK_F11:
                 if( GameOpt.DebugInfo && Keyb::ShiftDwn )
                     SprMngr.SaveSufaces();
@@ -1375,11 +1382,6 @@ void FOClient::ParseKeyboard()
 					GameOpt.MusicVolume = CLAMP(GameOpt.MusicVolume - 2, 0, 100);
                 else if( Keyb::AltDwn && GameOpt.FixedFPS > -10000 )
                     GameOpt.FixedFPS--;
-                break;
-            // Escape
-            case DIK_ESCAPE:
-				//if( Keyb::ShiftDwn )
-				//    GameOpt.Quit = true;  // Cvet pidarass - APAMk2
                 break;
             default:
                 break;
