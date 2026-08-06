@@ -1032,7 +1032,6 @@ struct BindClass
     static void Global_IsDebugLookMode() {}
     static void Global_ChangeViewBorder() {}
 
-    static int  ConsoleActive;
     static int  GmapActive, GmapWait;
     static int  GmapZoom;
     static int  GmapOffsetX, GmapOffsetY;
@@ -1187,6 +1186,7 @@ struct BindClass
     static void Global_SetRainAnimation()   {}
     static void Global_GetFPS()             {}
 	static void Global_ChosenRefreshMap() {}
+    static int  ConsoleActive;
     #endif
 
     static void Global_GetLastError()           {}
@@ -1211,8 +1211,11 @@ struct BindClass
     static void Global_EncodeUTF8()             {}
 };
 
-#ifdef BIND_CLIENT
+#if defined ( BIND_CLIENT ) || defined ( BIND_MAPPER )
 int BindClass::ConsoleActive;
+#endif
+
+#ifdef BIND_CLIENT
 int BindClass::GmapActive;
 int BindClass::GmapWait;
 int BindClass::GmapZoom;

@@ -1096,7 +1096,6 @@ BIND_ASSERT( engine->RegisterGlobalFunction( "void SetDebugLookMode( bool isDebu
 BIND_ASSERT( engine->RegisterGlobalFunction( "bool IsDebugLookMode( )", asFUNCTION( BIND_CLASS Global_IsDebugLookMode ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "void ChangeViewBorder()", asFUNCTION( BIND_CLASS Global_ChangeViewBorder ), asCALL_CDECL ) );
 
-BIND_ASSERT( engine->RegisterGlobalProperty( "bool __ConsoleActive", &BIND_CLASS ConsoleActive ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __GmapActive", &BIND_CLASS GmapActive ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __GmapWait", &BIND_CLASS GmapWait ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "float __GmapZoom", &BIND_CLASS GmapZoom ) );
@@ -1595,6 +1594,7 @@ BIND_ASSERT( engine->RegisterGlobalProperty( "bool __SpritesFiltering", &GameOpt
 BIND_ASSERT( engine->RegisterGlobalProperty( "uint8 __SoundVolume", &GameOpt.SoundVolume ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "uint8 __MusicVolume", &GameOpt.MusicVolume ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __NewChatFont", &GameOpt.NewChatFont ) );
+BIND_ASSERT( engine->RegisterGlobalProperty( "bool __ConsoleActive", &BIND_CLASS ConsoleActive ) );
 #endif
 
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __MapHexagonal", &GameOpt.MapHexagonal ) );
