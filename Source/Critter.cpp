@@ -299,6 +299,9 @@ void Critter::ProcessVisibleCritters()
     if( IsPlayer() )
         ( (Client*)this )->LastVisionRefreshTick = Timer::FastTick();
 
+    if( IsNpc() && ( IsKnockout() || IsDead() ) )
+        return;
+
     // Global map
     if( !GetMap() )
     {
