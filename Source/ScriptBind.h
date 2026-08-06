@@ -1628,6 +1628,7 @@ BIND_ASSERT( engine->RegisterGlobalProperty( "bool __ShowContourWalls", &GameOpt
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __SpritesFiltering", &GameOpt.SpritesFiltering ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "uint8 __SoundVolume", &GameOpt.SoundVolume ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "uint8 __MusicVolume", &GameOpt.MusicVolume ) );
+BIND_ASSERT( engine->RegisterGlobalProperty( "bool __NewChatFont", &GameOpt.NewChatFont ) );
 #endif
 
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __MapHexagonal", &GameOpt.MapHexagonal ) );
