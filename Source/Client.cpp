@@ -1223,9 +1223,11 @@ void FOClient::ParseKeyboard()
                 case DIK_P:
                     if( GetActiveScreen() == SCREEN__PIP_BOY )
                     {
+                    #ifndef FORP_ENGINE
                         if( PipMode == PIP__NONE )
                             PipMode = PIP__STATUS;
                         else
+                    #endif
                             TryExit();
                         continue;
                     }
