@@ -846,8 +846,6 @@ void Critter::ProcessVisibleItems()
         return;
 
     ProcessVisibleItemVec( map->GetItemsNoLock() );
-    if( IsPlayer() )
-        ProcessVisibleItemVec( map->GetDecalsNoLock() );
 }
 
 void Critter::ProcessVisibleItemVec( ItemPtrVec& items )
