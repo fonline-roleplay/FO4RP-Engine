@@ -1688,9 +1688,9 @@ void MapManager::TraceBullet( TraceData& trace )
     LineTracer line_tracer( hx, hy, tx, ty, maxhx, maxhy, trace.Angle, !GameOpt.MapHexagonal );
 
     trace.IsFullTrace = false;
-    trace.IsCritterFounded = false;
+    trace.IsCritterFound = false;
     trace.IsHaveLastPassed = false;
-    trace.IsTeammateFounded = false;
+    trace.IsTeammateFound = false;
     trace.NotRakedTrace = false;
     bool last_passed_ok = false;
     for( uint i = 0; ; i++ )
@@ -1766,12 +1766,12 @@ void MapManager::TraceBullet( TraceData& trace )
             {
                 if( cr == trace.FindCr )
                 {
-                    trace.IsCritterFounded = true;
+                    trace.IsCritterFound = true;
                     break;
                 }
                 if( trace.IsCheckTeam && cr->Data.Params[ ST_TEAM_ID ] == (int) trace.BaseCrTeamId )
                 {
-                    trace.IsTeammateFounded = true;
+                    trace.IsTeammateFound = true;
                     break;
                 }
             }
@@ -2159,7 +2159,7 @@ label_FindOk:
                 trace_.BeginHx = ps.HexX;
                 trace_.BeginHy = ps.HexY;
                 TraceBullet( trace_ );
-                if( trace_.IsCritterFounded )
+                if( trace_.IsCritterFound )
                 {
                     trace_ok = true;
                     path.resize( i + 1 );

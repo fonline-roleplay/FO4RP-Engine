@@ -549,9 +549,11 @@ void FOServer::ProcessAI( Npc* npc )
             if( plane != npc->GetCurPlane() )
                 break;                                               // Validate plane
 
+            #ifndef FORP_ENGINE
             best_dist = r0;
             min_dist = r1;
             max_dist = r2;
+            #endif
 
             if( r2 <= 0 )                 // Run away
             {
@@ -559,6 +561,7 @@ void FOServer::ProcessAI( Npc* npc )
                 break;
             }
 
+            #ifndef FORP_ENGINE
             if( max_dist <= 0 )
             {
                 uint look = npc->GetLook();
@@ -566,6 +569,11 @@ void FOServer::ProcessAI( Npc* npc )
                 if( max_dist > look )
                     max_dist = look;
             }
+            #else
+            best_dist = r0;
+            min_dist = r1;
+            max_dist = r2;
+            #endif
             if( min_dist <= 0 )
                 min_dist = 1;
 
@@ -593,7 +601,7 @@ void FOServer::ProcessAI( Npc* npc )
 
             // Dirt
             MapMngr.TraceBullet( trace );
-            if( !trace.IsCritterFounded )
+            if( !trace.IsCritterFound )
             {
                 if( is_can_walk )
                     AI_MoveToCrit( npc, targ->GetId(), is_range ? 1 + npc->GetMultihex() : max_dist, max_dist + ( is_range ? 0 : 5 ), is_run );
@@ -614,7 +622,7 @@ void FOServer::ProcessAI( Npc* npc )
                 trace.IsCheckTeam = true;
                 trace.BaseCrTeamId = npc->Data.Params[ ST_TEAM_ID ];
                 MapMngr.TraceBullet( trace );
-                if( !trace.IsCritterFounded )
+                if( !trace.IsCritterFound )
                 {
                     UShortPair last_passed;
                     trace.LastPassed = &last_passed;
@@ -1379,7 +1387,7 @@ void FOServer::Dialog_Begin( Client* cl, Npc* npc, uint dlg_pack_id, ushort hx, 
             trace.Dist = talk_dist;
             trace.FindCr = npc;
             MapMngr.TraceBullet( trace );
-            if( !trace.IsCritterFounded )
+            if( !trace.IsCritterFound )
             {
                 cl->Send_TextMsg( cl, STR_FINDPATH_AIMBLOCK, SAY_NETMSG, TEXTMSG_GAME );
                 return;

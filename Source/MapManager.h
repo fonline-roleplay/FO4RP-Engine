@@ -59,9 +59,9 @@ struct TraceData
     UShortPair* Block;
     UShortPair* LastPassed;
     bool        IsFullTrace;
-    bool        IsCritterFounded;
+    bool        IsCritterFound;
     bool        IsHaveLastPassed;
-    bool        IsTeammateFounded;
+    bool        IsTeammateFound;
 
     SceneryClRefVec* Walls;
     SceneryClRefVec* Sceneries;
