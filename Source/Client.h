@@ -660,6 +660,8 @@ public:
 		static CraftItem*	 Global_GetCraftItem( uint num );
 		static ScriptString* CraftItem_GetScriptName( CraftItem* craft );
 
+        static void Global_SetConsoleMode( bool shouldEnable );
+
         static bool&         ConsoleActive;
         static bool&         GmapActive, & GmapWait;
         static float&        GmapZoom;
