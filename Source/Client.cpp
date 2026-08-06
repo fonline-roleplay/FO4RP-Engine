@@ -3907,7 +3907,9 @@ void FOClient::Net_OnAddCritter( bool is_npc )
             cr->MoveSteps.clear();
             HexMngr.FindSetCenter( cr->HexX, cr->HexY );
             cr->AnimateStay();
+            #ifndef FORP_ENGINE
             SndMngr.PlayAmbient( MsgGM->GetStr( STR_MAP_AMBIENT_( HexMngr.GetCurPidMap() ) ) );
+            #endif
             ShowMainScreen( SCREEN_GAME );
             ScreenFadeOut();
             HexMngr.RebuildLight();
@@ -7035,7 +7037,9 @@ void FOClient::Net_OnViewMap()
         return;
 
     HexMngr.FindSetCenter( hx, hy );
+    #ifndef FORP_ENGINE
     SndMngr.PlayAmbient( MsgGM->GetStr( STR_MAP_AMBIENT_( HexMngr.GetCurPidMap() ) ) );
+    #endif
     ShowMainScreen( SCREEN_GAME );
     ScreenFadeOut();
     HexMngr.RebuildLight();
@@ -9084,6 +9088,7 @@ bool FOClient::SaveScreenshot()
 void FOClient::SoundProcess()
 {
     // Ambient
+    #ifndef FORP_ENGINE
     static uint next_ambient = 0;
     if( Timer::GameTick() > next_ambient )
     {
@@ -9091,6 +9096,7 @@ void FOClient::SoundProcess()
             SndMngr.PlayAmbient( MsgGM->GetStr( STR_MAP_AMBIENT_( HexMngr.GetCurPidMap() ) ) );
         next_ambient = Timer::GameTick() + Random( AMBIENT_SOUND_TIME / 2, AMBIENT_SOUND_TIME );
     }
+    #endif
 }
 
 void FOClient::AddVideo( const char* video_name, bool can_stop, bool clear_sequence )
