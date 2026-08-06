@@ -1496,6 +1496,11 @@ struct GameOptions
     int Anim2CombatBegin;
     int Anim2CombatIdle;
     int Anim2CombatEnd;
+    int SoundVolume;
+    int MusicVolume;
+    int SpritesFiltering;
+    int NoobCursor;
+    int NewChatFont;
 
     // Mapper
     int ClientPath;
@@ -1504,10 +1509,5 @@ struct GameOptions
     int ShowSpriteCuts;
     int ShowDrawOrder;
     int SplitTilesCollection;
-	
 	int MapperAutosave;
-	int SpritesFiltering;
-	int NoobCursor;
-	int SoundVolume;
-	int MusicVolume;
 } GameOpt;

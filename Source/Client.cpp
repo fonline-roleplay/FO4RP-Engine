@@ -273,6 +273,8 @@ bool FOClient::Init()
         return false;
     if( !SprMngr.LoadFontFO( FONT_BIG, "Big" ) )
         return false;
+    if( !SprMngr.LoadFontFO( FONT_CHAT, "Chat" ) )
+        return false;
     SprMngr.SetDefaultFont( FONT_DEFAULT, COLOR_TEXT );
 
     // BMF to FOFNT convertation

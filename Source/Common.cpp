@@ -792,6 +792,8 @@ void GetClientOptions()
     GETOPTIONS_CHECK( GameOpt.ScreenHeight, 100, 30000, 600 );
 	GameOpt.SpritesFiltering = cfg.GetInt( "SpritesFiltering", false) != 0;
 	GETOPTIONS_CMD_LINE_BOOL(GameOpt.SpritesFiltering, "-SpritesFiltering");
+    GameOpt.NewChatFont = cfg.GetInt( "NewChatFont", false ) != 0;
+    GETOPTIONS_CMD_LINE_BOOL( GameOpt.NewChatFont, "-NewChatFont" );
     GameOpt.MultiSampling = cfg.GetInt( "MultiSampling", 0 );
     GETOPTIONS_CMD_LINE_INT( GameOpt.MultiSampling, "-MultiSampling" );
     GETOPTIONS_CHECK( GameOpt.MultiSampling, -1, 16, -1 );
@@ -1263,6 +1265,7 @@ GameOptions::GameOptions()
     ScreenWidth = 800;
     ScreenHeight = 600;
 	SpritesFiltering = false;
+    NewChatFont = false;
     MultiSampling = 0;
     MouseScroll = true;
     IndicatorType = INDICATOR_LINES;

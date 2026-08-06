@@ -658,6 +658,11 @@ struct GameOptions
     uint         RainTick;
     short        RainSpeedX;
     short        RainSpeedY;
+    char		 SoundVolume;
+    char		 MusicVolume;
+    bool		 SpritesFiltering;
+    bool		 NoobCursor;
+    bool		 NewChatFont;
 
     // Mapper
     ScriptString ClientPath;
@@ -666,6 +671,7 @@ struct GameOptions
     bool         ShowSpriteCuts;
     bool         ShowDrawOrder;
     bool         SplitTilesCollection;
+    int			 MapperAutosave;
 
     // Engine data
     void         ( * CritterChangeParameter )( void*, uint );
@@ -723,12 +729,6 @@ struct GameOptions
     uint         ( * GetUseApCost )( void*, void*, uchar );
     uint         ( * GetAttackDistantion )( void*, void*, uchar );
     void         ( * GetRainOffset )( short*, short* );
-
-	int			 MapperAutosave;
-	bool		 SpritesFiltering;
-	bool		 NoobCursor;
-	char		 SoundVolume;
-	char		 MusicVolume;
 
     GameOptions();
 } extern GameOpt;
