@@ -7096,11 +7096,19 @@ void FOClient::CreditsDraw()
 // ==============================================================================================================================
 // ******************************************************************************************************************************
 // ==============================================================================================================================
+#ifndef FORP_ENGINE
 const int ShowStats[] =
 {
     ST_ARMOR_CLASS, ST_ACTION_POINTS, ST_CARRY_WEIGHT, ST_MELEE_DAMAGE, ST_NORMAL_RESIST,
     ST_POISON_RESISTANCE, ST_RADIATION_RESISTANCE, ST_SEQUENCE, ST_HEALING_RATE, ST_CRITICAL_CHANCE
 };
+#else // FORP_ENGINE
+const int ShowStats[] =
+{
+    ST_ARMOR_CLASS, ST_ACTION_POINTS, ST_CARRY_WEIGHT, ST_MELEE_DAMAGE, ST_NORMAL_RESIST,
+    ST_POISON_RESISTANCE, ST_RADIATION_RESISTANCE, ST_APREGEN, ST_HEALING_RATE, ST_CRITICAL_CHANCE
+};
+#endif // FORP_ENGINE
 const int ShowStatsCnt = sizeof( ShowStats ) / sizeof( ShowStats[ 0 ] );
 
 void FOClient::ChaPrepareSwitch()
@@ -7475,6 +7483,11 @@ void FOClient::ChaDraw( bool is_reg )
         case ST_CRITICAL_CHANCE:
             str = Str::FormatBuf( "%d%%", val );
             break;
+        #ifdef FORP_ENGINE
+        case ST_APREGEN:
+            str = Str::FormatBuf( "%d.%d", val / 100, val % 100 );
+			break;
+        #endif // FORP_ENGINE
         default:
             str = Str::FormatBuf( "%d", val );
             break;
