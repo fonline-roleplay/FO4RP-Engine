@@ -374,7 +374,6 @@ struct ServerScriptFunctions
     int CheckLook;
     int ItemCost;
     int ItemsBarter;
-    int ItemsCrafted;
     int PlayerLevelUp;
     int TurnBasedBegin;
     int TurnBasedEnd;
@@ -409,9 +408,6 @@ struct ServerScriptFunctions
 
 # define ScriptString       string
 #endif
-#ifdef FONLINE_MRFIXIT
-# define ScriptString       string
-#endif
 /************************************************************************/
 /* Game options                                                         */
 /************************************************************************/
@@ -438,7 +434,6 @@ struct GameOptions
     uint         FloodSize;
     bool         NoAnswerShuffle;
     bool         DialogDemandRecheck;
-    uint         FixBoyDefaultExperience;
     uint         SneakDivider;
     uint         LevelCap;
     bool         LevelCapAddExperience;
@@ -856,7 +851,7 @@ extern InterprocessData SingleplayerData;
 /* Threads                                                              */
 /************************************************************************/
 
-#if !defined ( FONLINE_NPCEDITOR ) && !defined ( FONLINE_MRFIXIT )
+#if !defined ( FONLINE_NPCEDITOR )
 
 # ifdef FO_WINDOWS
 #  define PTW32_STATIC_LIB

@@ -305,7 +305,6 @@ bool FOClient::Init()
     MsgCombat = &CurLang.Msg[ TEXTMSG_COMBAT ];
     MsgQuest = &CurLang.Msg[ TEXTMSG_QUEST ];
     MsgHolo = &CurLang.Msg[ TEXTMSG_HOLO ];
-    MsgCraft = &CurLang.Msg[ TEXTMSG_CRAFT ];
     MsgInternal = &CurLang.Msg[ TEXTMSG_INTERNAL ];
     MsgUserHolo = new FOMsg;
     MsgUserHolo->LoadMsgFile( USER_HOLO_TEXTMSG_FILE, PT_TEXTS );
@@ -389,10 +388,6 @@ bool FOClient::Init()
         }
     }
 
-    // MrFixit
-    MrFixit.LoadCrafts( *MsgCraft );
-    MrFixit.GenerateNames( *MsgGame, *MsgItem );  // After Item manager init
-
     // Hex manager
     if( !HexMngr.Init() )
         return false;
@@ -469,7 +464,6 @@ void FOClient::Finish()
     SprMngr.Finish();
     SndMngr.Finish();
     QuestMngr.Finish();
-    MrFixit.Finish();
     Script::Finish();
 
     SAFEDELA( ComBuf );
@@ -1231,13 +1225,6 @@ void FOClient::ParseKeyboard()
                             TryExit();
                         continue;
                     }
-                case DIK_F:
-                    if( GetActiveScreen() == SCREEN__FIX_BOY )
-                    {
-                        TryExit();
-                        continue;
-                    }
-                    break;
                 case DIK_I:
                     if( GetActiveScreen() == SCREEN__INVENTORY )
                     {
@@ -1565,9 +1552,6 @@ void FOClient::ParseMouse()
             case SCREEN__PIP_BOY:
                 PipMouseMove();
                 break;
-            case SCREEN__FIX_BOY:
-                FixMouseMove();
-                break;
             case SCREEN__AIM:
                 AimMouseMove();
                 break;
@@ -1826,9 +1810,6 @@ void FOClient::ParseMouse()
                 case SCREEN__PIP_BOY:
                     PipLMouseDown();
                     break;
-                case SCREEN__FIX_BOY:
-                    FixLMouseDown();
-                    break;
                 case SCREEN__AIM:
                     AimLMouseDown();
                     break;
@@ -1938,9 +1919,6 @@ void FOClient::ParseMouse()
                     break;
                 case SCREEN__PIP_BOY:
                     PipLMouseUp();
-                    break;
-                case SCREEN__FIX_BOY:
-                    FixLMouseUp();
                     break;
                 case SCREEN__AIM:
                     AimLMouseUp();
@@ -2987,12 +2965,6 @@ void FOClient::NetProcess()
         case NETMSG_PARAM:
             Net_OnChosenParam();
             break;
-        case NETMSG_CRAFT_ASK:
-            Net_OnCraftAsk();
-            break;
-        case NETMSG_CRAFT_RESULT:
-            Net_OnCraftResult();
-            break;
         case NETMSG_CLEAR_ITEMS:
             Net_OnChosenClearItems();
             break;
@@ -3577,24 +3549,6 @@ void FOClient::Net_SendLevelUp( ushort perk_up )
     Bout << perk_up;
 }
 
-void FOClient::Net_SendCraftAsk( UIntVec numbers )
-{
-    ushort count = (ushort) numbers.size();
-    uint   msg_len = sizeof( uint ) + sizeof( msg_len ) + sizeof( count ) + sizeof( uint ) * count;
-    Bout << NETMSG_CRAFT_ASK;
-    Bout << msg_len;
-    Bout << count;
-    for( int i = 0; i < count; i++ )
-        Bout << numbers[ i ];
-    FixNextShowCraftTick = Timer::FastTick() + CRAFT_SEND_TIME;
-}
-
-void FOClient::Net_SendCraft( uint craft_num )
-{
-    Bout << NETMSG_SEND_CRAFT;
-    Bout << craft_num;
-}
-
 void FOClient::Net_SendPing( uchar ping )
 {
     Bout << NETMSG_PING;
@@ -4152,10 +4106,6 @@ void FOClient::OnText( const char* str, uint crid, int how_say, ushort intellect
         DlgboxWait = Timer::GameTick() + GM_ANSWER_WAIT_TIME;
         Str::Copy( DlgboxText, fstr );
     }
-
-    // FixBoy result
-    if( how_say == SAY_FIX_RESULT )
-        FixResultStr = fstr;
 
     // Dialogbox
     if( how_say == SAY_DIALOGBOX_TEXT )
@@ -6477,9 +6427,6 @@ void FOClient::Net_OnShowScreen()
     case SHOW_SCREEN_CHARACTER:
         ShowScreen( SCREEN__CHARACTER );
         return;
-    case SHOW_SCREEN_FIXBOY:
-        ShowScreen( SCREEN__FIX_BOY );
-        return;
     case SHOW_SCREEN_PIPBOY:
         ShowScreen( SCREEN__PIP_BOY );
         return;
@@ -6566,7 +6513,6 @@ void FOClient::Net_OnRunClientScript()
 void FOClient::Net_OnDropTimers()
 {
     ScoresNextUploadTick = 0;
-    FixNextShowCraftTick = 0;
     GmapNextShowEntrancesTick = 0;
     GmapShowEntrancesLocId = 0;
 }
@@ -6731,15 +6677,6 @@ void FOClient::Net_OnMsgData()
 
     switch( num_msg )
     {
-    case TEXTMSG_ITEM:
-        MrFixit.GenerateNames( *MsgGame, *MsgItem );
-        break;
-    case TEXTMSG_CRAFT:
-        // Reload crafts
-        MrFixit.Finish();
-        MrFixit.LoadCrafts( *MsgCraft );
-        MrFixit.GenerateNames( *MsgGame, *MsgItem );
-        break;
     case TEXTMSG_INTERNAL:
         // Reload critter types
         CritType::InitFromMsg( MsgInternal );
@@ -6802,9 +6739,6 @@ void FOClient::Net_OnProtoItemData()
 
     uint count = (uint) proto_items.size();
     Crypt.SetCache( "item_protos_count", (uchar*) &count, sizeof( count ) );
-
-    // Refresh craft names
-    MrFixit.GenerateNames( *MsgGame, *MsgItem );
 }
 
 void FOClient::Net_OnQuest( bool many )
@@ -6993,39 +6927,6 @@ void FOClient::Net_OnViewMap()
         TViewType = TOWN_VIEW_FROM_GLOBAL;
         TViewGmapLocId = loc_id;
         TViewGmapLocEntrance = loc_ent;
-    }
-}
-
-void FOClient::Net_OnCraftAsk()
-{
-    uint   msg_len;
-    ushort count;
-    Bin >> msg_len;
-    Bin >> count;
-
-    FixShowCraft.clear();
-    for( int i = 0; i < count; i++ )
-    {
-        uint craft_num;
-        Bin >> craft_num;
-        FixShowCraft.insert( craft_num );
-    }
-
-    CHECK_IN_BUFF_ERROR;
-
-    if( IsScreenPresent( SCREEN__FIX_BOY ) && FixMode == FIX_MODE_LIST )
-        FixGenerate( FIX_MODE_LIST );
-}
-
-void FOClient::Net_OnCraftResult()
-{
-    uchar craft_result;
-    Bin >> craft_result;
-
-    if( craft_result != CRAFT_RESULT_NONE )
-    {
-        FixResult = craft_result;
-        FixGenerate( FIX_MODE_RESULT );
     }
 }
 
@@ -8530,7 +8431,6 @@ void FOClient::TryExit()
         case SCREEN__MINI_MAP:
         case SCREEN__CHARACTER:
         case SCREEN__PIP_BOY:
-        case SCREEN__FIX_BOY:
         case SCREEN__MENU_OPTION:
         case SCREEN__SAVE_LOAD:
         default:
@@ -11836,10 +11736,6 @@ void FOClient::SScriptFunc::Global_GetHardcodedScreenPos( int screen, int& x, in
         x = Self->PipX;
         y = Self->PipY;
         break;
-    case SCREEN__FIX_BOY:
-        x = Self->FixX;
-        y = Self->FixY;
-        break;
     case SCREEN__MENU_OPTION:
         x = Self->MoptX;
         y = Self->MoptY;
@@ -11952,9 +11848,6 @@ void FOClient::SScriptFunc::Global_DrawHardcodedScreen( int screen )
         break;
     case SCREEN__PIP_BOY:
         Self->PipDraw();
-        break;
-    case SCREEN__FIX_BOY:
-        Self->FixDraw();
         break;
     case SCREEN__MENU_OPTION:
         Self->MoptDraw();
@@ -12275,75 +12168,6 @@ void FOClient::SScriptFunc::Global_SetUserConfig( CScriptArray& key_values )
     char cfg_name[ MAX_FOPATH ];
     Str::Format( cfg_name, "%s", IniParser::GetConfigFileName() );
     cfg_user.SaveOutBufToFile( cfg_name, PT_ROOT );
-}
-
-uint FOClient::SScriptFunc::CraftItem_GetShowParams( CraftItem* craft, CScriptArray* nums, CScriptArray* vals, CScriptArray* ors )
-{
-	if (nums)
-		Script::AppendVectorToArray(craft->ShowPNum, nums);
-	if (vals)
-		Script::AppendVectorToArray(craft->ShowPVal, vals);
-	if (ors)
-		Script::AppendVectorToArray(craft->ShowPOr, ors);
-
-	return (uint)craft->ShowPNum.size();
-}
-
-uint FOClient::SScriptFunc::CraftItem_GetNeedParams( CraftItem* craft, CScriptArray* nums, CScriptArray* vals, CScriptArray* ors )
-{
-	if (nums)
-		Script::AppendVectorToArray(craft->NeedPNum, nums);
-	if (vals)
-		Script::AppendVectorToArray(craft->NeedPVal, vals);
-	if (ors)
-		Script::AppendVectorToArray(craft->NeedPOr, ors);
-
-	return (uint)craft->NeedPNum.size();
-}
-
-uint FOClient::SScriptFunc::CraftItem_GetNeedTools( CraftItem* craft, CScriptArray* pids, CScriptArray* vals, CScriptArray* ors )
-{
-	if (pids)
-		Script::AppendVectorToArray(craft->NeedTools, pids);
-	if (vals)
-		Script::AppendVectorToArray(craft->NeedToolsVal, vals);
-	if (ors)
-		Script::AppendVectorToArray(craft->NeedToolsOr, ors);
-
-	return (uint)craft->NeedTools.size();
-}
-
-uint FOClient::SScriptFunc::CraftItem_GetNeedItems( CraftItem* craft, CScriptArray* pids, CScriptArray* vals, CScriptArray* ors )
-{
-	if (pids)
-		Script::AppendVectorToArray(craft->NeedItems, pids);
-	if (vals)
-		Script::AppendVectorToArray(craft->NeedItemsVal, vals);
-	if (ors)
-		Script::AppendVectorToArray(craft->NeedItemsOr, ors);
-
-	return (uint)craft->NeedItems.size();
-}
-
-uint FOClient::SScriptFunc::CraftItem_GetOutItems( CraftItem* craft, CScriptArray* pids, CScriptArray* vals )
-{
-	if (pids)
-		Script::AppendVectorToArray(craft->OutItems, pids);
-	if (vals)
-		Script::AppendVectorToArray(craft->OutItemsVal, vals);
-
-	return (uint)craft->OutItems.size();
-}
-
-CraftItem* FOClient::SScriptFunc::Global_GetCraftItem( uint num )
-{
-	return MrFixit.GetCraft(num);
-}
-
-ScriptString* FOClient::SScriptFunc::CraftItem_GetScriptName(CraftItem* craft)
-{
-	const char* c_str = craft->ScriptName.c_str();
-	return new ScriptString(c_str);
 }
 
 void FOClient::SScriptFunc::Global_SetDebugLookMode( bool isDebug )

@@ -799,7 +799,7 @@ public:
     void        BarterEraseItem( uint item_id );
 
     // Timers
-    uint LastSendScoresTick, LastSendCraftTick, LastSendEntrancesTick, LastSendEntrancesLocId;
+    uint LastSendScoresTick, LastSendEntrancesTick, LastSendEntrancesLocId;
     void DropTimers( bool send );
 
     // Dialogs

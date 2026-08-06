@@ -517,18 +517,6 @@ struct ProtoMap
     void Release() {}
 };
 
-struct CraftItem
-{
-    int  Num;
-    int  Name;
-    int  Info;
-    int  Experience;
-    int  ScriptName;
-
-    void AddRef()  {}
-    void Release() {}
-};
-
 struct BindClass
 {
     #ifdef BIND_SERVER
@@ -579,13 +567,6 @@ struct BindClass
     static void Item_get_Flags()     {}
     static void Item_set_TrapValue() {}
     static void Item_get_TrapValue() {}
-
-    static void CraftItem_GetShowParams() {}
-    static void CraftItem_GetNeedParams() {}
-    static void CraftItem_GetNeedTools()  {}
-    static void CraftItem_GetNeedItems()  {}
-    static void CraftItem_GetOutItems()   {}
-	static void CraftItem_GetScriptName() {}
 
     static void Scen_CallSceneryFunction() {}
 
@@ -1046,12 +1027,6 @@ struct BindClass
     static void Global_SaveLogFile()            {}
 	static void Global_CustomCall()				{}
 	static void Global_SetUserConfig()			{}
-	static void CraftItem_GetShowParams()		{}
-	static void CraftItem_GetNeedParams()		{}
-	static void CraftItem_GetNeedTools()		{}
-	static void CraftItem_GetNeedItems()		{}
-	static void CraftItem_GetOutItems()			{}
-	static void CraftItem_GetScriptName()		{}
 
     static void Global_SetDebugLookMode() {}
     static void Global_IsDebugLookMode() {}
@@ -1085,7 +1060,6 @@ struct BindClass
     static void Global_GetCritterTypeName()             {}
     static void Global_GetCritterSoundName()            {}
     static void Global_GetGlobalMapRelief()             {}
-    static void Global_GetCraftItem()                   {}
     #endif
 
     #ifdef BIND_MAPPER
@@ -1275,7 +1249,6 @@ struct GameOptions
     int FloodSize;
     int NoAnswerShuffle;
     int DialogDemandRecheck;
-    int FixBoyDefaultExperience;
     int SneakDivider;
     int LevelCap;
     int LevelCapAddExperience;

@@ -1074,7 +1074,6 @@ GameOptions::GameOptions()
     FloodSize = 2048;
     NoAnswerShuffle = false;
     DialogDemandRecheck = false;
-    FixBoyDefaultExperience = 50;
     SneakDivider = 6;
     LevelCap = 99;
     LevelCapAddExperience = false;
@@ -1511,7 +1510,7 @@ InterprocessData SingleplayerData;
 /* Thread                                                               */
 /************************************************************************/
 
-#if !defined ( FONLINE_NPCEDITOR ) && !defined ( FONLINE_MRFIXIT )
+#if !defined ( FONLINE_NPCEDITOR )
 
 THREAD char Thread::threadName[ 64 ] = { 0 };
 UIntStrMap  Thread::threadNames;

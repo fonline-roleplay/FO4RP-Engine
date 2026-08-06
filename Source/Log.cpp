@@ -107,7 +107,7 @@ void WriteLogInternal( const char* func, const char* frmt, va_list& list )
         return;
 
     char str_tid[ 64 ] = { 0 };
-    #if !defined ( FONLINE_NPCEDITOR ) && !defined ( FONLINE_MRFIXIT )
+    #if !defined ( FONLINE_NPCEDITOR )
     if( LoggingWithThread )
     {
         const char* name = Thread::GetCurrentName();

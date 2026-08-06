@@ -12,9 +12,8 @@
 #define TEXTMSG_COMBAT      ( 5 )
 #define TEXTMSG_QUEST       ( 6 )
 #define TEXTMSG_HOLO        ( 7 )
-#define TEXTMSG_CRAFT       ( 8 )
-#define TEXTMSG_INTERNAL    ( 9 )
-#define TEXTMSG_COUNT       ( 10 )
+#define TEXTMSG_INTERNAL    ( 8 )
+#define TEXTMSG_COUNT       ( 9 )
 extern const char* TextMsgFileName[ TEXTMSG_COUNT ];
 
 #define DEFAULT_LANGUAGE    "russ"

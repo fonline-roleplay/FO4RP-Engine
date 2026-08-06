@@ -13,7 +13,6 @@
 #include "BufferManager.h"
 #include "Text.h"
 #include "QuestManager.h"
-#include "CraftManager.h"
 #include "ConstantsManager.h"
 #include "ResourceManager.h"
 #include "CritterType.h"
@@ -133,8 +132,6 @@ public:
     void Net_SendDir();
     void Net_SendMove( UCharVec steps );
     void Net_SendLevelUp( ushort perk_up );
-    void Net_SendCraftAsk( UIntVec numbers );
-    void Net_SendCraft( uint craft_num );
     void Net_SendPing( uchar ping );
     void Net_SendPlayersBarter( uchar barter, uint param, uint param_ext );
     void Net_SendScreenAnswer( uint answer_i, const char* answer_s );
@@ -180,8 +177,6 @@ public:
     void Net_OnCritterXY();
     void Net_OnChosenParams();
     void Net_OnChosenParam();
-    void Net_OnCraftAsk();
-    void Net_OnCraftResult();
     void Net_OnChosenClearItems();
     void Net_OnChosenAddItem();
     void Net_OnChosenEraseItem();
@@ -235,7 +230,7 @@ public:
 
     // MSG File
     LanguagePack CurLang;
-    FOMsg*       MsgText, * MsgDlg, * MsgItem, * MsgGame, * MsgGM, * MsgCombat, * MsgQuest, * MsgHolo, * MsgUserHolo, * MsgCraft, * MsgInternal;
+    FOMsg*       MsgText, * MsgDlg, * MsgItem, * MsgGame, * MsgGM, * MsgCombat, * MsgQuest, * MsgHolo, * MsgUserHolo, * MsgInternal;
 
     const char* GetHoloText( uint str_num );
     const char* FmtGameText( uint str_num, ... );
@@ -656,14 +651,6 @@ public:
 		static ScriptString* Global_CustomCall( ScriptString& command, ScriptString& separator );
 		static void			 Global_SetUserConfig( CScriptArray& key_values );
 
-		static uint			 CraftItem_GetShowParams( CraftItem* craft, CScriptArray* nums, CScriptArray* vals, CScriptArray* ors );
-		static uint			 CraftItem_GetNeedParams( CraftItem* craft, CScriptArray* nums, CScriptArray* vals, CScriptArray* ors );
-		static uint			 CraftItem_GetNeedTools( CraftItem* craft, CScriptArray* pids, CScriptArray* vals, CScriptArray* ors );
-		static uint			 CraftItem_GetNeedItems( CraftItem* craft, CScriptArray* pids, CScriptArray* vals, CScriptArray* ors );
-		static uint			 CraftItem_GetOutItems( CraftItem* craft, CScriptArray* pids, CScriptArray* vals );
-		static CraftItem*	 Global_GetCraftItem( uint num );
-		static ScriptString* CraftItem_GetScriptName( CraftItem* craft );
-
         static void Global_SetDebugLookMode( bool isDebug );
         static bool Global_IsDebugLookMode();
         static void Global_ChangeViewBorder();
@@ -823,14 +810,14 @@ public:
 /************************************************************************/
     AnyFrames* IntMainPic, * IntPWAddMess, * IntPBAddMessDn, * IntPBMessFilter1Dn, * IntPBMessFilter2Dn, * IntPBMessFilter3Dn,
     * IntPBScrUpDn, * IntPBScrDnDn, * IntPBSlotsDn,
-    * IntPBInvDn, * IntPBMenuDn, * IntPBSkillDn, * IntPBMapDn, * IntPBChaDn, * IntPBPipDn, * IntPBFixDn,
+    * IntPBInvDn, * IntPBMenuDn, * IntPBSkillDn, * IntPBMapDn, * IntPBChaDn, * IntPBPipDn,
     * IntDiodeG, * IntDiodeY, * IntDiodeR, * IntBreakTimePic, * IntWApCostPicNone;
 
     int        IntX, IntY;
     bool       IntVisible, IntAddMess;
     Rect       IntWMain, IntWAddMess, IntBAddMess, IntBMessFilter1, IntBMessFilter2, IntBMessFilter3;
     Rect       IntBItem, IntWApCost;
-    Rect       IntBChangeSlot, IntBInv, IntBMenu, IntBSkill, IntBMap, IntBChar, IntBPip, IntBFix;
+    Rect       IntBChangeSlot, IntBInv, IntBMenu, IntBSkill, IntBMap, IntBChar, IntBPip;
     Rect       IntWMess, IntWMessLarge;
     Rect       IntAP, IntHP, IntAC, IntBreakTime;
     int        IntAPstepX, IntAPstepY, IntAPMax;
@@ -998,11 +985,11 @@ public:
     int          GmapPTownInOffsX, GmapPTownInOffsY, GmapPTownViewOffsX, GmapPTownViewOffsY;
     AnyFrames*   GmapPFollowCrit, * GmapPFollowCritSelf;
     AnyFrames*   GmapPWTab, * GmapPWBlankTab, * GmapPBTabLoc, * GmapPTabScrUpDw, * GmapPTabScrDwDw;
-    AnyFrames*   GmapBInvPicDown, * GmapBMenuPicDown, * GmapBChaPicDown, * GmapBPipPicDown, * GmapBFixPicDown;
+    AnyFrames*   GmapBInvPicDown, * GmapBMenuPicDown, * GmapBChaPicDown, * GmapBPipPicDown;
     AnyFrames*   GmapPLightPic0, * GmapPLightPic1;
     int          GmapX, GmapY, GmapVectX, GmapVectY, GmapWNameStepX, GmapWNameStepY;
     Rect         GmapWMain, GmapWMap, GmapBTown, GmapWName, GmapWChat, GmapWPanel, GmapWCar, GmapWLock, GmapWTime, GmapWDayTime;
-    Rect         GmapBInv, GmapBMenu, GmapBCha, GmapBPip, GmapBFix;
+    Rect         GmapBInv, GmapBMenu, GmapBCha, GmapBPip;
     PointVec     GmapMapCutOff;
     static bool  GmapActive;
     static float GmapZoom;
@@ -1540,93 +1527,6 @@ public:
     void TimerMouseMove();
 
 /************************************************************************/
-/* FixBoy                                                               */
-/************************************************************************/
-    int FixMode;
-    #define FIX_MODE_LIST              ( 0 )
-    #define FIX_MODE_FIXIT             ( 1 )
-    #define FIX_MODE_RESULT            ( 2 )
-
-    AnyFrames* FixMainPic, * FixPBDoneDn, * FixPBScrUpDn, * FixPBScrDnDn, * FixPBFixDn;
-    Rect       FixWMain, FixBDone, FixBScrUp, FixBScrDn, FixWWin, FixBFix;
-    int        FixX, FixY, FixVectX, FixVectY;
-    int        FixCurCraft;
-
-    struct SCraft
-    {
-        Rect   Pos;
-        string Name;
-        uint   Num;
-        bool   IsTrue;
-
-        SCraft( Rect& pos, string& name, uint num, bool is_true )
-        {
-            Pos = pos;
-            Name = name;
-            Num = num;
-            IsTrue = is_true;
-        }
-        SCraft( const SCraft& _right )
-        {
-            Pos = _right.Pos;
-            Name = _right.Name;
-            Num = _right.Num;
-            IsTrue = _right.IsTrue;
-        }
-        SCraft& operator=( const SCraft& _right )
-        {
-            Pos = _right.Pos;
-            Name = _right.Name;
-            Num = _right.Num;
-            IsTrue = _right.IsTrue;
-            return *this;
-        }
-    };
-    typedef vector< SCraft >    SCraftVec;
-    typedef vector< SCraftVec > SCraftVecVec;
-
-    SCraftVecVec FixCraftLst;
-    int          FixScrollLst;
-    SCraftVecVec FixCraftFix;
-    int          FixScrollFix;
-    uchar        FixResult;
-
-    struct FixDrawComponent
-    {
-        bool       IsText;
-        Rect       Place;
-
-        string     Text;
-        AnyFrames* Anim;
-
-        FixDrawComponent( Rect& r, string& text ): IsText( true ), Anim( NULL )
-        {
-            Place = r;
-            Text = text;
-        }
-        FixDrawComponent( Rect& r, AnyFrames* anim ): IsText( false ), Anim( anim ) { Place = r; }
-    };
-    typedef vector< FixDrawComponent* > FixDrawComponentVec;
-    #define FIX_DRAW_PIC_WIDTH         ( 40 )
-    #define FIX_DRAW_PIC_HEIGHT        ( 40 )
-
-    FixDrawComponentVec FixDrawComp;
-    string              FixResultStr;
-    UIntSet             FixShowCraft;
-    uint                FixNextShowCraftTick;
-
-    void       FixGenerate( int fix_mode );
-    void       FixGenerateStrLine( string& str, Rect& r );
-    void       FixGenerateItems( UShortVec& items_vec, UIntVec& val_vec, UCharVec& or_vec, string& str, Rect& r, int& x );
-    int        GetMouseCraft();
-    SCraftVec* GetCurSCrafts();
-
-    void FixDraw();
-    void FixLMouseDown();
-    void FixLMouseUp();
-    void FixMouseMove();
-
-/************************************************************************/
 /* Input Box                                                            */
 /************************************************************************/
     int IboxMode;
@@ -1826,7 +1726,7 @@ public:
 #define SCREEN__DIALOG                 ( 14 )
 #define SCREEN__BARTER                 ( 15 )
 #define SCREEN__PIP_BOY                ( 16 )
-#define SCREEN__FIX_BOY                ( 17 )
+#define SCREEN__UNUSED                 ( 17 )
 #define SCREEN__MENU_OPTION            ( 18 )
 #define SCREEN__AIM                    ( 19 )
 #define SCREEN__SPLIT                  ( 20 )
@@ -1938,7 +1838,7 @@ public:
 #define IFACE_INT_MAP                  ( 6 )
 #define IFACE_INT_CHAR                 ( 7 )
 #define IFACE_INT_PIP                  ( 8 )
-#define IFACE_INT_FIX                  ( 9 )
+#define IFACE_INT_UNUSED               ( 9 )
 #define IFACE_INT_ADDMESS              ( 10 )
 #define IFACE_INT_FILTER1              ( 11 )
 #define IFACE_INT_FILTER2              ( 12 )
@@ -2004,7 +1904,7 @@ public:
 #define IFACE_GMAP_MENU                ( 149 )
 #define IFACE_GMAP_CHA                 ( 150 )
 #define IFACE_GMAP_PIP                 ( 151 )
-#define IFACE_GMAP_FIX                 ( 152 )
+#define IFACE_GMAP_UNUSED              ( 152 )
 #define IFACE_GMAP_MOVE_MAP            ( 153 )
 #define IFACE_SBOX_CANCEL              ( 160 )
 #define IFACE_SBOX_MAIN                ( 161 )
@@ -2099,12 +1999,6 @@ public:
 #define IFACE_TIMER_DOWN               ( 382 )
 #define IFACE_TIMER_DONE               ( 383 )
 #define IFACE_TIMER_CANCEL             ( 384 )
-#define IFACE_FIX_DONE                 ( 400 )
-#define IFACE_FIX_SCRUP                ( 401 )
-#define IFACE_FIX_SCRDN                ( 402 )
-#define IFACE_FIX_CHOOSE               ( 403 )
-#define IFACE_FIX_FIX                  ( 404 )
-#define IFACE_FIX_MAIN                 ( 405 )
 #define IFACE_IBOX_DONE                ( 420 )
 #define IFACE_IBOX_CANCEL              ( 421 )
 #define IFACE_IBOX_TITLE               ( 422 )
