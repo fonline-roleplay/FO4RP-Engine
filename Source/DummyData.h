@@ -1030,9 +1030,11 @@ struct BindClass
 	static void Global_CustomCall()				{}
 	static void Global_SetUserConfig()			{}
 
-    static void Global_SetDebugLookMode() {}
-    static void Global_IsDebugLookMode() {}
-    static void Global_ChangeViewBorder() {}
+    static void Global_SetDebugLookMode()       {}
+    static void Global_IsDebugLookMode()        {}
+    static void Global_ChangeViewBorder()       {}
+
+    static void Global_SetConsoleMode()         {}
 
     static int  GmapActive, GmapWait;
     static int  GmapZoom;

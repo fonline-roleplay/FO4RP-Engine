@@ -1098,6 +1098,8 @@ BIND_ASSERT( engine->RegisterGlobalFunction( "void SetDebugLookMode( bool isDebu
 BIND_ASSERT( engine->RegisterGlobalFunction( "bool IsDebugLookMode( )", asFUNCTION( BIND_CLASS Global_IsDebugLookMode ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "void ChangeViewBorder()", asFUNCTION( BIND_CLASS Global_ChangeViewBorder ), asCALL_CDECL ) );
 
+BIND_ASSERT( engine->RegisterGlobalFunction( "void SetConsoleMode( bool shouldEnable )", asFUNCTION( BIND_CLASS Global_SetConsoleMode ), asCALL_CDECL ) );
+
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __GmapActive", &BIND_CLASS GmapActive ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __GmapWait", &BIND_CLASS GmapWait ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "float __GmapZoom", &BIND_CLASS GmapZoom ) );
