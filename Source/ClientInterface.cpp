@@ -2553,9 +2553,6 @@ void FOClient::GameKeyDown( uchar dik, const char* dik_text )
         case DIK_G:
             TryPickItemOnGround();
             break;
-        case DIK_T:
-            GameOpt.ShowGroups = !GameOpt.ShowGroups;
-            break;
         case DIK_I:
             ShowScreen( SCREEN__INVENTORY );
             break;
