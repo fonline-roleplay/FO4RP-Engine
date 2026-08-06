@@ -503,8 +503,8 @@ int FOMapper::InitIface()
     ConsolePicY = ini.GetInt( "ConsolePicY", 0 );
     ConsoleTextX = ini.GetInt( "ConsoleTextX", 0 );
     ConsoleTextY = ini.GetInt( "ConsoleTextY", 0 );
+    ConsoleActive = false;
 
-    ConsoleEdit = 0;
     ConsoleLastKey = 0;
     ConsoleLastKeyText = "";
     ConsoleKeyTick = 0;
@@ -556,7 +556,6 @@ int FOMapper::InitIface()
 void FOMapper::Finish()
 {
     WriteLog( "Mapper finish...\n" );
-    Keyb::Finish();
     ResMngr.Finish();
     HexMngr.Finish();
     SprMngr.Finish();
@@ -888,14 +887,14 @@ void FOMapper::ParseKeyboard()
                 SelectDelete();
                 break;
             case DIK_ADD:
-                if( !ConsoleEdit && SelectedObj.empty() )
+                if( !ConsoleActive && SelectedObj.empty() )
                 {
                     DayTime += 60;
                     ChangeGameTime();
                 }
                 break;
             case DIK_SUBTRACT:
-                if( !ConsoleEdit && SelectedObj.empty() )
+                if( !ConsoleActive && SelectedObj.empty() )
                 {
                     DayTime -= 60;
                     ChangeGameTime();
@@ -930,14 +929,14 @@ void FOMapper::ParseKeyboard()
                 ExitProcess( 0 );
                 break;
             case DIK_ADD:
-                if( !ConsoleEdit && SelectedObj.empty() )
+                if( !ConsoleActive && SelectedObj.empty() )
                 {
                     DayTime += 1;
                     ChangeGameTime();
                 }
                 break;
             case DIK_SUBTRACT:
-                if( !ConsoleEdit && SelectedObj.empty() )
+                if( !ConsoleActive && SelectedObj.empty() )
                 {
                     DayTime -= 1;
                     ChangeGameTime();
@@ -1023,7 +1022,7 @@ void FOMapper::ParseKeyboard()
         {
             ConsoleKeyDown( dikdw, event_text );
 
-            if( !ConsoleEdit )
+            if( !ConsoleActive )
             {
                 switch( dikdw )
                 {
@@ -2341,7 +2340,7 @@ void FOMapper::ObjKeyDown( uchar dik, const char* dik_text )
 {
     if( !ObjVisible )
         return;
-    if( ConsoleEdit )
+    if( ConsoleActive )
         return;
     if( SelectedObj.empty() )
         return;
@@ -4741,12 +4740,14 @@ bool FOMapper::GetCurHex( ushort& hx, ushort& hy, bool ignore_interface )
     return HexMngr.GetHexPixel( GameOpt.MouseX, GameOpt.MouseY, hx, hy );
 }
 
+bool FOMapper::ConsoleActive;
+
 void FOMapper::ConsoleDraw()
 {
-    if( ConsoleEdit )
+    if( ConsoleActive )
         SprMngr.DrawSprite( ConsolePic, IntX + ConsolePicX, ( IntVisible ? IntY : GameOpt.ScreenHeight ) + ConsolePicY );
 
-    if( ConsoleEdit )
+    if( ConsoleActive )
     {
         char* buf = (char*) Str::FormatBuf( "%s", ConsoleStr.c_str() );
         Str::Insert( &buf[ ConsoleCur ], Timer::FastTick() % 800 < 400 ? "!" : "." );
@@ -4758,53 +4759,52 @@ void FOMapper::ConsoleKeyDown( uchar dik, const char* dik_text )
 {
     if( dik == DIK_RETURN || dik == DIK_NUMPADENTER )
     {
-        if( ConsoleEdit )
+        if( !ConsoleActive )
         {
-            if( ConsoleStr.empty() )
-            {
-                ConsoleEdit = false;
-            }
-            else
-            {
-                ConsoleHistory.push_back( ConsoleStr );
-                for( uint i = 0; i < ConsoleHistory.size() - 1; i++ )
-                {
-                    if( ConsoleHistory[ i ] == ConsoleHistory[ ConsoleHistory.size() - 1 ] )
-                    {
-                        ConsoleHistory.erase( ConsoleHistory.begin() + i );
-                        i = -1;
-                    }
-                }
-                ConsoleHistoryCur = (int) ConsoleHistory.size();
-
-                bool process_command = true;
-                if( MapperFunctions.ConsoleMessage && Script::PrepareContext( MapperFunctions.ConsoleMessage, _FUNC_, "Mapper" ) )
-                {
-                    ScriptString* sstr = new ScriptString( ConsoleStr );
-                    Script::SetArgObject( sstr );
-                    if( Script::RunPrepared() && Script::GetReturnedBool() )
-                        process_command = false;
-                    ConsoleStr = sstr->c_std_str();
-                    sstr->Release();
-                }
-
-                AddMess( ConsoleStr.c_str() );
-                if( process_command )
-                    ParseCommand( ConsoleStr.c_str() );
-                ConsoleStr = "";
-                ConsoleCur = 0;
-            }
-        }
-        else
-        {
-            ConsoleEdit = true;
-            ConsoleStr = "";
+            ConsoleActive = true;
+            ConsoleStr[0] = 0;
             ConsoleCur = 0;
-            ConsoleHistoryCur = (int) ConsoleHistory.size();
+            ConsoleHistoryCur = (int)ConsoleHistory.size();
+            return;
         }
 
-        return;
+        if( ConsoleStr.empty() )
+        {
+            ConsoleActive = false;
+            return;
+        }
+
+        ConsoleHistory.push_back( string( ConsoleStr ) );
+        for( uint i = 0; i < ConsoleHistory.size() - 1; i++ )
+        {
+            if( ConsoleHistory[i] == ConsoleHistory[ConsoleHistory.size() - 1] )
+            {
+                ConsoleHistory.erase( ConsoleHistory.begin() + i );
+                i = -1;
+            }
+        }
+        ConsoleHistoryCur = (int)ConsoleHistory.size();
+
+        bool process_command = true;
+        if( MapperFunctions.ConsoleMessage && Script::PrepareContext( MapperFunctions.ConsoleMessage, _FUNC_, "Mapper" ) )
+        {
+            ScriptString* sstr = new ScriptString( ConsoleStr );
+            Script::SetArgObject( sstr );
+            if( Script::RunPrepared() && Script::GetReturnedBool() )
+                process_command = false;
+            ConsoleStr = sstr->c_std_str();
+            sstr->Release();
+        }
+
+        AddMess( ConsoleStr.c_str() );
+        if( process_command )
+            ParseCommand( ConsoleStr.c_str() );
+        ConsoleStr[0] = 0;
+        ConsoleCur = 0;
     }
+
+    if( !ConsoleActive )
+        return;
 
     switch( dik )
     {
@@ -5458,6 +5458,8 @@ void FOMapper::SaveMapFile(string map_name)
 #define SCRIPT_ERROR_R( error )        do { ScriptLastError = error; Script::LogError( _FUNC_, error ); return; } while( 0 )
 #define SCRIPT_ERROR_R0( error )       do { ScriptLastError = error; Script::LogError( _FUNC_, error ); return 0; } while( 0 )
 static string ScriptLastError;
+
+bool& FOMapper::SScriptFunc::ConsoleActive = FOMapper::ConsoleActive;
 
 ScriptString* FOMapper::SScriptFunc::MapperObject_get_ScriptName( MapObject& mobj )
 {

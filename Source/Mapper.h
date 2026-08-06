@@ -361,9 +361,9 @@ public:
     // Console
     AnyFrames*       ConsolePic;
     int              ConsolePicX, ConsolePicY, ConsoleTextX, ConsoleTextY;
-    bool             ConsoleEdit;
     string           ConsoleStr;
     uint             ConsoleCur;
+    static bool      ConsoleActive;
 
     vector< string > ConsoleHistory;
     int              ConsoleHistoryCur;
@@ -574,6 +574,8 @@ public:
         static uint          Global_GetCritterAlias( uint cr_type );
         static ScriptString* Global_GetCritterTypeName( uint cr_type );
         static ScriptString* Global_GetCritterSoundName( uint cr_type );
+
+        static bool& ConsoleActive;
     };
 };
 
