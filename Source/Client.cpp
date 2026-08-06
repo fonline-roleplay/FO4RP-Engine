@@ -10424,7 +10424,7 @@ uint FOClient::SScriptFunc::Global_GetCrittersInPathBlock( ushort from_hx, ushor
 {
     CritVec    cr_vec;
     UShortPair block, pre_block;
-    Self->HexMngr.TraceBullet( from_hx, from_hy, to_hx, to_hy, dist, angle, NULL, false, &cr_vec, FIND_LIFE | FIND_KO, &block, &pre_block, NULL, true );
+    Self->HexMngr.TraceBullet( from_hx, from_hy, to_hx, to_hy, dist, angle, NULL, false, &cr_vec, find_type, &block, &pre_block, NULL, true );
     if( critters )
         Script::AppendVectorToArrayRef< CritterCl* >( cr_vec, critters );
     pre_block_hx = pre_block.first;
