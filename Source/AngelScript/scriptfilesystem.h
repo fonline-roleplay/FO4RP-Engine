@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include "scriptarray.h"
+#include "scriptstring.h"
 
 BEGIN_AS_NAMESPACE
 
@@ -20,6 +21,17 @@ public:
 
 	void AddRef() const;
 	void Release() const;
+
+	bool ScriptChangeCurrentPath(const ScriptString &path);
+	ScriptString *ScriptGetCurrentPath() const;
+	bool ScriptIsDir(const ScriptString &path) const;
+	bool ScriptIsLink(const ScriptString &path) const;
+	asINT64 ScriptGetSize(const ScriptString &path) const;
+	int ScriptMakeDir(const ScriptString &path);
+	int ScriptRemoveDir(const ScriptString &path);
+	int ScriptDeleteFile(const ScriptString &path);
+	int ScriptCopyFile(const ScriptString &source, const ScriptString &target);
+	int ScriptMove(const ScriptString &source, const ScriptString &target);
 
 	// Sets the current path that should be used in other calls when using relative paths
 	// It can use relative paths too, so moving up a directory is used by passing in ".."
