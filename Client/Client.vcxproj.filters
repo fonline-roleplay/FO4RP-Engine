@@ -812,6 +812,9 @@
     <ClInclude Include="..\Source\AngelScript\scriptgrid.h">
       <Filter>AngelScript</Filter>
     </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\scriptfilesystem.h">
+      <Filter>AngelScript</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Source\Zlib\adler32.c">
@@ -1127,6 +1130,9 @@
       <Filter>AngelScript</Filter>
     </ClCompile>
     <ClCompile Include="..\Source\AngelScript\scriptgrid.cpp">
+      <Filter>AngelScript</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\scriptfilesystem.cpp">
       <Filter>AngelScript</Filter>
     </ClCompile>
   </ItemGroup>

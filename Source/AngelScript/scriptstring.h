@@ -12,7 +12,7 @@ public:
     #ifdef FONLINE_DLL
     static ScriptString& Create( const char* str = NULL )
     {
-        static asIObjectType* ot = ASEngine->GetObjectTypeByDecl( "string" );
+        static asITypeInfo* ot = ASEngine->GetTypeInfoByDecl( "string" );
         ScriptString*         scriptStr = (ScriptString*) ASEngine->CreateScriptObject( ot );
         if( str )
             scriptStr->assign( str );

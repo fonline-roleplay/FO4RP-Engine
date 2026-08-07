@@ -10,6 +10,7 @@
 #include "AngelScript/scriptmath.h"
 #include "AngelScript/scriptarray.h"
 #include "AngelScript/scriptgrid.h"
+#include "AngelScript/scriptfilesystem.h"
 #include "AngelScript/preprocessor.h"
 #include "AngelScript/as_jit.h"
 #include <strstream>
@@ -984,6 +985,7 @@ asIScriptEngine* Script::CreateEngine( Preprocessor::Pragma::Callback* pragma_ca
     RegisterScriptFile( engine );
     RegisterScriptMath( engine );
     RegisterScriptGrid( engine );
+    RegisterScriptFileSystem( engine );
 
     EngineData* edata = new EngineData();
     edata->PragmaCB = pragma_callback;
