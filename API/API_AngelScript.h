@@ -7,6 +7,7 @@
 typedef unsigned long	 asDWORD;
 struct asSFuncPtr;
 struct ScriptString;
+struct CScriptArray;
 typedef unsigned char asEBehaviours;
 #endif //__API_IMPL__
 
@@ -17,5 +18,12 @@ EXPORT int Script_RegisterObjectBehaviour(const char *obj, asEBehaviours behavio
 
 EXPORT ScriptString* Script_String(const char *str);
 EXPORT const char* Script_String_c_str( const ScriptString* string );
+
+EXPORT int ScriptArray_GetElementTypeId(const CScriptArray* array);
+EXPORT uint ScriptArray_GetSize(const CScriptArray* array);
+EXPORT void ScriptArray_Resize(CScriptArray* array, uint size);
+EXPORT void ScriptArray_ResizeAt(CScriptArray* array, int delta, uint at);
+EXPORT void ScriptArray_InsertAt(CScriptArray* array, uint index, void* value);
+EXPORT void* ScriptArray_GetBuffer(CScriptArray* array);
 
 #endif // __API_ANGELSCRIPT__
