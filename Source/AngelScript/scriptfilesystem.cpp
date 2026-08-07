@@ -35,18 +35,18 @@ void RegisterScriptFileSystem_Native(asIScriptEngine *engine)
 	r = engine->RegisterObjectBehaviour("filesystem", asBEHAVE_ADDREF, "void f()", asMETHOD(CScriptFileSystem,AddRef), asCALL_THISCALL); assert( r >= 0 );
 	r = engine->RegisterObjectBehaviour("filesystem", asBEHAVE_RELEASE, "void f()", asMETHOD(CScriptFileSystem,Release), asCALL_THISCALL); assert( r >= 0 );
 	
-	r = engine->RegisterObjectMethod("filesystem", "bool changeCurrentPath(const string &in)", asMETHOD(CScriptFileSystem, ChangeCurrentPath), asCALL_THISCALL); assert( r >= 0 );
-	r = engine->RegisterObjectMethod("filesystem", "string getCurrentPath() const", asMETHOD(CScriptFileSystem, GetCurrentPath), asCALL_THISCALL); assert( r >= 0 );
-	r = engine->RegisterObjectMethod("filesystem", "array<string> @getDirs() const", asMETHOD(CScriptFileSystem, GetDirs), asCALL_THISCALL); assert( r >= 0 );
-	r = engine->RegisterObjectMethod("filesystem", "array<string> @getFiles() const", asMETHOD(CScriptFileSystem, GetFiles), asCALL_THISCALL); assert( r >= 0 );
-	r = engine->RegisterObjectMethod("filesystem", "bool isDir(const string &in) const", asMETHOD(CScriptFileSystem, IsDir), asCALL_THISCALL); assert( r >= 0 );
-	r = engine->RegisterObjectMethod("filesystem", "bool isLink(const string &in) const", asMETHOD(CScriptFileSystem, IsLink), asCALL_THISCALL); assert(r >= 0);
-	r = engine->RegisterObjectMethod("filesystem", "int64 getSize(const string &in) const", asMETHOD(CScriptFileSystem, GetSize), asCALL_THISCALL); assert(r >= 0);
-	r = engine->RegisterObjectMethod("filesystem", "int makeDir(const string &in)", asMETHOD(CScriptFileSystem, MakeDir), asCALL_THISCALL); assert(r >= 0);
-	r = engine->RegisterObjectMethod("filesystem", "int removeDir(const string &in)", asMETHOD(CScriptFileSystem, RemoveDir), asCALL_THISCALL); assert(r >= 0);
-	r = engine->RegisterObjectMethod("filesystem", "int deleteFile(const string &in)", asMETHOD(CScriptFileSystem, DeleteFile), asCALL_THISCALL); assert(r >= 0);
-	r = engine->RegisterObjectMethod("filesystem", "int copyFile(const string &in, const string &in)", asMETHOD(CScriptFileSystem, CopyFile), asCALL_THISCALL); assert(r >= 0);
-	r = engine->RegisterObjectMethod("filesystem", "int move(const string &in, const string &in)", asMETHOD(CScriptFileSystem, Move), asCALL_THISCALL); assert(r >= 0);
+	r = engine->RegisterObjectMethod("filesystem", "bool changeCurrentPath(const string &in)", asMETHOD(CScriptFileSystem, ScriptChangeCurrentPath), asCALL_THISCALL); assert( r >= 0 );
+	r = engine->RegisterObjectMethod("filesystem", "string@ getCurrentPath() const", asMETHOD(CScriptFileSystem, ScriptGetCurrentPath), asCALL_THISCALL); assert( r >= 0 );
+	r = engine->RegisterObjectMethod("filesystem", "array<string@> @getDirs() const", asMETHOD(CScriptFileSystem, GetDirs), asCALL_THISCALL); assert( r >= 0 );
+	r = engine->RegisterObjectMethod("filesystem", "array<string@> @getFiles() const", asMETHOD(CScriptFileSystem, GetFiles), asCALL_THISCALL); assert( r >= 0 );
+	r = engine->RegisterObjectMethod("filesystem", "bool isDir(const string &in) const", asMETHOD(CScriptFileSystem, ScriptIsDir), asCALL_THISCALL); assert( r >= 0 );
+	r = engine->RegisterObjectMethod("filesystem", "bool isLink(const string &in) const", asMETHOD(CScriptFileSystem, ScriptIsLink), asCALL_THISCALL); assert(r >= 0);
+	r = engine->RegisterObjectMethod("filesystem", "int64 getSize(const string &in) const", asMETHOD(CScriptFileSystem, ScriptGetSize), asCALL_THISCALL); assert(r >= 0);
+	r = engine->RegisterObjectMethod("filesystem", "int makeDir(const string &in)", asMETHOD(CScriptFileSystem, ScriptMakeDir), asCALL_THISCALL); assert(r >= 0);
+	r = engine->RegisterObjectMethod("filesystem", "int removeDir(const string &in)", asMETHOD(CScriptFileSystem, ScriptRemoveDir), asCALL_THISCALL); assert(r >= 0);
+	r = engine->RegisterObjectMethod("filesystem", "int deleteFile(const string &in)", asMETHOD(CScriptFileSystem, ScriptDeleteFile), asCALL_THISCALL); assert(r >= 0);
+	r = engine->RegisterObjectMethod("filesystem", "int copyFile(const string &in, const string &in)", asMETHOD(CScriptFileSystem, ScriptCopyFile), asCALL_THISCALL); assert(r >= 0);
+	r = engine->RegisterObjectMethod("filesystem", "int move(const string &in, const string &in)", asMETHOD(CScriptFileSystem, ScriptMove), asCALL_THISCALL); assert(r >= 0);
 }
 
 void RegisterScriptFileSystem(asIScriptEngine *engine)
@@ -94,7 +94,7 @@ CScriptArray *CScriptFileSystem::GetFiles() const
 
 	// TODO: This should only be done once
 	// TODO: This assumes that CScriptArray was already registered
-	asITypeInfo *arrayType = engine->GetTypeInfoByDecl("array<string>");
+	asITypeInfo *arrayType = engine->GetTypeInfoByDecl("array<string@>");
 
 	// Create the array object
 	CScriptArray *array = CScriptArray::Create(arrayType);
@@ -122,7 +122,7 @@ CScriptArray *CScriptFileSystem::GetFiles() const
 		
 		// Add the file to the array
 		array->Resize(array->GetSize()+1);
-		((string*)(array->At(array->GetSize()-1)))->assign(bufUTF8);
+		*(ScriptString**)(array->At(array->GetSize()-1)) = new ScriptString(bufUTF8);
 	}
 	while( FindNextFileW(hFind, &ffd) != 0 );
 
@@ -148,7 +148,7 @@ CScriptArray *CScriptFileSystem::GetFiles() const
 
 		// Add the file to the array
 		array->Resize(array->GetSize()+1);
-		((string*)(array->At(array->GetSize()-1)))->assign(filename);
+		*(ScriptString**)(array->At(array->GetSize()-1)) = new ScriptString(filename);
 	}
 	closedir(dir);
 #endif
@@ -164,7 +164,7 @@ CScriptArray *CScriptFileSystem::GetDirs() const
 
 	// TODO: This should only be done once
 	// TODO: This assumes that CScriptArray was already registered
-	asITypeInfo *arrayType = engine->GetTypeInfoByDecl("array<string>");
+	asITypeInfo *arrayType = engine->GetTypeInfoByDecl("array<string@>");
 
 	// Create the array object
 	CScriptArray *array = CScriptArray::Create(arrayType);
@@ -195,7 +195,7 @@ CScriptArray *CScriptFileSystem::GetDirs() const
 		
 		// Add the dir to the array
 		array->Resize(array->GetSize()+1);
-		((string*)(array->At(array->GetSize()-1)))->assign(bufUTF8);
+		*(ScriptString**)(array->At(array->GetSize()-1)) = new ScriptString(bufUTF8);
 	}
 	while( FindNextFileW(hFind, &ffd) != 0 );
 
@@ -221,7 +221,7 @@ CScriptArray *CScriptFileSystem::GetDirs() const
 
 		// Add the dir to the array
 		array->Resize(array->GetSize()+1);
-		((string*)(array->At(array->GetSize()-1)))->assign(filename);
+		*(ScriptString**)(array->At(array->GetSize()-1)) = new ScriptString(filename);
 	}
 	closedir(dir);
 #endif
@@ -502,6 +502,56 @@ int CScriptFileSystem::Move(const string &source, const string &target)
 string CScriptFileSystem::GetCurrentPath() const
 {
 	return currentPath;
+}
+
+bool CScriptFileSystem::ScriptChangeCurrentPath(const ScriptString &path)
+{
+	return ChangeCurrentPath(path.c_std_str());
+}
+
+ScriptString *CScriptFileSystem::ScriptGetCurrentPath() const
+{
+	return new ScriptString(currentPath);
+}
+
+bool CScriptFileSystem::ScriptIsDir(const ScriptString &path) const
+{
+	return IsDir(path.c_std_str());
+}
+
+bool CScriptFileSystem::ScriptIsLink(const ScriptString &path) const
+{
+	return IsLink(path.c_std_str());
+}
+
+asINT64 CScriptFileSystem::ScriptGetSize(const ScriptString &path) const
+{
+	return GetSize(path.c_std_str());
+}
+
+int CScriptFileSystem::ScriptMakeDir(const ScriptString &path)
+{
+	return MakeDir(path.c_std_str());
+}
+
+int CScriptFileSystem::ScriptRemoveDir(const ScriptString &path)
+{
+	return RemoveDir(path.c_std_str());
+}
+
+int CScriptFileSystem::ScriptDeleteFile(const ScriptString &path)
+{
+	return DeleteFile(path.c_std_str());
+}
+
+int CScriptFileSystem::ScriptCopyFile(const ScriptString &source, const ScriptString &target)
+{
+	return CopyFile(source.c_std_str(), target.c_std_str());
+}
+
+int CScriptFileSystem::ScriptMove(const ScriptString &source, const ScriptString &target)
+{
+	return Move(source.c_std_str(), target.c_std_str());
 }
 
 
