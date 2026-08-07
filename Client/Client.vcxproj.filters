@@ -812,6 +812,9 @@
     <ClInclude Include="..\Source\LookData.h">
       <Filter>Client</Filter>
     </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\scriptfilesystem.h">
+      <Filter>AngelScript</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Source\Zlib\adler32.c">
@@ -1128,6 +1131,9 @@
     </ClCompile>
     <ClCompile Include="..\Source\LookData.cpp">
       <Filter>Client</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\scriptfilesystem.cpp">
+      <Filter>AngelScript</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
