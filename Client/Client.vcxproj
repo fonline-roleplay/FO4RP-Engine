@@ -360,6 +360,7 @@
     <ResourceCompile Include="Client.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\API\API_AngelScript.h" />
     <ClInclude Include="..\API\API_Client.h" />
     <ClInclude Include="..\API\API_Common.h" />
     <ClInclude Include="..\Source\3dAnimation.h" />
@@ -617,6 +618,7 @@
     <ClInclude Include="..\Source\SHA2\sha2.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\API\API_AngelScript.cpp" />
     <ClCompile Include="..\API\API_Client.cpp" />
     <ClCompile Include="..\Source\3dStuff.cpp" />
     <ClCompile Include="..\Source\AngelScript\as_jit.cpp">

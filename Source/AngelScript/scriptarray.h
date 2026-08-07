@@ -99,6 +99,7 @@ public:
 
 	// Return the address of internal buffer for direct manipulation of elements
 	void *GetBuffer();
+	void ResizeAt(int delta, asUINT at) { Resize(delta, at); }
 
 	// GC methods
 	int  GetRefCount();

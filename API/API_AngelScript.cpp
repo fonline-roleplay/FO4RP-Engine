@@ -46,3 +46,27 @@ ScriptString* Script_String(const char *c_str) {
 const char* Script_String_c_str( const ScriptString* string ) {
 	return string->c_str();
 }
+
+int ScriptArray_GetElementTypeId(const CScriptArray* array) {
+	return array->GetElementTypeId();
+}
+
+uint ScriptArray_GetSize(const CScriptArray* array) {
+	return array->GetSize();
+}
+
+void ScriptArray_Resize(CScriptArray* array, uint size) {
+	array->Resize(size);
+}
+
+void ScriptArray_ResizeAt(CScriptArray* array, int delta, uint at) {
+	array->ResizeAt(delta, at);
+}
+
+void ScriptArray_InsertAt(CScriptArray* array, uint index, void* value) {
+	array->InsertAt(index, value);
+}
+
+void* ScriptArray_GetBuffer(CScriptArray* array) {
+	return array->GetBuffer();
+}
