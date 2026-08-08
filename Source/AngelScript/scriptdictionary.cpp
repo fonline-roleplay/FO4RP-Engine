@@ -2,6 +2,7 @@
 #include <string.h>
 #include "scriptdictionary.h"
 #include "scriptarray.h"
+#include "scriptstring.h"
 
 BEGIN_AS_NAMESPACE
 
@@ -434,6 +435,17 @@ CScriptArray* CScriptDictionary::GetKeys() const
 	}
 
 	return array;
+}
+
+asUINT CScriptDictionary::Keys(CScriptArray* keys) const
+{
+	if (keys) {
+		asUINT index = keys->GetSize();
+		keys->Resize(index + asUINT(dict.size()));
+		for (dictMap_t::const_iterator it = dict.begin(); it != dict.end(); ++it, ++index)
+			*(ScriptString**)keys->At(index) = new ScriptString(it->first);
+	}
+	return asUINT(dict.size());
 }
 
 //--------------------------------------------------------------------------
@@ -1119,6 +1131,7 @@ void RegisterScriptDictionary_Native(asIScriptEngine *engine)
 	r = engine->RegisterObjectMethod("dictionary", "void deleteAll()", asMETHOD(CScriptDictionary,DeleteAll), asCALL_THISCALL); assert( r >= 0 );
 
 	r = engine->RegisterObjectMethod("dictionary", "array<string> @getKeys() const", asMETHOD(CScriptDictionary,GetKeys), asCALL_THISCALL); assert( r >= 0 );
+	r = engine->RegisterObjectMethod("dictionary", "uint keys(array<string@>@+) const", asMETHOD(CScriptDictionary,Keys), asCALL_THISCALL); assert(r >= 0);
 
 	r = engine->RegisterObjectMethod("dictionary", "dictionaryValue &opIndex(const string &in)", asMETHODPR(CScriptDictionary, operator[], (const dictKey_t &), CScriptDictValue*), asCALL_THISCALL); assert( r >= 0 );
 	r = engine->RegisterObjectMethod("dictionary", "const dictionaryValue &opIndex(const string &in) const", asMETHODPR(CScriptDictionary, operator[], (const dictKey_t &) const, const CScriptDictValue*), asCALL_THISCALL); assert( r >= 0 );
@@ -1295,5 +1308,4 @@ const void *CScriptDictionary::CIterator::GetAddressOfValue() const
 }
 
 END_AS_NAMESPACE
-
 

@@ -51,10 +51,14 @@ void RegisterScriptFile_Native( asIScriptEngine* engine )
     assert( r >= 0 );
     r = engine->RegisterObjectMethod( "file", "bool isEndOfFile() const", asMETHOD( ScriptFile, IsEOF ), asCALL_THISCALL );
     assert( r >= 0 );
-    r = engine->RegisterObjectMethod( "file", "string@ readString(uint)", asMETHOD( ScriptFile, ReadString ), asCALL_THISCALL );
+    r = engine->RegisterObjectMethod( "file", "string@ readString(uint)", asMETHODPR( ScriptFile, ReadString, (unsigned int), ScriptString* ), asCALL_THISCALL );
     assert( r >= 0 );
-    r = engine->RegisterObjectMethod( "file", "string@ readLine()", asMETHOD( ScriptFile, ReadLine ), asCALL_THISCALL );
+    r = engine->RegisterObjectMethod( "file", "string@ readLine()", asMETHODPR( ScriptFile, ReadLine, (), ScriptString* ), asCALL_THISCALL );
     assert( r >= 0 );
+	r = engine->RegisterObjectMethod("file", "int readString(uint, string &out)", asMETHODPR(ScriptFile, ReadString, (unsigned int, ScriptString&), int), asCALL_THISCALL);
+	assert(r >= 0);
+	r = engine->RegisterObjectMethod("file", "int readLine(string &out)", asMETHODPR(ScriptFile, ReadLine, (ScriptString&), int), asCALL_THISCALL);
+	assert(r >= 0);
     r = engine->RegisterObjectMethod( "file", "int64 readInt(uint)", asMETHOD( ScriptFile, ReadInt ), asCALL_THISCALL );
     assert( r >= 0 );
     r = engine->RegisterObjectMethod( "file", "uint64 readUInt(uint)", asMETHOD( ScriptFile, ReadUInt ), asCALL_THISCALL );
@@ -450,6 +454,26 @@ ScriptString* ScriptFile::ReadLine()
     while( !feof( file ) && buf[ 255 ] == 0 && buf[ 254 ] != '\n' );
 
     return str;
+}
+
+int ScriptFile::ReadString(unsigned int length, ScriptString& str)
+{
+	if (file == 0)
+		return 0;
+	str.rawResize(length);
+	int size = (int)fread((char*)str.c_str(), 1, length, file);
+	str.rawResize(size);
+	return size;
+}
+
+int ScriptFile::ReadLine(ScriptString& str)
+{
+	ScriptString* result = ReadLine();
+	if (!result)
+		return 0;
+	str = *result;
+	result->Release();
+	return int(str.length());
 }
 
 asINT64 ScriptFile::ReadInt( asUINT bytes )

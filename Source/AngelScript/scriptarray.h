@@ -82,7 +82,9 @@ public:
 	void InsertAt(asUINT index, void *value);
 	void InsertAt(asUINT index, const CScriptArray &arr);
 	void InsertLast(void *value);
+	void InsertFirst(void *value) { InsertAt(0, value); }
 	void RemoveAt(asUINT index);
+	void RemoveFirst() { RemoveAt(0); }
 	void RemoveLast();
 	void RemoveRange(asUINT start, asUINT count);
 	void SortAsc();
@@ -100,6 +102,8 @@ public:
 	// Return the address of internal buffer for direct manipulation of elements
 	void *GetBuffer();
 	void ResizeAt(int delta, asUINT at) { Resize(delta, at); }
+	void Grow(asUINT count) { if (count) Resize(GetSize() + count); }
+	void Reduce(asUINT count);
 
 	// GC methods
 	int  GetRefCount();

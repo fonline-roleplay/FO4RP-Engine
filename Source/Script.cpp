@@ -1668,7 +1668,7 @@ public:
         IntVec bad_typeids_class;
         for( int m = 0, n = module->GetObjectTypeCount(); m < n; m++ )
         {
-            asITypeInfo* ot = Engine->GetTypeInfoById( m );
+            asITypeInfo* ot = module->GetObjectTypeByIndex( m );
             for( int i = 0, j = ot->GetPropertyCount(); i < j; i++ )
             {
                 int type = 0;

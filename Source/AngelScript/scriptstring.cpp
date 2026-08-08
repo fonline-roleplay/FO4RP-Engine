@@ -489,6 +489,39 @@ static void SetStringAt( int i, ScriptString& value, ScriptString& str )
     MEMORY_PROCESS( MEMORY_SCRIPT_STRING, (uint) buffer.capacity() );
 }
 
+static char* StringCharAt( uint index, ScriptString& str )
+{
+    if( index >= str.length() )
+    {
+        asIScriptContext* ctx = asGetActiveContext();
+        if( ctx )
+            ctx->SetException( "Out of range" );
+        return 0;
+    }
+
+    return const_cast<char*>( str.c_str() ) + index;
+}
+
+static uchar StringToByte( const ScriptString& str )
+{
+    return str.length() ? uchar( str.c_str()[ 0 ] ) : 0;
+}
+
+static void ResizeStringUTF8( uint count, ScriptString& str )
+{
+    uint current = str.lengthUTF8();
+    if( count < current )
+    {
+        int byte_count = int( count );
+        str.indexByteToUTF8( byte_count );
+        str.rawResize( uint( byte_count ) );
+    }
+    else if( count > current )
+    {
+        str.rawResize( str.length() + count - current );
+    }
+}
+
 // -----------------------
 // AngelScript functions
 // -----------------------
@@ -582,9 +615,12 @@ void RegisterScriptString( asIScriptEngine* engine )
     assert( r >= 0 );
 
     // Register the index operator, both as a mutator and as an inspector
-    r = engine->RegisterObjectMethod( "string", "string@ get_opIndex(int) const", asFUNCTION( GetStringAt ), asCALL_CDECL_OBJLAST );
+    r = engine->RegisterObjectMethod( "string", "uint8 &opIndex(uint)", asFUNCTION( StringCharAt ), asCALL_CDECL_OBJLAST );
     assert( r >= 0 );
-    r = engine->RegisterObjectMethod( "string", "void set_opIndex(int, const string &in) const", asFUNCTION( SetStringAt ), asCALL_CDECL_OBJLAST );
+    r = engine->RegisterObjectMethod( "string", "const uint8 &opIndex(uint) const", asFUNCTION( StringCharAt ), asCALL_CDECL_OBJLAST );
+    assert( r >= 0 );
+
+    r = engine->RegisterObjectMethod( "string", "uint8 opImplConv() const", asFUNCTION( StringToByte ), asCALL_CDECL_OBJFIRST );
     assert( r >= 0 );
 
     // Register the object methods
@@ -593,6 +629,8 @@ void RegisterScriptString( asIScriptEngine* engine )
     r = engine->RegisterObjectMethod( "string", "uint rawLength() const", asMETHOD( ScriptString, length ), asCALL_THISCALL );
     assert( r >= 0 );
     r = engine->RegisterObjectMethod( "string", "void rawResize(uint)", asMETHODPR( ScriptString, rawResize, ( uint ), void ), asCALL_THISCALL );
+    assert( r >= 0 );
+    r = engine->RegisterObjectMethod( "string", "void resize(uint)", asFUNCTION( ResizeStringUTF8 ), asCALL_CDECL_OBJLAST );
     assert( r >= 0 );
     r = engine->RegisterObjectMethod( "string", "uint8 rawGet(uint) const", asMETHODPR( ScriptString, rawGet, ( uint ), char ), asCALL_THISCALL );
     assert( r >= 0 );

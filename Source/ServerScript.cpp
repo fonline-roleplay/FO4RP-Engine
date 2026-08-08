@@ -2788,7 +2788,7 @@ void FOServer::SScriptFunc::Cl_ShowScreen( Critter* cl, int screen_type, uint pa
     cl_->Send_ShowScreen( screen_type, param, bind_id != 0 );
 }
 
-void FOServer::SScriptFunc::Cl_RunClientScript( Critter* cl, ScriptString& func_name, int p0, int p1, int p2, ScriptString* p3, CScriptArray* p4 )
+void FOServer::SScriptFunc::Cl_RunClientScript( Critter* cl, const ScriptString& func_name, int p0, int p1, int p2, const ScriptString* p3, CScriptArray* p4 )
 {
     if( cl->IsNotValid )
         SCRIPT_ERROR_R( "This nullptr." );

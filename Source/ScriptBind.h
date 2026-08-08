@@ -548,7 +548,7 @@ BIND_ASSERT( engine->RegisterObjectMethod( "Critter", "int GetFog(uint16 zoneX, 
 
 BIND_ASSERT( engine->RegisterObjectMethod( "Critter", "void ShowContainer(Critter@+ contCr, Item@+ contItem, uint8 transferType)", asFUNCTION( BIND_CLASS Cl_ShowContainer ), asCALL_CDECL_OBJFIRST ) );
 BIND_ASSERT( engine->RegisterObjectMethod( "Critter", "void ShowScreen(int screenType, uint param, string@+ funcName)", asFUNCTION( BIND_CLASS Cl_ShowScreen ), asCALL_CDECL_OBJFIRST ) );
-BIND_ASSERT( engine->RegisterObjectMethod( "Critter", "void RunClientScript(string& funcName, int p0, int p1, int p2, string@+ p3, int[]@+ p4)", asFUNCTION( BIND_CLASS Cl_RunClientScript ), asCALL_CDECL_OBJFIRST ) );
+BIND_ASSERT( engine->RegisterObjectMethod( "Critter", "void RunClientScript(const string&in funcName, int p0, int p1, int p2, const string@+ p3, int[]@+ p4)", asFUNCTION( BIND_CLASS Cl_RunClientScript ), asCALL_CDECL_OBJFIRST ) );
 BIND_ASSERT( engine->RegisterObjectMethod( "Critter", "void Disconnect()", asFUNCTION( BIND_CLASS Cl_Disconnect ), asCALL_CDECL_OBJFIRST ) );
 BIND_ASSERT( engine->RegisterObjectMethod( "Critter", "bool IsOnline()", asFUNCTION( BIND_CLASS Cl_IsOnline ), asCALL_CDECL_OBJFIRST ) );
 
@@ -726,8 +726,8 @@ BIND_ASSERT( engine->RegisterObjectMethod( "Map", "void RunFlyEffect(uint16 effe
 BIND_ASSERT( engine->RegisterObjectMethod( "Map", "bool CheckPlaceForItem(uint16 hexX, uint16 hexY, uint16 pid) const", asFUNCTION( BIND_CLASS Map_CheckPlaceForItem ), asCALL_CDECL_OBJFIRST ) );
 BIND_ASSERT( engine->RegisterObjectMethod( "Map", "void BlockHex(uint16 hexX, uint16 hexY, bool full)", asFUNCTION( BIND_CLASS Map_BlockHex ), asCALL_CDECL_OBJFIRST ) );
 BIND_ASSERT( engine->RegisterObjectMethod( "Map", "void UnblockHex(uint16 hexX, uint16 hexY)", asFUNCTION( BIND_CLASS Map_UnblockHex ), asCALL_CDECL_OBJFIRST ) );
-BIND_ASSERT( engine->RegisterObjectMethod( "Map", "void PlaySound(string& soundName) const", asFUNCTION( BIND_CLASS Map_PlaySound ), asCALL_CDECL_OBJFIRST ) );
-BIND_ASSERT( engine->RegisterObjectMethod( "Map", "void PlaySound(string& soundName, uint16 hexX, uint16 hexY, uint radius) const", asFUNCTION( BIND_CLASS Map_PlaySoundRadius ), asCALL_CDECL_OBJFIRST ) );
+BIND_ASSERT( engine->RegisterObjectMethod( "Map", "void PlaySound(const string&in soundName) const", asFUNCTION( BIND_CLASS Map_PlaySound ), asCALL_CDECL_OBJFIRST ) );
+BIND_ASSERT( engine->RegisterObjectMethod( "Map", "void PlaySound(const string&in soundName, uint16 hexX, uint16 hexY, uint radius) const", asFUNCTION( BIND_CLASS Map_PlaySoundRadius ), asCALL_CDECL_OBJFIRST ) );
 BIND_ASSERT( engine->RegisterObjectMethod( "Map", "bool Reload()", asFUNCTION( BIND_CLASS Map_Reload ), asCALL_CDECL_OBJFIRST ) );
 BIND_ASSERT( engine->RegisterObjectMethod( "Map", "uint16 GetWidth() const", asFUNCTION( BIND_CLASS Map_GetWidth ), asCALL_CDECL_OBJFIRST ) );
 BIND_ASSERT( engine->RegisterObjectMethod( "Map", "uint16 GetHeight() const", asFUNCTION( BIND_CLASS Map_GetHeight ), asCALL_CDECL_OBJFIRST ) );
