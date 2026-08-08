@@ -641,7 +641,7 @@ public:
         static uint Crit_GetParam( Critter* cr, uint num_timeout );
         static void Cl_ShowContainer( Critter* cl, Critter* cr_cont, Item* item_cont, uchar transfer_type );
         static void Cl_ShowScreen( Critter* cl, int screen_type, uint param, ScriptString* func_name );
-        static void Cl_RunClientScript( Critter* cl, ScriptString& func_name, int p0, int p1, int p2, ScriptString* p3, CScriptArray* p4 );
+        static void Cl_RunClientScript( Critter* cl, const ScriptString& func_name, int p0, int p1, int p2, const ScriptString* p3, CScriptArray* p4 );
         static void Cl_Disconnect( Critter* cl );
 		static bool Cl_IsOnline( Critter* cl );
 

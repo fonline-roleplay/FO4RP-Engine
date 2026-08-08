@@ -294,7 +294,9 @@ static void RegisterScriptArray_Native(asIScriptEngine *engine)
 	r = engine->RegisterObjectMethod("array<T>", "void insertAt(uint index, const T&in value)", asMETHODPR(CScriptArray, InsertAt, (asUINT, void *), void), asCALL_THISCALL); assert( r >= 0 );
 	r = engine->RegisterObjectMethod("array<T>", "void insertAt(uint index, const array<T>& arr)", asMETHODPR(CScriptArray, InsertAt, (asUINT, const CScriptArray &), void), asCALL_THISCALL); assert(r >= 0);
 	r = engine->RegisterObjectMethod("array<T>", "void insertLast(const T&in value)", asMETHOD(CScriptArray, InsertLast), asCALL_THISCALL); assert(r >= 0);
+	r = engine->RegisterObjectMethod("array<T>", "void insertFirst(const T&in value)", asMETHOD(CScriptArray, InsertFirst), asCALL_THISCALL); assert(r >= 0);
 	r = engine->RegisterObjectMethod("array<T>", "void removeAt(uint index)", asMETHOD(CScriptArray, RemoveAt), asCALL_THISCALL); assert(r >= 0);
+	r = engine->RegisterObjectMethod("array<T>", "void removeFirst()", asMETHOD(CScriptArray, RemoveFirst), asCALL_THISCALL); assert(r >= 0);
 	r = engine->RegisterObjectMethod("array<T>", "void removeLast()", asMETHOD(CScriptArray, RemoveLast), asCALL_THISCALL); assert( r >= 0 );
 	r = engine->RegisterObjectMethod("array<T>", "void removeRange(uint start, uint count)", asMETHOD(CScriptArray, RemoveRange), asCALL_THISCALL); assert(r >= 0);
 	// TODO: Should length() and resize() be deprecated as the property accessors do the same thing?
@@ -304,6 +306,8 @@ static void RegisterScriptArray_Native(asIScriptEngine *engine)
 #endif
 	r = engine->RegisterObjectMethod("array<T>", "void reserve(uint length)", asMETHOD(CScriptArray, Reserve), asCALL_THISCALL); assert( r >= 0 );
 	r = engine->RegisterObjectMethod("array<T>", "void resize(uint length)", asMETHODPR(CScriptArray, Resize, (asUINT), void), asCALL_THISCALL); assert( r >= 0 );
+	r = engine->RegisterObjectMethod("array<T>", "void grow(uint count)", asMETHOD(CScriptArray, Grow), asCALL_THISCALL); assert(r >= 0);
+	r = engine->RegisterObjectMethod("array<T>", "void reduce(uint count)", asMETHOD(CScriptArray, Reduce), asCALL_THISCALL); assert(r >= 0);
 	r = engine->RegisterObjectMethod("array<T>", "void sortAsc()", asMETHODPR(CScriptArray, SortAsc, (), void), asCALL_THISCALL); assert( r >= 0 );
 	r = engine->RegisterObjectMethod("array<T>", "void sortAsc(uint startAt, uint count)", asMETHODPR(CScriptArray, SortAsc, (asUINT, asUINT), void), asCALL_THISCALL); assert( r >= 0 );
 	r = engine->RegisterObjectMethod("array<T>", "void sortDesc()", asMETHODPR(CScriptArray, SortDesc, (), void), asCALL_THISCALL); assert( r >= 0 );
@@ -654,6 +658,17 @@ void CScriptArray::Resize(asUINT numElements)
 		return;
 
 	Resize((int)numElements - (int)buffer->numElements, (asUINT)-1);
+}
+
+void CScriptArray::Reduce(asUINT count)
+{
+	if (count > GetSize()) {
+		asIScriptContext* ctx = asGetActiveContext();
+		if (ctx)
+			ctx->SetException("Array size is less than reduce count");
+		return;
+	}
+	Resize(GetSize() - count);
 }
 
 void CScriptArray::RemoveRange(asUINT start, asUINT count)

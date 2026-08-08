@@ -8,6 +8,7 @@ struct Sprite;
 struct Sprites;
 struct AnyFrames;
 struct Field;
+struct Effect;
 struct CScriptArray;
 #endif //__API_IMPL__
 

@@ -46,6 +46,8 @@ public:
     // Reading
     virtual ScriptString* ReadString( unsigned int length );
     virtual ScriptString* ReadLine();
+	virtual int ReadString( unsigned int length, ScriptString& str );
+	virtual int ReadLine( ScriptString& str );
     virtual asINT64       ReadInt( asUINT bytes );
     virtual asQWORD       ReadUInt( asUINT bytes );
     virtual float         ReadFloat();

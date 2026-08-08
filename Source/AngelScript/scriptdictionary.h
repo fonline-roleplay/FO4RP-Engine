@@ -157,6 +157,7 @@ public:
 
 	// Get an array of all keys
 	CScriptArray *GetKeys() const;
+	asUINT Keys(CScriptArray *keys) const;
 
 	// STL style iterator
 	class CIterator
