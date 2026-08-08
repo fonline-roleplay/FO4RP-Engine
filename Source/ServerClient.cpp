@@ -501,7 +501,7 @@ bool FOServer::Act_Move( Critter* cr, ushort hx, ushort hy, uint move_params )
     return true;
 }
 
-bool FOServer::Act_Attack( Critter* cr, uchar rate_weap, uint target_id )
+bool FOServer::Act_Attack( Critter* cr, uchar rate_weap, uint target_id, ushort target_hx, ushort target_hy )
 {
 /************************************************************************/
 /* Check & Prepare                                                      */
@@ -528,19 +528,14 @@ bool FOServer::Act_Attack( Critter* cr, uchar rate_weap, uint target_id )
     }
 
     Critter* t_cr = cr->GetCritSelf( target_id, true );
-    if( !t_cr )
-    {
-        WriteLogF( _FUNC_, " - Target critter not found, target id<%u>, critter<%s>.\n", target_id, cr->GetInfo() );
-        return false;
-    }
 
-    if( cr->GetMap() != t_cr->GetMap() )
+    if( t_cr && cr->GetMap() != t_cr->GetMap() )
     {
         WriteLogF( _FUNC_, " - Other maps, critter<%s>, target critter<%s>.\n", cr->GetInfo(), t_cr->GetInfo() );
         return false;
     }
 
-    if( t_cr->IsDead() )
+    if( t_cr && t_cr->IsDead() )
     {
         // if(cr->IsPlayer()) WriteLogF(_FUNC_," - Target critter is dead, critter<%s>, target critter<%s>.\n",cr->GetInfo(),t_cr->GetInfo());
         cr->Send_AddCritter( t_cr );       // Refresh
@@ -551,32 +546,36 @@ bool FOServer::Act_Attack( Critter* cr, uchar rate_weap, uint target_id )
 
     int hx = cr->GetHexX();
     int hy = cr->GetHexY();
-    int tx = t_cr->GetHexX();
-    int ty = t_cr->GetHexY();
+    int tx = t_cr ? t_cr->GetHexX() : target_hx;
+    int ty = t_cr ? t_cr->GetHexY() : target_hy;
 
     // Get weapon, ammo and armor
     Item* weap = cr->ItemSlotMain;
     if( !weap->IsWeapon() )
     {
-        WriteLogF( _FUNC_, " - Critter item is not weapon, critter<%s>, target critter<%s>.\n", cr->GetInfo(), t_cr->GetInfo() );
+        if( t_cr ) WriteLogF( _FUNC_, " - Critter item is not weapon, critter<%s>, target critter<%s>.\n", cr->GetInfo(), t_cr->GetInfo() );
+        else WriteLogF( _FUNC_, " - Critter item is not weapon, critter<%s>, target hex<%d, %d>.\n", cr->GetInfo(), tx, ty );
         return false;
     }
 
     if( weap->IsBroken() )
     {
-        WriteLogF( _FUNC_, " - Critter weapon is broken, critter<%s>, target critter<%s>.\n", cr->GetInfo(), t_cr->GetInfo() );
+        if( t_cr ) WriteLogF( _FUNC_, " - Critter weapon is broken, critter<%s>, target critter<%s>.\n", cr->GetInfo(), t_cr->GetInfo() );
+        else WriteLogF( _FUNC_, " - Critter weapon is broken, critter<%s>, target hex<%d, %d>.\n", cr->GetInfo(), tx, ty );
         return false;
     }
 
     if( weap->IsTwoHands() && cr->IsDmgArm() )
     {
-        WriteLogF( _FUNC_, " - Critter is damaged arm on two hands weapon, critter<%s>, target critter<%s>.\n", cr->GetInfo(), t_cr->GetInfo() );
+        if( t_cr ) WriteLogF( _FUNC_, " - Critter is damaged arm on two hands weapon, critter<%s>, target critter<%s>.\n", cr->GetInfo(), t_cr->GetInfo() );
+        else WriteLogF( _FUNC_, " - Critter is damaged arm on two hands weapon, critter<%s>, target hex<%d, %d>.\n", cr->GetInfo(), tx, ty );
         return false;
     }
 
     if( cr->IsDmgTwoArm() && weap->GetId() )
     {
-        WriteLogF( _FUNC_, " - Critter is damaged two arms on armed attack, critter<%s>, target critter<%s>.\n", cr->GetInfo(), t_cr->GetInfo() );
+        if( t_cr ) WriteLogF( _FUNC_, " - Critter is damaged two arms on armed attack, critter<%s>, target critter<%s>.\n", cr->GetInfo(), t_cr->GetInfo() );
+        else WriteLogF( _FUNC_, " - Critter is damaged two arms on armed attack, critter<%s>, target hex<%d, %d>.\n", cr->GetInfo(), tx, ty );
         return false;
     }
 
@@ -585,73 +584,83 @@ bool FOServer::Act_Attack( Critter* cr, uchar rate_weap, uint target_id )
 
     if( use >= MAX_USES )
     {
-        WriteLogF( _FUNC_, " - Use<%u> invalid value, critter<%s>, target critter<%s>.\n", use, cr->GetInfo(), t_cr->GetInfo() );
+        if( t_cr ) WriteLogF( _FUNC_, " - Use<%u> invalid value, critter<%s>, target critter<%s>.\n", use, cr->GetInfo(), t_cr->GetInfo() );
+        else WriteLogF( _FUNC_, " - Use<%u> invalid value, critter<%s>, target hex<%d, %d>.\n", use, cr->GetInfo(), tx, ty );
         return false;
     }
 
     if( !( weap->Proto->Weapon_ActiveUses & ( 1 << use ) ) )
     {
-        WriteLogF( _FUNC_, " - Use<%u> is not aviable, critter<%s>, target critter<%s>.\n", use, cr->GetInfo(), t_cr->GetInfo() );
+        if( t_cr ) WriteLogF( _FUNC_, " - Use<%u> is not aviable, critter<%s>, target critter<%s>.\n", use, cr->GetInfo(), t_cr->GetInfo() );
+        else WriteLogF( _FUNC_, " - Use<%u> is not aviable, critter<%s>, target hex<%d, %d>.\n", use, cr->GetInfo(), tx, ty );
         return false;
     }
 
     if( aim >= MAX_HIT_LOCATION )
     {
-        WriteLogF( _FUNC_, " - Aim<%u> invalid value, critter<%s>, target critter<%s>.\n", aim, cr->GetInfo(), t_cr->GetInfo() );
+        if( t_cr ) WriteLogF( _FUNC_, " - Aim<%u> invalid value, critter<%s>, target critter<%s>.\n", aim, cr->GetInfo(), t_cr->GetInfo() );
+        else WriteLogF( _FUNC_, " - Aim<%u> invalid value, critter<%s>, target hex<%d, %d>.\n", aim, cr->GetInfo(), tx, ty );
         return false;
     }
 
     if( aim && !CritType::IsCanAim( cr->GetCrType() ) )
     {
-        WriteLogF( _FUNC_, " - Aim is not available for this critter type, crtype<%u>, aim<%u>, critter<%s>, target critter<%s>.\n", cr->GetCrType(), aim, cr->GetInfo(), t_cr->GetInfo() );
+        if( t_cr ) WriteLogF( _FUNC_, " - Aim is not available for this critter type, crtype<%u>, aim<%u>, critter<%s>, target critter<%s>.\n", cr->GetCrType(), aim, cr->GetInfo(), t_cr->GetInfo() );
+        else WriteLogF( _FUNC_, " - Aim is not available for this critter type, crtype<%u>, aim<%u>, critter<%s>, target hex<%d, %d>.\n", cr->GetCrType(), aim, cr->GetInfo(), tx, ty );
         return false;
     }
 
     if( aim && cr->IsRawParam( MODE_NO_AIM ) )
     {
-        WriteLogF( _FUNC_, " - Aim is not available with critter no aim mode, aim<%u>, critter<%s>, target critter<%s>.\n", aim, cr->GetInfo(), t_cr->GetInfo() );
+        if( t_cr ) WriteLogF( _FUNC_, " - Aim is not available with critter no aim mode, aim<%u>, critter<%s>, target critter<%s>.\n", aim, cr->GetInfo(), t_cr->GetInfo() );
+        else WriteLogF( _FUNC_, " - Aim is not available with critter no aim mode, aim<%u>, critter<%s>, target hex<%d, %d>.\n", aim, cr->GetInfo(), tx, ty );
         return false;
     }
 
     if( aim && !weap->WeapIsCanAim( use ) )
     {
-        WriteLogF( _FUNC_, " - Aim is not available for this weapon, aim<%u>, weapon pid<%u>, critter<%s>, target critter<%s>.\n", aim, weap->GetProtoId(), cr->GetInfo(), t_cr->GetInfo() );
+        if( t_cr ) WriteLogF( _FUNC_, " - Aim is not available for this weapon, aim<%u>, weapon pid<%u>, critter<%s>, target critter<%s>.\n", aim, weap->GetProtoId(), cr->GetInfo(), t_cr->GetInfo() );
+        else WriteLogF( _FUNC_, " - Aim is not available for this weapon, aim<%u>, weapon pid<%u>, critter<%s>, target hex<%d, %d>.\n", aim, weap->GetProtoId(), cr->GetInfo(), tx, ty );
         return false;
     }
 
     if( !CritType::IsAnim1( cr->GetCrType(), weap->Proto->Weapon_Anim1 ) )
     {
-        WriteLogF( _FUNC_, " - Anim1 is not available for this critter type, crtype<%u>, anim1<%d>, critter<%s>, target critter<%s>.\n", cr->GetCrType(), weap->Proto->Weapon_Anim1, cr->GetInfo(), t_cr->GetInfo() );
+        if( t_cr ) WriteLogF( _FUNC_, " - Anim1 is not available for this critter type, crtype<%u>, anim1<%d>, critter<%s>, target critter<%s>.\n", cr->GetCrType(), weap->Proto->Weapon_Anim1, cr->GetInfo(), t_cr->GetInfo() );
+        else WriteLogF( _FUNC_, " - Anim1 is not available for this critter type, crtype<%u>, anim1<%d>, critter<%s>, target hex<%d, %d>.\n", cr->GetCrType(), weap->Proto->Weapon_Anim1, cr->GetInfo(), tx, ty );
         return false;
     }
 
-    uint max_dist = cr->GetAttackDist( weap, use ) + t_cr->GetMultihex();
+    uint max_dist = cr->GetAttackDist( weap, use ) + ( t_cr ? t_cr->GetMultihex() : 0 );
     #ifdef FORP_ENGINE
     if( max_dist > 2 )
         max_dist *= 2;
     #endif // FORP_ENGINE
-    if( !CheckDist( hx, hy, tx, ty, max_dist ) && !( Timer::GameTick() < t_cr->PrevHexTick + 500 && CheckDist( hx, hy, t_cr->PrevHexX, t_cr->PrevHexY, max_dist ) ) )
+    if( t_cr && !CheckDist( hx, hy, tx, ty, max_dist ) && !( Timer::GameTick() < t_cr->PrevHexTick + 500 && CheckDist( hx, hy, t_cr->PrevHexX, t_cr->PrevHexY, max_dist ) ) )
     {
         cr->Send_XY( cr );
         cr->Send_XY( t_cr );
         return false;
     }
 
-    TraceData trace;
-    trace.TraceMap = map;
-    trace.BeginHx = hx;
-    trace.BeginHy = hy;
-    trace.EndHx = tx;
-    trace.EndHy = ty;
-    trace.Dist = ( weap->Proto->Weapon_MaxDist[ use ] > 2 ? max_dist : 0 );
-    trace.FindCr = t_cr;
-    MapMngr.TraceBullet( trace );
-    if( !trace.IsCritterFound )
+    if( t_cr )
     {
-        cr->Send_XY( cr );
-        cr->Send_XY( t_cr );
-        // if(cr->IsPlayer()) WriteLogF(_FUNC_," - Distance trace fail, critter<%s>, target critter<%s>.\n",cr->GetInfo(),t_cr->GetInfo());
-        return false;
+        TraceData trace;
+        trace.TraceMap = map;
+        trace.BeginHx = hx;
+        trace.BeginHy = hy;
+        trace.EndHx = tx;
+        trace.EndHy = ty;
+        trace.Dist = ( weap->Proto->Weapon_MaxDist[ use ] > 2 ? max_dist : 0 );
+        trace.FindCr = t_cr;
+        MapMngr.TraceBullet( trace );
+        if( !trace.IsCritterFound )
+        {
+            cr->Send_XY( cr );
+            cr->Send_XY( t_cr );
+            // if(cr->IsPlayer()) WriteLogF(_FUNC_," - Distance trace fail, critter<%s>, target critter<%s>.\n",cr->GetInfo(),t_cr->GetInfo());
+            return false;
+        }
     }
 
     #ifndef FORP_ENGINE
@@ -662,10 +671,10 @@ bool FOServer::Act_Attack( Critter* cr, uchar rate_weap, uint target_id )
     if( cr->GetParam( ST_CURRENT_AP ) < ap_cost && !Singleplayer )
     {
         cr->Send_Param( ST_CURRENT_AP );
-        WriteLogF( _FUNC_, " - Not enough AP, critter<%s>, target critter<%s>.\n", cr->GetInfo(), t_cr->GetInfo() );
+        if( t_cr ) WriteLogF( _FUNC_, " - Not enough AP, critter<%s>, target critter<%s>.\n", cr->GetInfo(), t_cr->GetInfo() );
+        else WriteLogF( _FUNC_, " - Not enough AP, critter<%s>, target hex<%d, %d>.\n", cr->GetInfo(), tx, ty );
         return false;
     }
-    // WriteLog("Proto %u, ap %u.\n",weap->GetProtoId(),ap_cost);
 
     // Ammo
     ProtoItem* ammo = NULL;
@@ -680,13 +689,15 @@ bool FOServer::Act_Attack( Critter* cr, uchar rate_weap, uint target_id )
 
         if( !ammo )
         {
-            WriteLogF( _FUNC_, " - Critter weapon ammo not found, critter<%s>, target critter<%s>.\n", cr->GetInfo(), t_cr->GetInfo() );
+            if( t_cr ) WriteLogF( _FUNC_, " - Critter weapon ammo not found, critter<%s>, target critter<%s>.\n", cr->GetInfo(), t_cr->GetInfo() );
+            else WriteLogF( _FUNC_, " - Critter weapon ammo not found, critter<%s>, target hex<%d, %d>.\n", cr->GetInfo(), tx, ty );
             return false;
         }
 
         if( !ammo->IsAmmo() )
         {
-            WriteLogF( _FUNC_, " - Critter weapon ammo is not ammo type, critter<%s>, target critter<%s>.\n", cr->GetInfo(), t_cr->GetInfo() );
+            if( t_cr ) WriteLogF( _FUNC_, " - Critter weapon ammo is not ammo type, critter<%s>, target critter<%s>.\n", cr->GetInfo(), t_cr->GetInfo() );
+            else WriteLogF( _FUNC_, " - Critter weapon ammo is not ammo type, critter<%s>, target hex<%d, %d>.\n", cr->GetInfo(), tx, ty );
             return false;
         }
     }
@@ -734,6 +745,8 @@ bool FOServer::Act_Attack( Critter* cr, uchar rate_weap, uint target_id )
     {
         Script::SetArgObject( cr );
         Script::SetArgObject( t_cr );
+        Script::SetArgUShort( tx );
+        Script::SetArgUShort( ty );
         Script::SetArgObject( weap->Proto );
         Script::SetArgUChar( MAKE_ITEM_MODE( use, aim ) );
         Script::SetArgObject( ammo );
@@ -2992,6 +3005,10 @@ void FOServer::Process_UseItem( Client* cl )
 
     if( item->IsWeapon() && use != USE_USE )
     {
+        uint real_id = target_type == TARGET_HEX ? 0 : target_id;
+        ushort target_hx = target_type == TARGET_HEX ? target_id >> 16 : 0;
+        ushort target_hy = target_type == TARGET_HEX ? target_id & 0xFFFF : 0;
+
         switch( use )
         {
         case USE_PRIMARY:
@@ -3017,7 +3034,7 @@ void FOServer::Process_UseItem( Client* cl )
                 cl->ItemSlotMain->Init( unarmed );
             }
 
-            Act_Attack( cl, rate, target_id );
+            Act_Attack( cl, rate, real_id, target_hx, target_hy );
             break;
         case USE_RELOAD:
             Act_Reload( cl, item->GetId(), target_id );

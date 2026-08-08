@@ -29,6 +29,7 @@ struct AIDataPlane
         int IsGag;
         int GagHexX, GagHexY;
         int LastHexX, LastHexY;
+        int TargHexX, TargHexY;
         int IsRun;
     } Attack;
 
