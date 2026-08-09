@@ -631,7 +631,7 @@ void CritterCl::ProcessChangedParams()
             else if( index == ST_SCALE_FACTOR )
             {
                 int   value = Params[ ST_SCALE_FACTOR ];
-                Scale = max( 0.001f, (float) ( value ? value : 1000 ) / 1000.0f );
+                Scale = max( 0.001f, (float) ( value ? value : 100 ) / 100.0f );
                 if( SprDrawValid )
                     SprDraw->SetScale( Scale );
                 if( Anim3d )
