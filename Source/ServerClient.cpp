@@ -2166,8 +2166,10 @@ void FOServer::Process_LogIn( ClientPtr& cl )
     {
         ConnectedClientsLocker.Lock();
 
-        // Check founded critter for online
-        if( std::find( ConnectedClients.begin(), ConnectedClients.end(), cl_old ) != ConnectedClients.end() )
+        // A disconnected client can remain in ConnectedClients until its pending
+        // network I/O is finalized. Membership alone does not mean that the
+        // character is still online and must not block reconnecting it.
+        if( cl_old->IsOnline() && std::find( ConnectedClients.begin(), ConnectedClients.end(), cl_old ) != ConnectedClients.end() )
         {
             ConnectedClientsLocker.Unlock();
             cl_old->Send_TextMsg( cl, STR_NET_KNOCK_KNOCK, SAY_NETMSG, TEXTMSG_GAME );
