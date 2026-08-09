@@ -838,6 +838,7 @@ public:
         static bool Location_EventEnter( Location* loc, CScriptArray& group, uchar entrance );
 
         static void          Global_Log( ScriptString& text );
+        static int           Global_RunAllFunctions( ScriptString& func_name );
         static ProtoItem*    Global_GetProtoItem( ushort pid );
         static Item*         Global_GetItem( uint item_id );
         static uint          Global_GetCrittersDistantion( Critter* cr1, Critter* cr2 );

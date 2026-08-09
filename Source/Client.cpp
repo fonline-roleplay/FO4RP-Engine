@@ -11023,6 +11023,11 @@ void FOClient::SScriptFunc::Global_Log( ScriptString& text )
     Script::Log( text.c_str() );
 }
 
+int FOClient::SScriptFunc::Global_RunAllFunctions( ScriptString& func_name )
+{
+    return Script::RunAllModuleFunctions( func_name.c_str() );
+}
+
 ProtoItem* FOClient::SScriptFunc::Global_GetProtoItem( ushort proto_id )
 {
     ProtoItem* proto_item = ItemMngr.GetProtoItem( proto_id );

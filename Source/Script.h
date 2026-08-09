@@ -110,6 +110,8 @@ namespace Script
 
     bool   RunModuleInitFunctions( asIScriptModule* module );
     bool   RunAllModuleInitFunctions();
+    int    RunModuleFunctions( asIScriptModule* module, const char* function_name );
+    int    RunAllModuleFunctions( const char* function_name );
 
     bool   PrepareContext( int bind_id, const char* call_func, const char* ctx_info );
     void   SetArgUChar( uchar value );

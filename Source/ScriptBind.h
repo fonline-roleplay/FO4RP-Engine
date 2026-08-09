@@ -1650,6 +1650,7 @@ BIND_ASSERT( engine->RegisterGlobalProperty( "float __MapCameraAngle", &GameOpt.
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __MapSmoothPath", &GameOpt.MapSmoothPath ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "string __MapDataPrefix", &GameOpt.MapDataPrefix ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "void Log(string& text)", asFUNCTION( BIND_CLASS Global_Log ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "int RunAllFunctions(const string&in funcName)", asFUNCTION( BIND_CLASS Global_RunAllFunctions ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "string@ GetLastError()", asFUNCTION( BIND_CLASS Global_GetLastError ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "int Random(int minimum, int maximum)", asFUNCTION( Random ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "ProtoItem@+ GetProtoItem(uint16 protoId)", asFUNCTION( BIND_CLASS Global_GetProtoItem ), asCALL_CDECL ) );

@@ -2290,6 +2290,37 @@ bool Script::RunAllModuleInitFunctions()
 	return true;
 }
 
+int Script::RunModuleFunctions( asIScriptModule* module, const char* function_name )
+{
+    if( !module || !function_name )
+        return 0;
+
+    int result = 0;
+    for( asUINT i = 0; i < module->GetFunctionCount(); i++ )
+    {
+        asIScriptFunction* func = module->GetFunctionByIndex( i );
+        if( !Str::Compare( func->GetName(), function_name ) || func->GetParamCount() != 0 || func->GetReturnTypeId() != asTYPEID_VOID )
+            continue;
+
+        const uint bind_id = Script::BindByFunction( func, true );
+        if( !Script::PrepareContext( bind_id, _FUNC_, "RunAllFunctions" ) || !Script::RunPrepared() )
+        {
+            WriteLog( "Error executing function '%s::%s'.\n", func->GetNamespace(), func->GetName() );
+            continue;
+        }
+        result++;
+    }
+    return result;
+}
+
+int Script::RunAllModuleFunctions( const char* function_name )
+{
+    int result = 0;
+    for( asUINT i = 0; i < Engine->GetModuleCount(); i++ )
+        result += RunModuleFunctions( Engine->GetModuleByIndex( i ), function_name );
+    return result;
+}
+
 bool Script::PrepareContext( int bind_id, const char* call_func, const char* ctx_info )
 {
     #ifdef SCRIPT_MULTITHREADING

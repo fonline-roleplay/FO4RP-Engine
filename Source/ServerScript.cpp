@@ -4984,6 +4984,11 @@ void FOServer::SScriptFunc::Global_Log( ScriptString& text )
     Script::Log( text.c_str() );
 }
 
+int FOServer::SScriptFunc::Global_RunAllFunctions( ScriptString& func_name )
+{
+    return Script::RunAllModuleFunctions( func_name.c_str() );
+}
+
 ProtoItem* FOServer::SScriptFunc::Global_GetProtoItem( ushort pid )
 {
     ProtoItem* proto_item = ItemMngr.GetProtoItem( pid );

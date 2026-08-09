@@ -525,6 +525,7 @@ public:
 
         static ScriptString* Global_GetLastError();
         static void          Global_Log( ScriptString& text );
+        static int           Global_RunAllFunctions( ScriptString& func_name );
         static bool          Global_StrToInt( ScriptString* text, int& result );
         static bool          Global_StrToFloat( ScriptString* text, float& result );
         static void          Global_Message( ScriptString& msg );
