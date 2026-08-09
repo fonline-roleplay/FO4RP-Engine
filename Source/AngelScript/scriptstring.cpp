@@ -559,7 +559,6 @@ public:
 };
 
 StringFactory* StrFactory = nullptr;
-asITypeInfo* ArrayType = nullptr;
 
 // This is the default string factory, that is responsible for creating empty string objects, e.g. when a variable is declared
 static ScriptString* StringDefaultFactory()
@@ -806,12 +805,9 @@ CScriptArray* StringSplit( ScriptString* str, ScriptString* delim )
     asIScriptContext* ctx = asGetActiveContext();
     asIScriptEngine*  engine = ctx->GetEngine();
 
-    asITypeInfo* arrayType = ArrayType;
+    asITypeInfo* arrayType = engine->GetTypeInfoByDecl( "array<string@>" );
     if( !arrayType )
-    {
-        ArrayType = engine->GetTypeInfoByName( "array<string@>" );
-        arrayType = ArrayType;
-    }
+        return nullptr;
 
     // Create the array object
     CScriptArray* array = CScriptArray::Create( arrayType, 0, NULL );
@@ -856,12 +852,9 @@ CScriptArray* StringSplitEx( ScriptString* str, ScriptString* delim )
     asIScriptContext* ctx = asGetActiveContext();
     asIScriptEngine*  engine = ctx->GetEngine();
 
-    asITypeInfo* arrayType = ArrayType;
+    asITypeInfo* arrayType = engine->GetTypeInfoByDecl( "array<string@>" );
     if( !arrayType )
-    {
-        ArrayType = engine->GetTypeInfoByName( "array<string@>" );
-        arrayType = ArrayType;
-    }
+        return nullptr;
 
     // Create the array object
     CScriptArray* array = CScriptArray::Create( arrayType, 0, NULL );
