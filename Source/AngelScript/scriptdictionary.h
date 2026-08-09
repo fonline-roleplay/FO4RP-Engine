@@ -10,11 +10,38 @@
 #include "angelscript.h"
 #endif
 
-// By default the CScriptDictionary use the std::string for the keys.
-// If the application uses a custom string type, then this typedef
-// can be changed accordingly.
+// The engine registers ScriptString as AngelScript's string type. The
+// dictionary key type must therefore use the same C++ object layout at the
+// script boundary; using std::string here makes native bindings reinterpret a
+// ScriptString reference as std::string.
+#include "scriptstring.h"
+#include <functional>
 #include <string>
-typedef std::string dictKey_t;
+typedef ScriptString dictKey_t;
+
+struct dictKeyHash
+{
+	size_t operator()(const dictKey_t &key) const
+	{
+		return std::hash<std::string>()(key.c_std_str());
+	}
+};
+
+struct dictKeyEqual
+{
+	bool operator()(const dictKey_t &left, const dictKey_t &right) const
+	{
+		return left.c_std_str() == right.c_std_str();
+	}
+};
+
+struct dictKeyLess
+{
+	bool operator()(const dictKey_t &left, const dictKey_t &right) const
+	{
+		return left.c_std_str() < right.c_std_str();
+	}
+};
 
 // Forward declare CScriptDictValue so we can typedef the internal map type
 BEGIN_AS_NAMESPACE
@@ -27,10 +54,10 @@ END_AS_NAMESPACE
 // TODO: memory: The map allocator should use the asAllocMem and asFreeMem
 #if AS_CAN_USE_CPP11
 #include <unordered_map>
-typedef std::unordered_map<dictKey_t, AS_NAMESPACE_QUALIFIER CScriptDictValue> dictMap_t;
+typedef std::unordered_map<dictKey_t, AS_NAMESPACE_QUALIFIER CScriptDictValue, dictKeyHash, dictKeyEqual> dictMap_t;
 #else
 #include <map>
-typedef std::map<dictKey_t, AS_NAMESPACE_QUALIFIER CScriptDictValue> dictMap_t;
+typedef std::map<dictKey_t, AS_NAMESPACE_QUALIFIER CScriptDictValue, dictKeyLess> dictMap_t;
 #endif
 
 
