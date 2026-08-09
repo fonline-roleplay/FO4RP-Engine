@@ -566,6 +566,7 @@ public:
 
         static ScriptString* Global_GetLastError();
         static void          Global_Log( ScriptString& text );
+        static int           Global_RunAllFunctions( ScriptString& func_name );
         static ProtoItem*    Global_GetProtoItem( ushort proto_id );
         static uint          Global_GetDistantion( ushort hex_x1, ushort hex_y1, ushort hex_x2, ushort hex_y2 );
         static uchar         Global_GetDirection( ushort from_hx, ushort from_hy, ushort to_hx, ushort to_hy );

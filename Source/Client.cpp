@@ -10875,6 +10875,11 @@ void FOClient::SScriptFunc::Global_Log( ScriptString& text )
     Script::Log( text.c_str() );
 }
 
+int FOClient::SScriptFunc::Global_RunAllFunctions( ScriptString& func_name )
+{
+    return Script::RunAllModuleFunctions( func_name.c_str() );
+}
+
 ProtoItem* FOClient::SScriptFunc::Global_GetProtoItem( ushort proto_id )
 {
     ProtoItem* proto_item = ItemMngr.GetProtoItem( proto_id );
@@ -12407,7 +12412,7 @@ void FOClient::VisualLookBorder::Prepare( uchar chosendir, ushort base_hx, ushor
                 if( FLAG( GameOpt.LookChecks, LOOK_CHECK_LOOK_DATA ) )
                 {
                     int dir_ = GetFarDir( base_hx, base_hy, hx_, hy_ );
-                    uchar ii = ( chosendir > dir_ ? chosendir - dir_ : dir_ - chosendir ); // = i8::abs(start_dir as i8 - cr.Dir as i8); //Íàïğàâëåíèå
+                    uchar ii = ( chosendir > dir_ ? chosendir - dir_ : dir_ - chosendir ); // = i8::abs(start_dir as i8 - cr.Dir as i8); //ĞĞ°Ğ¿Ñ€Ğ°Ğ²Ğ»ĞµĞ½Ğ¸Ğµ
                     if( ii > 3 )
                         ii = 6 - ii;
 
@@ -12509,7 +12514,7 @@ void FOClient::VisualLookBorder::Prepare( uchar chosendir, ushort base_hx, ushor
                     ushort hy_ = CLAMP( hy, 0, maxhy - 1 );
 
                     int dir_ = GetFarDir( base_hx, base_hy, hx_, hy_ );
-                    uchar ii = ( chosendir > dir_ ? chosendir - dir_ : dir_ - chosendir ); // = i8::abs(start_dir as i8 - cr.Dir as i8); //Íàïğàâëåíèå
+                    uchar ii = ( chosendir > dir_ ? chosendir - dir_ : dir_ - chosendir ); // = i8::abs(start_dir as i8 - cr.Dir as i8); //ĞĞ°Ğ¿Ñ€Ğ°Ğ²Ğ»ĞµĞ½Ğ¸Ğµ
                     if( ii > 3 )
                         ii = 6 - ii;
 

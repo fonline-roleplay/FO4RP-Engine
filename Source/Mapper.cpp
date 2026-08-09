@@ -6650,6 +6650,11 @@ void FOMapper::SScriptFunc::Global_Log( ScriptString& text )
     Script::Log( text.c_str() );
 }
 
+int FOMapper::SScriptFunc::Global_RunAllFunctions( ScriptString& func_name )
+{
+    return Script::RunAllModuleFunctions( func_name.c_str() );
+}
+
 bool FOMapper::SScriptFunc::Global_StrToInt( ScriptString* text, int& result )
 {
     if( !text || !text->length() || !Str::IsNumber( text->c_str() ) )

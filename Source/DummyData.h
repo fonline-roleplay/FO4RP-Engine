@@ -1182,7 +1182,6 @@ struct BindClass
     static void Global_DrawMapSprite()      {}
     static void Global_DrawCritter2d()      {}
     static void Global_DrawCritter3d()      {}
-    static void Global_GetKeybLang()        {}
     static void Global_GetHexPos()          {}
     static void Global_GetMonitorHex()      {}
     static void Global_LoadFont()           {}
@@ -1197,6 +1196,7 @@ struct BindClass
 
     static void Global_GetLastError()           {}
     static void Global_Log()                    {}
+    static void Global_RunAllFunctions()        {}
     static void Global_GetTick()                {}
     static void Global_GetProtoItem()           {}
     static void Global_StrToInt()               {}
