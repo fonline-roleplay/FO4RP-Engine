@@ -967,7 +967,7 @@ asIScriptEngine* Script::CreateEngine( Preprocessor::Pragma::Callback* pragma_ca
     if( !JITCompiler )
     {
         // Create JIT Compiler
-        JITCompiler = new asCJITCompiler( JIT_SYSCALL_FPU_NORESET );
+        JITCompiler = new asCJITCompiler( JIT_SYSCALL_FPU_NORESET | JIT_NO_SCRIPT_CALLS );
         if( !JITCompiler )
         {
             WriteLogF( _FUNC_, " - Can't create AS JIT Compiler.\n" );
@@ -2521,6 +2521,29 @@ endcopy:
 
         // Restore registers
         pop  ecx
+    }
+
+    #elif defined ( FO_X64 )
+    // The 64-bit ABIs pass pointer and integer arguments in pointer-sized
+    // registers/stack slots. NativeArgs already stores each argument in a
+    // size_t slot, so invoke the function through an arity-matched prototype.
+    // The old fallback below did nothing on x64 and consequently returned
+    // zero for every native function called through Script::Bind.
+    const size_t arg_count = paramSize / 4;
+    switch( arg_count )
+    {
+    case 0: retQW = ( (uint64 ( * )()) func )(); break;
+    case 1: retQW = ( (uint64 ( * )( size_t )) func )( args[ 0 ] ); break;
+    case 2: retQW = ( (uint64 ( * )( size_t, size_t )) func )( args[ 0 ], args[ 1 ] ); break;
+    case 3: retQW = ( (uint64 ( * )( size_t, size_t, size_t )) func )( args[ 0 ], args[ 1 ], args[ 2 ] ); break;
+    case 4: retQW = ( (uint64 ( * )( size_t, size_t, size_t, size_t )) func )( args[ 0 ], args[ 1 ], args[ 2 ], args[ 3 ] ); break;
+    case 5: retQW = ( (uint64 ( * )( size_t, size_t, size_t, size_t, size_t )) func )( args[ 0 ], args[ 1 ], args[ 2 ], args[ 3 ], args[ 4 ] ); break;
+    case 6: retQW = ( (uint64 ( * )( size_t, size_t, size_t, size_t, size_t, size_t )) func )( args[ 0 ], args[ 1 ], args[ 2 ], args[ 3 ], args[ 4 ], args[ 5 ] ); break;
+    case 7: retQW = ( (uint64 ( * )( size_t, size_t, size_t, size_t, size_t, size_t, size_t )) func )( args[ 0 ], args[ 1 ], args[ 2 ], args[ 3 ], args[ 4 ], args[ 5 ], args[ 6 ] ); break;
+    case 8: retQW = ( (uint64 ( * )( size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t )) func )( args[ 0 ], args[ 1 ], args[ 2 ], args[ 3 ], args[ 4 ], args[ 5 ], args[ 6 ], args[ 7 ] ); break;
+    default:
+        WriteLog( "Native call has too many arguments<%u>.\n", (uint) arg_count );
+        break;
     }
 
     #elif defined ( FO_GCC ) && !defined ( FO_OSX_IOS )
