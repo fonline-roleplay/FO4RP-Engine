@@ -1022,8 +1022,8 @@ BIND_ASSERT( engine->RegisterGlobalFunction( "uint GetTurnBasedTime()", asFUNCTI
 BIND_ASSERT( engine->RegisterGlobalFunction( "uint16 GetCurrentMapPid()", asFUNCTION( BIND_CLASS Global_GetCurrentMapPid ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "uint GetMessageFilters(int[]@+ filters)", asFUNCTION( BIND_CLASS Global_GetMessageFilters ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "void SetMessageFilters(int[]@+ filters)", asFUNCTION( BIND_CLASS Global_SetMessageFilters ), asCALL_CDECL ) );
-BIND_ASSERT( engine->RegisterGlobalFunction( "void Message(string& text)", asFUNCTION( BIND_CLASS Global_Message ), asCALL_CDECL ) );
-BIND_ASSERT( engine->RegisterGlobalFunction( "void Message(string& text, int type)", asFUNCTION( BIND_CLASS Global_MessageType ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "void Message(const string&in text)", asFUNCTION( BIND_CLASS Global_Message ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "void Message(const string&in text, int type)", asFUNCTION( BIND_CLASS Global_MessageType ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "void Message(int textMsg, uint strNum)", asFUNCTION( BIND_CLASS Global_MessageMsg ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "void Message(int textMsg, uint strNum, int type)", asFUNCTION( BIND_CLASS Global_MessageMsgType ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "void MapMessage(string& text, uint16 hx, uint16 hy, uint timeMs, uint color, bool fade, int offsX, int offsY)", asFUNCTION( BIND_CLASS Global_MapMessage ), asCALL_CDECL ) );
@@ -1444,7 +1444,7 @@ BIND_ASSERT( engine->RegisterGlobalFunction( "string@ GetCritterSoundName(uint c
 BIND_ASSERT( engine->RegisterGlobalFunction( "void GetHexCoord(uint16 fromHx, uint16 fromHy, uint16& toHx, uint16& toHy, float angle, uint dist)", asFUNCTION( BIND_CLASS Global_GetHexInPath ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "uint GetPathLength(uint16 fromHx, uint16 fromHy, uint16 toHx, uint16 toHy, uint cut)", asFUNCTION( BIND_CLASS Global_GetPathLengthHex ), asCALL_CDECL ) );
 
-BIND_ASSERT( engine->RegisterGlobalFunction( "void Message(string& text)", asFUNCTION( BIND_CLASS Global_Message ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "void Message(const string&in text)", asFUNCTION( BIND_CLASS Global_Message ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "void Message(int textMsg, uint strNum)", asFUNCTION( BIND_CLASS Global_MessageMsg ), asCALL_CDECL ) );
 
 BIND_ASSERT( engine->RegisterGlobalFunction( "void MapMessage(string& text, uint16 hx, uint16 hy, uint timeMs, uint color, bool fade, int offsX, int offsY)", asFUNCTION( BIND_CLASS Global_MapMessage ), asCALL_CDECL ) );

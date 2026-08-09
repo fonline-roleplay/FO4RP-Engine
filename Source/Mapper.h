@@ -528,7 +528,7 @@ public:
         static int           Global_RunAllFunctions( ScriptString& func_name );
         static bool          Global_StrToInt( ScriptString* text, int& result );
         static bool          Global_StrToFloat( ScriptString* text, float& result );
-        static void          Global_Message( ScriptString& msg );
+        static void          Global_Message( const ScriptString& msg );
         static void          Global_MessageMsg( int text_msg, uint str_num );
         static void          Global_MapMessage( ScriptString& text, ushort hx, ushort hy, uint ms, uint color, bool fade, int ox, int oy );
         static ScriptString* Global_GetMsgStr( int text_msg, uint str_num );

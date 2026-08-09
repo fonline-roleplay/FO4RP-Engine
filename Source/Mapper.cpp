@@ -6671,7 +6671,7 @@ bool FOMapper::SScriptFunc::Global_StrToFloat( ScriptString* text, float& result
     return true;
 }
 
-void FOMapper::SScriptFunc::Global_Message( ScriptString& msg )
+void FOMapper::SScriptFunc::Global_Message( const ScriptString& msg )
 {
     Self->AddMess( msg.c_str() );
 }
