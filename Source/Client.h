@@ -539,8 +539,8 @@ public:
         static ushort        Global_GetCurrentMapPid();
         static uint          Global_GetMessageFilters( CScriptArray* filters );
         static void          Global_SetMessageFilters( CScriptArray* filters );
-        static void          Global_Message( ScriptString& msg );
-        static void          Global_MessageType( ScriptString& msg, int type );
+        static void          Global_Message( const ScriptString& msg );
+        static void          Global_MessageType( const ScriptString& msg, int type );
         static void          Global_MessageMsg( int text_msg, uint str_num );
         static void          Global_MessageMsgType( int text_msg, uint str_num, int type );
         static void          Global_MapMessage( ScriptString& text, ushort hx, ushort hy, uint ms, uint color, bool fade, int ox, int oy );

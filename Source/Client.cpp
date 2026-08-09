@@ -10578,12 +10578,12 @@ void FOClient::SScriptFunc::Global_SetMessageFilters( CScriptArray* filters )
         Script::AssignScriptArrayInVector( Self->MessBoxFilters, filters );
 }
 
-void FOClient::SScriptFunc::Global_Message( ScriptString& msg )
+void FOClient::SScriptFunc::Global_Message( const ScriptString& msg )
 {
     Self->AddMess( FOMB_GAME, msg.c_str() );
 }
 
-void FOClient::SScriptFunc::Global_MessageType( ScriptString& msg, int type )
+void FOClient::SScriptFunc::Global_MessageType( const ScriptString& msg, int type )
 {
     if( type < FOMB_GAME || type > FOMB_VIEW )
         type = FOMB_GAME;
