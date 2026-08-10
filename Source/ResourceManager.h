@@ -24,7 +24,26 @@ struct LoadedAnim
     AnyFrames* Anim;
     LoadedAnim( int res_type, AnyFrames* anim ): ResType( res_type ), Anim( anim ) {}
 };
-typedef map< uint, LoadedAnim, less< uint > > LoadedAnimMap;
+struct LoadedAnimKey
+{
+    uint NameHash;
+    int  Direction;
+    int  ResType;
+    bool Nearest;
+
+    LoadedAnimKey( uint name_hash, int direction, int res_type, bool nearest ): NameHash( name_hash ), Direction( direction ), ResType( res_type ), Nearest( nearest ) {}
+    bool operator<( const LoadedAnimKey& other ) const
+    {
+        if( NameHash != other.NameHash )
+            return NameHash < other.NameHash;
+        if( Direction != other.Direction )
+            return Direction < other.Direction;
+        if( ResType != other.ResType )
+            return ResType < other.ResType;
+        return Nearest < other.Nearest;
+    }
+};
+typedef map< LoadedAnimKey, LoadedAnim > LoadedAnimMap;
 
 class ResourceManager
 {

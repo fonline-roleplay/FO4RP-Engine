@@ -15,6 +15,14 @@ typedef vector< Quaternion > QuaternionVec;
 typedef vector< Matrix >     MatrixVec;
 typedef vector< Matrix* >    MatrixPtrVec;
 
+enum TextureSampling
+{
+    TEXTURE_SAMPLING_INHERIT,
+    TEXTURE_SAMPLING_NEAREST,
+    TEXTURE_SAMPLING_LINEAR,
+    TEXTURE_SAMPLING_WORLD_SPRITE,
+};
+
 struct Texture
 {
     const char*        Name;
@@ -25,7 +33,8 @@ struct Texture
     uint               Height;
     float              SizeData[ 4 ]; // Width, Height, TexelWidth, TexelHeight
     float              Samples;
-    Texture(): Name( NULL ), Id( 0 ), Data( NULL ), Size( 0 ), Width( 0 ), Height( 0 ), Samples( 0.0f )
+    TextureSampling    DefaultSampling;
+    Texture(): Name( NULL ), Id( 0 ), Data( NULL ), Size( 0 ), Width( 0 ), Height( 0 ), Samples( 0.0f ), DefaultSampling( TEXTURE_SAMPLING_NEAREST )
 	{}
     ~Texture()
     {

@@ -169,8 +169,8 @@ void ResourceManager::FreeResources( int type )
 AnyFrames* ResourceManager::GetAnim( uint name_hash, int dir, int res_type )
 {
     // Find already loaded
-    uint id = name_hash + dir;
-    auto it = loadedAnims.find( id );
+    LoadedAnimKey key( name_hash, dir, res_type, SprMngr.SurfFilterNearest );
+    auto it = loadedAnims.find( key );
     if( it != loadedAnims.end() )
         return ( *it ).second.Anim;
 
@@ -180,16 +180,10 @@ AnyFrames* ResourceManager::GetAnim( uint name_hash, int dir, int res_type )
         return NULL;
 
     SprMngr.SurfType = res_type;
-	bool oldSurfNear = SprMngr.SurfFilterNearest;
-	if (SprMngr.SurfType == RES_ITEMS && !GameOpt.SpritesFiltering)
-	{
-		SprMngr.SurfFilterNearest = true;
-	}
     AnyFrames* anim = SprMngr.LoadAnimation( fname, PT_DATA, ANIM_DIR( dir ) | ANIM_FRM_ANIM_PIX );
-	SprMngr.SurfFilterNearest = oldSurfNear;
     SprMngr.SurfType = RES_NONE;
 
-    loadedAnims.insert( PAIR( id, LoadedAnim( res_type, anim ) ) );
+    loadedAnims.insert( PAIR( key, LoadedAnim( res_type, anim ) ) );
     return anim;
 }
 
@@ -221,8 +215,6 @@ AnyFrames* ResourceManager::GetCrit2dAnim( uint crtype, uint anim1, uint anim2, 
 
     // Process loading
     uint       crtype_base = crtype, anim1_base = anim1, anim2_base = anim2;
-	bool oldSurfNear = SprMngr.SurfFilterNearest;
-	SprMngr.SurfFilterNearest = !GameOpt.SpritesFiltering;
     AnyFrames* anim = NULL;
     while( true )
     {
@@ -380,8 +372,6 @@ AnyFrames* ResourceManager::GetCrit2dAnim( uint crtype, uint anim1, uint anim2, 
         // Exit from loop
         break;
     }
-
-	SprMngr.SurfFilterNearest = oldSurfNear;
 
     // Store resulted animation indices
     if( anim )

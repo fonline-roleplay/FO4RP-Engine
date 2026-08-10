@@ -243,7 +243,7 @@ void HexManager::ReloadSprites()
 
     // Must be valid
 	bool oldSurfNear = SprMngr.SurfFilterNearest;
-	SprMngr.SurfFilterNearest = !GameOpt.SpritesFiltering;
+	SprMngr.SurfFilterNearest = true;
     picHex[ 0 ] = SprMngr.LoadAnimation( ( curDataPrefix + "hex1.png" ).c_str(), PT_DATA, ANIM_USE_DUMMY );
     picHex[ 1 ] = SprMngr.LoadAnimation( ( curDataPrefix + "hex2.png" ).c_str(), PT_DATA, ANIM_USE_DUMMY );
     picHex[ 2 ] = SprMngr.LoadAnimation( ( curDataPrefix + "hex3.png" ).c_str(), PT_DATA, ANIM_USE_DUMMY );
@@ -2040,7 +2040,7 @@ void HexManager::DrawMap()
     {
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        SprMngr.DrawSprites( tilesTree, false, false, DRAW_ORDER_TILE, DRAW_ORDER_TILE_END );
+        SprMngr.DrawSprites( tilesTree, false, false, DRAW_ORDER_TILE, DRAW_ORDER_TILE_END, TEXTURE_SAMPLING_NEAREST );
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
@@ -2078,7 +2078,7 @@ void HexManager::DrawMap()
     {
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        SprMngr.DrawSprites( roofTree, false, true, 0, 0 );
+        SprMngr.DrawSprites( roofTree, false, true, 0, 0, TEXTURE_SAMPLING_NEAREST );
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -4344,9 +4344,7 @@ void HexManager::SetTile( uint name_hash, ushort hx, ushort hy, short ox, short 
         return;
     Field& f = GetField( hx, hy );
 
-    SprMngr.SurfFilterNearest = true;
     AnyFrames* anim = ResMngr.GetItemAnim( name_hash );
-    SprMngr.SurfFilterNearest = false;
     if( !anim )
         return;
 

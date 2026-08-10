@@ -163,7 +163,11 @@ struct DipData
     Effect*  SourceEffect;
     uint     SpritesCount;
     RectF    SpriteBorder;
-    DipData( Texture* tex, Effect* effect ): SourceTexture( tex ), SourceEffect( effect ), SpritesCount( 1 ) {}
+    TextureSampling Sampling;
+    DipData( Texture* tex, Effect* effect, TextureSampling sampling = TEXTURE_SAMPLING_INHERIT ):
+        SourceTexture( tex ), SourceEffect( effect ), SpritesCount( 1 ),
+        Sampling( sampling == TEXTURE_SAMPLING_INHERIT && tex ? tex->DefaultSampling : sampling )
+    {}
 };
 typedef vector< DipData > DipDataVec;
 
@@ -268,6 +272,7 @@ private:
 
     Surface* CreateNewSurface( int w, int h );
     Surface* FindSurfacePlace( SpriteInfo* si, int& x, int& y );
+    TextureSampling GetDefaultSurfaceSampling() const;
     uint     FillSurfaceFromMemory( SpriteInfo* si, uchar* data, uint size );
 
     // Load sprites
@@ -316,7 +321,7 @@ public:
     bool DrawSprite( uint id, int x, int y, uint color = 0 );
     bool DrawSpritePattern( uint id, int x, int y, int w, int h, int spr_width = 0, int spr_height = 0, uint color = 0 );
     bool DrawSpriteSize( uint id, int x, int y, float w, float h, bool stretch_up, bool center, uint color = 0 );
-    bool DrawSprites( Sprites& dtree, bool collect_contours, bool use_egg, int draw_oder_from, int draw_oder_to );
+    bool DrawSprites( Sprites& dtree, bool collect_contours, bool use_egg, int draw_oder_from, int draw_oder_to, TextureSampling sampling = TEXTURE_SAMPLING_INHERIT );
     bool DrawPoints( PointVec& points, int prim, float* zoom = NULL, RectF* stencil = NULL, PointF* offset = NULL, Effect* effect = NULL );
     bool Draw3d( int x, int y, float scale, Animation3d* anim3d, RectF* stencil, uint color );
     bool Draw3dSize( RectF rect, bool stretch_up, bool center, Animation3d* anim3d, RectF* stencil, uint color );
@@ -344,6 +349,8 @@ private:
     uint          baseColor;
     int           flushSprCnt;           // Max sprites to flush
     int           curSprCnt;             // Current sprites to flush
+    GLuint        nearestSampler;
+    GLuint        linearSampler;
 
     void EnableVertexArray( GLuint ib, uint count );
     void DisableVertexArray();

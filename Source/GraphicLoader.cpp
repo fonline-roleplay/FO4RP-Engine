@@ -1047,6 +1047,7 @@ Texture* GraphicLoader::LoadTexture( const char* texture_name, const char* model
 
     // Create texture
     Texture* texture = new Texture();
+    texture->DefaultSampling = TEXTURE_SAMPLING_LINEAR;
     texture->Data = data;
     texture->Size = size;
     texture->Width = w;
