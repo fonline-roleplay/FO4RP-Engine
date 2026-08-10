@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "SpriteManager.h"
+#include "ResourceManager.h"
 #include "IniParser.h"
 #include "Crypt.h"
 #include "F2Palette.h"
@@ -13,6 +14,7 @@ AnyFrames*    SpriteManager::DummyAnimation = NULL;
 
 SpriteManager::SpriteManager(): isInit( 0 ), flushSprCnt( 0 ), curSprCnt( 0 ), SurfType( 0 ), SurfFilterNearest( false ),
 								sceneBeginned( false ), vbMain( 0 ), ibMain( 0 ), baseTextureSize( 0 ),
+								nearestSampler( 0 ), linearSampler( 0 ),
 								eggValid( false ), eggHx( 0 ), eggHy( 0 ), eggX( 0 ), eggY( 0 ), eggOX( NULL ), eggOY( NULL ),
 								sprEgg( NULL ), eggSurfWidth( 1.0f ), eggSurfHeight( 1.0f ), eggSprWidth( 1 ), eggSprHeight( 1 ),
                                 contoursTexture( NULL ), contoursTextureSurf( 0 ), contoursMidTexture( NULL ), contoursMidTextureSurf( 0 ), contours3dRT( 0 ),
@@ -46,6 +48,9 @@ bool SpriteManager::Init()
     curSprCnt = 0;
 
 	// Initialize window
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY );
     MainWindow = SDL_CreateWindow( GetWindowName(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, GameOpt.ScreenWidth, GameOpt.ScreenHeight, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN );
     if( !MainWindow )
     {
@@ -95,7 +100,7 @@ bool SpriteManager::Init()
                 extension_errors++;                                               \
         }
     uint extension_errors = 0;
-	CHECK_EXTENSION( VERSION_2_0, true );
+	CHECK_EXTENSION( VERSION_3_3, true );
 	CHECK_EXTENSION( ARB_vertex_buffer_object, true );
 	CHECK_EXTENSION( ARB_vertex_array_object, false );
 	CHECK_EXTENSION( ARB_framebuffer_object, false );
@@ -109,6 +114,18 @@ bool SpriteManager::Init()
     CHECK_EXTENSION( ARB_get_program_binary, false );
     if( extension_errors )
         return false;
+
+    GL( glGenSamplers( 1, &nearestSampler ) );
+    GL( glSamplerParameteri( nearestSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST ) );
+    GL( glSamplerParameteri( nearestSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST ) );
+    GL( glSamplerParameteri( nearestSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE ) );
+    GL( glSamplerParameteri( nearestSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE ) );
+
+    GL( glGenSamplers( 1, &linearSampler ) );
+    GL( glSamplerParameteri( linearSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
+    GL( glSamplerParameteri( linearSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
+    GL( glSamplerParameteri( linearSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE ) );
+    GL( glSamplerParameteri( linearSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE ) );
     #endif
 
     // 3d stuff
@@ -281,6 +298,14 @@ void SpriteManager::Finish()
 {
     WriteLog( "Sprite manager finish...\n" );
 
+    #ifndef FO_OSX_IOS
+    if( nearestSampler )
+        GL( glDeleteSamplers( 1, &nearestSampler ) );
+    if( linearSampler )
+        GL( glDeleteSamplers( 1, &linearSampler ) );
+    nearestSampler = linearSampler = 0;
+    #endif
+
     for( auto it = surfList.begin(), end = surfList.end(); it != end; ++it )
         SAFEDEL( *it );
     surfList.clear();
@@ -376,6 +401,7 @@ bool SpriteManager::CreateRenderTarget( RenderTarget& rt, bool depth_stencil, bo
 
     // Texture
     Texture* tex = new Texture();
+    tex->DefaultSampling = tex_linear ? TEXTURE_SAMPLING_LINEAR : TEXTURE_SAMPLING_NEAREST;
     tex->Data = NULL;
     tex->Size = width * height * 4;
     tex->Width = width;
@@ -766,7 +792,9 @@ Surface* SpriteManager::CreateNewSurface( int w, int h )
     while( h < hh )
         h *= 2;
 
+    TextureSampling default_sampling = GetDefaultSurfaceSampling();
     Texture* tex = new Texture();
+    tex->DefaultSampling = default_sampling;
     tex->Data = new uchar[ w * h * 4 ];
     tex->Size = w * h * 4;
     tex->Width = w;
@@ -778,8 +806,9 @@ Surface* SpriteManager::CreateNewSurface( int w, int h )
     GL( glGenTextures( 1, &tex->Id ) );
     GL( glBindTexture( GL_TEXTURE_2D, tex->Id ) );
     GL( glPixelStorei( GL_UNPACK_ALIGNMENT, 1 ) );
-    GL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, SurfFilterNearest ? GL_NEAREST : GL_LINEAR ) );
-    GL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, SurfFilterNearest ? GL_NEAREST : GL_LINEAR ) );
+    const GLint initial_filter = default_sampling == TEXTURE_SAMPLING_LINEAR ? GL_LINEAR : GL_NEAREST;
+    GL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, initial_filter ) );
+    GL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, initial_filter ) );
     GL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP ) );
     GL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP ) );
     GL( glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE, tex->Data ) );
@@ -796,15 +825,27 @@ Surface* SpriteManager::CreateNewSurface( int w, int h )
     return surf;
 }
 
+TextureSampling SpriteManager::GetDefaultSurfaceSampling() const
+{
+    if( SurfFilterNearest )
+        return TEXTURE_SAMPLING_NEAREST;
+    if( SurfType == RES_ITEMS || SurfType == RES_CRITTERS )
+        return TEXTURE_SAMPLING_WORLD_SPRITE;
+    if( SurfType == RES_SCRIPT )
+        return TEXTURE_SAMPLING_LINEAR;
+    return TEXTURE_SAMPLING_NEAREST;
+}
+
 Surface* SpriteManager::FindSurfacePlace( SpriteInfo* si, int& x, int& y )
 {
     // Find place in already created surface
     uint w = si->Width + SURF_SPRITES_OFFS * 2;
     uint h = si->Height + SURF_SPRITES_OFFS * 2;
+    TextureSampling default_sampling = GetDefaultSurfaceSampling();
     for( auto it = surfList.begin(), end = surfList.end(); it != end; ++it )
     {
         Surface* surf = *it;
-        if( surf->Type == SurfType )
+        if( surf->Type == SurfType && surf->TextureOwner->DefaultSampling == default_sampling )
         {
             if( surf->Width - surf->FreeX >= w && surf->Height - surf->FreeY >= h )
             {
@@ -3170,6 +3211,13 @@ bool SpriteManager::Flush()
             if( dip.SourceTexture->Samples == 0.0f )
             {
                 GL( glBindTexture( GL_TEXTURE_2D, dip.SourceTexture->Id ) );
+                TextureSampling sampling = dip.Sampling;
+                if( sampling == TEXTURE_SAMPLING_WORLD_SPRITE )
+                    sampling = GameOpt.SpritesFiltering ? TEXTURE_SAMPLING_LINEAR : TEXTURE_SAMPLING_NEAREST;
+                const bool linear = sampling == TEXTURE_SAMPLING_LINEAR;
+                #ifndef FO_OSX_IOS
+                GL( glBindSampler( 0, linear ? linearSampler : nearestSampler ) );
+                #endif
             }
 			#ifndef FO_OSX_IOS
             else
@@ -3210,6 +3258,9 @@ bool SpriteManager::Flush()
     dipQueue.clear();
     curSprCnt = 0;
 
+    #ifndef FO_OSX_IOS
+    GL( glBindSampler( 0, 0 ) );
+    #endif
     GL( glUseProgram( 0 ) );
     DisableVertexArray();
 
@@ -3572,7 +3623,7 @@ void SpriteManager::SetEgg( ushort hx, ushort hy, Sprite* spr )
     eggValid = true;
 }
 
-bool SpriteManager::DrawSprites( Sprites& dtree, bool collect_contours, bool use_egg, int draw_oder_from, int draw_oder_to )
+bool SpriteManager::DrawSprites( Sprites& dtree, bool collect_contours, bool use_egg, int draw_oder_from, int draw_oder_to, TextureSampling sampling )
 {
     PointVec borders;
 
@@ -3769,8 +3820,9 @@ bool SpriteManager::DrawSprites( Sprites& dtree, bool collect_contours, bool use
             effect = ( si->DrawEffect ? si->DrawEffect : Effect::Generic );
 
         // Choose surface
-        if( dipQueue.empty() || dipQueue.back().SourceTexture != si->Surf->TextureOwner || dipQueue.back().SourceEffect->Id != effect->Id )
-            dipQueue.push_back( DipData( si->Surf->TextureOwner, effect ) );
+        TextureSampling effective_sampling = sampling == TEXTURE_SAMPLING_INHERIT ? si->Surf->TextureOwner->DefaultSampling : sampling;
+        if( dipQueue.empty() || dipQueue.back().SourceTexture != si->Surf->TextureOwner || dipQueue.back().SourceEffect->Id != effect->Id || dipQueue.back().Sampling != effective_sampling )
+            dipQueue.push_back( DipData( si->Surf->TextureOwner, effect, effective_sampling ) );
         else
             dipQueue.back().SpritesCount++;
 

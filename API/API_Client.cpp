@@ -74,9 +74,7 @@ bool HexManager_ChangeTile( uint name_hash, ushort hx, ushort hy, short ox, shor
         return false;
     Field& f = self.GetField( hx, hy );
 
-    SprMngr.SurfFilterNearest = true;
     AnyFrames* anim = ResMngr.GetItemAnim( name_hash );
-    SprMngr.SurfFilterNearest = false;
     if( !anim )
         return false;
 
