@@ -259,6 +259,9 @@ int main( int argc, char** argv )
             Thread::Sleep(10);
         }
 
+        FOQuit = true;
+        LoopThread.Wait();
+
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplSDL2_Shutdown();
         ImGui::DestroyContext();
