@@ -2792,18 +2792,19 @@ ItemHex* HexManager::GetItemPixel( int x, int y, bool& item_egg )
     // Sorters
     struct Sorter
     {
-        static bool ByTreeIndex( ItemHex* o1, ItemHex* o2 )   { return o1->SprTemp->TreeIndex > o2->SprTemp->TreeIndex; }
-        static bool ByTransparent( ItemHex* o1, ItemHex* o2 ) { return !o1->IsTransparent() && o2->IsTransparent(); }
-        static bool ByBad( ItemHex* o1, ItemHex* o2 )         { return o1->IsBadItem() && !o2->IsBadItem(); }
+        static bool ByPickPriority( ItemHex* o1, ItemHex* o2 )
+        {
+            if( o1->IsBadItem() != o2->IsBadItem() )
+                return o1->IsBadItem();
+            if( o1->IsTransparent() != o2->IsTransparent() )
+                return !o1->IsTransparent();
+            return o1->SprTemp->TreeIndex > o2->SprTemp->TreeIndex;
+        }
 
         static inline void sort( ItemHexVec& items )
         {
             if( items.size() > 1 )
-            {
-                std::sort( items.begin(), items.end(), ByTreeIndex );
-                std::sort( items.begin(), items.end(), ByTransparent );
-                std::sort( items.begin(), items.end(), ByBad );
-            }
+                std::sort( items.begin(), items.end(), ByPickPriority );
         }
     };
 
@@ -2818,7 +2819,7 @@ ItemHex* HexManager::GetItemPixel( int x, int y, bool& item_egg )
     }
     else // Visible items
     {
-        Sorter::sort( pix_item_egg );
+        Sorter::sort( pix_item );
     }
     item_egg = false;
     return pix_item[ 0 ];
