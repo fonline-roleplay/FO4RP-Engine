@@ -248,9 +248,11 @@ public:
             unsigned char Hear_BlockDir[6]; // 6
             unsigned char Hear_Block; // 1
 
-            char Unknown1[152];
+            // Script bindfields occupy user-data offsets through 495.
+            char Unknown1[143];
 
-			uint EffectSpeed; // 4
+			uint EffectSpeed; // UserData + 496
+            char Unknown2[12];
 		} FORPData;
 	};
 
