@@ -3194,7 +3194,7 @@ void FOClient::AddMess( int mess_type, const char* msg )
     if( mess_type < 0 || mess_type > FOMB_VIEW )
         Str::Format( str, "%s\n", msg );
     else
-        Str::Format( str, "|%u %c |%u %s\n", str_color[ mess_type ], TEXT_SYMBOL_DOT, COLOR_TEXT, msg );
+        Str::Format( str, "|%u %s |%u %s\n", str_color[ mess_type ], TEXT_SYMBOL_DOT_UTF8, COLOR_TEXT, msg );
 
     // Time
     DateTime dt;

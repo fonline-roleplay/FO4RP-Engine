@@ -6,6 +6,7 @@
 // ***************************************************************************************
 
 #define TEXT_SYMBOL_DOT                    ( 149 )
+#define TEXT_SYMBOL_DOT_UTF8               "\xE2\x80\xA2"
 #define TEXT_SYMBOL_CROSS                  ( 134 )
 #define TEXT_SYMBOL_TM                     ( 153 )
 #define TEXT_SYMBOL_EURO                   ( 163 )
