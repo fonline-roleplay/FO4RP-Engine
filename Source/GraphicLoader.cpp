@@ -1704,12 +1704,20 @@ uchar* GraphicLoader::LoadPNG( const uchar* data, uint data_size, uint& result_s
     png_set_packing( png_ptr );
     if( color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8 )
         png_set_expand( png_ptr );
+    if( color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA )
+        png_set_gray_to_rgb( png_ptr );
     if( color_type == PNG_COLOR_TYPE_PALETTE )
         png_set_expand( png_ptr );
     if( png_get_valid( png_ptr, info_ptr, PNG_INFO_tRNS ) )
         png_set_expand( png_ptr );
     png_set_filler( png_ptr, 0x000000ff, PNG_FILLER_AFTER );
     png_read_update_info( png_ptr, info_ptr );
+
+    if( png_get_rowbytes( png_ptr, info_ptr ) != width * 4 )
+    {
+        png_destroy_read_struct( &png_ptr, &info_ptr, NULL );
+        return NULL;
+    }
 
     // Allocate row pointers
     png_bytepp row_pointers = (png_bytepp) malloc( height * sizeof( png_bytep ) );
