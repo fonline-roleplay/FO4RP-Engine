@@ -10,8 +10,10 @@ static float MapperGuiLeftWidth = 260.0f;
 static float MapperGuiRightWidth = 300.0f;
 static float MapperGuiBottomHeight = 180.0f;
 static const float MapperGuiToolbarHeight = 116.0f;
+static const float MapperGuiStatusHeight = 24.0f;
 static const float MapperGuiSplitterSize = 5.0f;
 static bool MapperGuiInitialized = false;
+static bool MapperGuiApplyPropertiesToAll = false;
 static char MapperGuiCommand[ MAX_CHAT_MESSAGE + 1 ] = { 0 };
 static bool MapperGuiCommandWasActive = false;
 
@@ -671,7 +673,32 @@ static void MapperGuiSplitter( const char* id, bool vertical, float& value, floa
         value = CLAMP( value + ( vertical ? ImGui::GetIO().MouseDelta.x : ImGui::GetIO().MouseDelta.y ), minimum, maximum );
 }
 
-static bool MapperGuiSpriteButton( const char* id, uint sprite_id, bool selected, const char* overlay = NULL )
+static bool MapperGuiDrawSprite( ImDrawList* draw_list, uint sprite_id, const ImVec2& area_min, const ImVec2& area_max, bool linear )
+{
+    SpriteInfo* sprite = SprMngr.GetSpriteInfo( sprite_id );
+    if( !sprite || !sprite->Surf || !sprite->Surf->TextureOwner || sprite->Width <= 0 || sprite->Height <= 0 )
+        return false;
+
+    float area_width = area_max.x - area_min.x;
+    float area_height = area_max.y - area_min.y;
+    float scale = MIN( area_width / (float) sprite->Width, area_height / (float) sprite->Height );
+    ImVec2 image_size( sprite->Width * scale, sprite->Height * scale );
+    ImVec2 image_pos( area_min.x + ( area_width - image_size.x ) * 0.5f, area_min.y + ( area_height - image_size.y ) * 0.5f );
+    ImVec2 image_end( image_pos.x + image_size.x, image_pos.y + image_size.y );
+    Texture* texture = sprite->Surf->TextureOwner;
+    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+    ImDrawCallback sampler = linear ? platform_io.DrawCallback_SetSamplerLinear : platform_io.DrawCallback_SetSamplerNearest;
+    if( sampler )
+        draw_list->AddCallback( sampler );
+    draw_list->AddImage( ImTextureRef( (ImTextureID) texture->Id ), image_pos, image_end,
+        ImVec2( sprite->SprRect.L, sprite->SprRect.T ), ImVec2( sprite->SprRect.R, sprite->SprRect.B ) );
+    if( platform_io.DrawCallback_SetSamplerLinear )
+        draw_list->AddCallback( platform_io.DrawCallback_SetSamplerLinear );
+    return true;
+}
+
+static bool MapperGuiSpriteButton( const char* id, uint sprite_id, bool selected, const char* overlay = NULL, uint second_sprite_id = 0,
+    bool ground_sprite = false )
 {
     const ImVec2 button_size( 68.0f, 68.0f );
     ImVec2 p0 = ImGui::GetCursorScreenPos();
@@ -685,19 +712,20 @@ static bool MapperGuiSpriteButton( const char* id, uint sprite_id, bool selected
     draw_list->AddRectFilled( p0, p1, background, 3.0f );
     draw_list->AddRect( p0, p1, border, 3.0f, 0, selected ? 2.0f : 1.0f );
 
-    SpriteInfo* sprite = SprMngr.GetSpriteInfo( sprite_id );
-    if( sprite && sprite->Surf && sprite->Surf->TextureOwner && sprite->Width > 0 && sprite->Height > 0 )
+    bool drawn = false;
+    if( second_sprite_id && second_sprite_id != sprite_id )
     {
-        float available = button_size.x - 8.0f;
-        float scale = MIN( available / (float) sprite->Width, available / (float) sprite->Height );
-        ImVec2 image_size( sprite->Width * scale, sprite->Height * scale );
-        ImVec2 image_pos( p0.x + ( button_size.x - image_size.x ) * 0.5f, p0.y + ( button_size.y - image_size.y ) * 0.5f );
-        ImVec2 image_end( image_pos.x + image_size.x, image_pos.y + image_size.y );
-        Texture* texture = sprite->Surf->TextureOwner;
-        draw_list->AddImage( ImTextureRef( (ImTextureID) texture->Id ), image_pos, image_end,
-            ImVec2( sprite->SprRect.L, sprite->SprRect.T ), ImVec2( sprite->SprRect.R, sprite->SprRect.B ) );
+        float middle = p0.y + button_size.y * 0.5f;
+        drawn |= MapperGuiDrawSprite( draw_list, sprite_id, ImVec2( p0.x + 4.0f, p0.y + 3.0f ), ImVec2( p1.x - 4.0f, middle - 1.0f ),
+            ground_sprite && GameOpt.SpritesFiltering );
+        drawn |= MapperGuiDrawSprite( draw_list, second_sprite_id, ImVec2( p0.x + 4.0f, middle + 1.0f ), ImVec2( p1.x - 4.0f, p1.y - 3.0f ), false );
+        draw_list->AddLine( ImVec2( p0.x + 4.0f, middle ), ImVec2( p1.x - 4.0f, middle ), ImGui::GetColorU32( ImGuiCol_Border ) );
     }
     else
+        drawn = MapperGuiDrawSprite( draw_list, sprite_id, ImVec2( p0.x + 4.0f, p0.y + 4.0f ), ImVec2( p1.x - 4.0f, p1.y - 4.0f ),
+            ground_sprite && GameOpt.SpritesFiltering );
+
+    if( !drawn )
     {
         const char* missing = "?";
         ImVec2 size = ImGui::CalcTextSize( missing );
@@ -772,15 +800,16 @@ void FOMapper::DrawImGuiBrowser()
                         ImGui::SameLine();
                     ProtoItem& proto = ( *CurItemProtos )[ i ];
                     uint sprite_id = proto.GetCurSprId();
+                    uint inventory_sprite_id = 0;
                     if( proto.IsItem() )
                     {
                         AnyFrames* anim = ResMngr.GetInvAnim( proto.PicInv );
                         if( anim )
-                            sprite_id = anim->GetCurSprId();
+                            inventory_sprite_id = anim->GetCurSprId();
                     }
                     char id[ 64 ];
                     Str::Format( id, "##item_%d", i );
-                    if( MapperGuiSpriteButton( id, sprite_id, GetTabIndex() == (uint) i ) )
+                    if( MapperGuiSpriteButton( id, sprite_id, GetTabIndex() == (uint) i, NULL, inventory_sprite_id, true ) )
                     {
                         SetTabIndex( i );
                         CurMode = CUR_MODE_PLACE_OBJECT;
@@ -812,7 +841,7 @@ void FOMapper::DrawImGuiBrowser()
                     uint sprite_id = anim ? anim->GetCurSprId() : ItemHex::DefaultAnim->GetCurSprId();
                     char id[ 64 ];
                     Str::Format( id, "##tile_%d", i );
-                    if( MapperGuiSpriteButton( id, sprite_id, GetTabIndex() == (uint) i ) )
+                    if( MapperGuiSpriteButton( id, sprite_id, GetTabIndex() == (uint) i, NULL, 0, true ) )
                     {
                         SetTabIndex( i );
                         CurMode = CUR_MODE_PLACE_OBJECT;
@@ -844,7 +873,7 @@ void FOMapper::DrawImGuiBrowser()
                     uint sprite_id = ResMngr.GetCritSprId( proto->BaseType, 1, 1, NpcDir, &proto->Params[ ST_ANIM3D_LAYER_BEGIN ] );
                     char id[ 64 ];
                     Str::Format( id, "##critter_%d", i );
-                    if( MapperGuiSpriteButton( id, sprite_id, GetTabIndex() == (uint) i ) )
+                    if( MapperGuiSpriteButton( id, sprite_id, GetTabIndex() == (uint) i, NULL, 0, true ) )
                     {
                         SetTabIndex( i );
                         CurMode = CUR_MODE_PLACE_OBJECT;
@@ -922,7 +951,8 @@ void FOMapper::BeginImGuiFrame()
     const float min_view_height = 150.0f;
     MapperGuiLeftWidth = CLAMP( MapperGuiLeftWidth, 140.0f, screen_width - MapperGuiRightWidth - min_view_width );
     MapperGuiRightWidth = CLAMP( MapperGuiRightWidth, 180.0f, screen_width - MapperGuiLeftWidth - min_view_width );
-    MapperGuiBottomHeight = CLAMP( MapperGuiBottomHeight, 90.0f, screen_height - MapperGuiToolbarHeight - min_view_height );
+    const float max_bottom_height = screen_height - MapperGuiToolbarHeight - MapperGuiStatusHeight - min_view_height;
+    MapperGuiBottomHeight = CLAMP( MapperGuiBottomHeight, 90.0f, max_bottom_height );
 
     const ImGuiWindowFlags fixed_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings;
@@ -933,9 +963,11 @@ void FOMapper::BeginImGuiFrame()
     if( ImGui::Button( "Save map" ) && HexMngr.IsMapLoaded() )
         SaveMapFile( HexMngr.CurProtoMap->GetName() );
     ImGui::SameLine();
-    if( ImGui::Button( "Delete selected" ) && !SelectedObj.empty() )
-        SelectDelete();
-    ImGui::SameLine();
+
+    const float flags_group_height = 88.0f;
+    const float render_group_width = 270.0f;
+    const float selection_group_width = 190.0f;
+    ImVec2 render_group_pos = ImGui::GetCursorPos();
     ImGui::BeginGroup();
     bool draw_options_changed = false;
     if( ImGui::BeginTable( "##draw_options", 2, ImGuiTableFlags_SizingFixedFit, ImVec2( 190.0f, 0.0f ) ) )
@@ -954,16 +986,49 @@ void FOMapper::BeginImGuiFrame()
         draw_options_changed |= ImGui::Checkbox( "Roofs", &GameOpt.ShowRoof );
         ImGui::EndTable();
     }
-    ImGui::EndGroup();
     ImGui::SameLine();
     ImGui::TextDisabled( "|" );
     ImGui::SameLine();
     draw_options_changed |= ImGui::Checkbox( "Fast", &GameOpt.ShowFast );
+    ImGui::SetCursorPosY( render_group_pos.y + flags_group_height - ImGui::GetTextLineHeight() );
+    ImGui::SetCursorPosX( render_group_pos.x + ( render_group_width - ImGui::CalcTextSize( "Render Flags" ).x ) * 0.5f );
+    ImGui::TextDisabled( "Render Flags" );
+    ImGui::EndGroup();
     if( draw_options_changed )
         HexMngr.RefreshMap();
+
+    ImGui::SameLine( 0.0f, 12.0f );
+    ImVec2 separator_pos = ImGui::GetCursorScreenPos();
+    ImGui::GetWindowDrawList()->AddLine( separator_pos, ImVec2( separator_pos.x, separator_pos.y + flags_group_height ),
+        ImGui::GetColorU32( ImGuiCol_Border ) );
+    ImGui::Dummy( ImVec2( 1.0f, flags_group_height ) );
+    ImGui::SameLine( 0.0f, 12.0f );
+
+    ImVec2 selection_group_pos = ImGui::GetCursorPos();
+    ImGui::BeginGroup();
+    if( ImGui::BeginTable( "##selection_options", 2, ImGuiTableFlags_SizingFixedFit, ImVec2( selection_group_width, 0.0f ) ) )
+    {
+        ImGui::TableNextColumn();
+        ImGui::Checkbox( "Items##select", &IsSelectItem );
+        ImGui::TableNextColumn();
+        ImGui::Checkbox( "Scenery##select", &IsSelectScen );
+        ImGui::TableNextColumn();
+        ImGui::Checkbox( "Walls##select", &IsSelectWall );
+        ImGui::TableNextColumn();
+        ImGui::Checkbox( "Critters##select", &IsSelectCrit );
+        ImGui::TableNextColumn();
+        ImGui::Checkbox( "Tiles##select", &IsSelectTile );
+        ImGui::TableNextColumn();
+        ImGui::Checkbox( "Roofs##select", &IsSelectRoof );
+        ImGui::EndTable();
+    }
+    ImGui::SetCursorPosY( selection_group_pos.y + flags_group_height - ImGui::GetTextLineHeight() );
+    ImGui::SetCursorPosX( selection_group_pos.x + ( selection_group_width - ImGui::CalcTextSize( "Selection Flags" ).x ) * 0.5f );
+    ImGui::TextDisabled( "Selection Flags" );
+    ImGui::EndGroup();
     ImGui::End();
 
-    const float content_height = screen_height - MapperGuiToolbarHeight;
+    const float content_height = screen_height - MapperGuiToolbarHeight - MapperGuiStatusHeight;
     ImGui::SetNextWindowPos( ImVec2( 0.0f, MapperGuiToolbarHeight ) );
     ImGui::SetNextWindowSize( ImVec2( MapperGuiLeftWidth, content_height ) );
     ImGui::Begin( "Objects", NULL, fixed_flags | ImGuiWindowFlags_NoResize );
@@ -992,9 +1057,6 @@ void FOMapper::BeginImGuiFrame()
             IntSetMode( mode_values[ i ] );
     }
     ImGui::Separator();
-    ImGui::Text( "Loaded maps: %u", (uint) LoadedProtoMaps.size() );
-    if( CurProtoMap )
-        ImGui::Text( "Current: %s", CurProtoMap->GetName() );
     ImVec2 browser_pos = ImGui::GetCursorPos();
     ImGui::SetCursorPosX( ImGui::GetWindowWidth() - MapperGuiSplitterSize );
     ImGui::SetCursorPosY( 0.0f );
@@ -1016,27 +1078,258 @@ void FOMapper::BeginImGuiFrame()
     ImGui::SetCursorPos( ImVec2( 12.0f, 10.0f ) );
     ImGui::TextUnformatted( "Selection properties" );
     ImGui::Separator();
-    ImGui::Text( "Selected objects: %u", (uint) SelectedObj.size() );
     if( !SelectedObj.empty() && SelectedObj[ 0 ].MapObj )
     {
         MapObject* object = SelectedObj[ 0 ].MapObj;
+        ProtoItem* proto = object->MapObjType != MAP_OBJECT_CRITTER ? ItemMngr.GetProtoItem( object->ProtoId ) : NULL;
         ImGui::Text( "Proto ID: %u", object->ProtoId );
-        ImGui::Text( "Hex: %u, %u", object->MapX, object->MapY );
-        ImGui::Text( "Type: %u", object->MapObjType );
+        ImGui::SameLine();
+        ImGui::TextDisabled( "Hex: %u, %u", object->MapX, object->MapY );
+        if( SelectedObj.size() > 1 )
+            ImGui::Checkbox( "Apply changes to all compatible selected objects", &MapperGuiApplyPropertiesToAll );
+        ImGui::Separator();
+
+        bool properties_changed = false;
+        #define EDIT_PROPERTY( label, type, field )                                                                        \
+            do {                                                                                                           \
+                if( ImGui::InputScalar( label, type, &object->field ) )                                                     \
+                {                                                                                                          \
+                    properties_changed = true;                                                                             \
+                    if( MapperGuiApplyPropertiesToAll )                                                                    \
+                    {                                                                                                      \
+                        for( uint property_i = 1; property_i < (uint) SelectedObj.size(); property_i++ )                    \
+                        {                                                                                                  \
+                            MapObject* target = SelectedObj[ property_i ].MapObj;                                           \
+                            ProtoItem* target_proto = target && target->MapObjType != MAP_OBJECT_CRITTER ?                  \
+                                ItemMngr.GetProtoItem( target->ProtoId ) : NULL;                                            \
+                            if( target && target->MapObjType == object->MapObjType &&                                       \
+                                ( object->MapObjType == MAP_OBJECT_CRITTER || ( proto && target_proto && proto->Type == target_proto->Type ) ) ) \
+                            {                                                                                              \
+                                target->field = object->field;                                                             \
+                                UpdateMapObject( target );                                                                 \
+                            }                                                                                              \
+                        }                                                                                                  \
+                    }                                                                                                      \
+                }                                                                                                          \
+            } while( 0 )
+        #define EDIT_PROPERTY_TEXT( label, field )                                                                         \
+            do {                                                                                                           \
+                if( ImGui::InputText( label, object->field, sizeof( object->field ) ) )                                     \
+                {                                                                                                          \
+                    properties_changed = true;                                                                             \
+                    if( MapperGuiApplyPropertiesToAll )                                                                    \
+                    {                                                                                                      \
+                        for( uint property_i = 1; property_i < (uint) SelectedObj.size(); property_i++ )                    \
+                        {                                                                                                  \
+                            MapObject* target = SelectedObj[ property_i ].MapObj;                                           \
+                            ProtoItem* target_proto = target && target->MapObjType != MAP_OBJECT_CRITTER ?                  \
+                                ItemMngr.GetProtoItem( target->ProtoId ) : NULL;                                            \
+                            if( target && target->MapObjType == object->MapObjType &&                                       \
+                                ( object->MapObjType == MAP_OBJECT_CRITTER || ( proto && target_proto && proto->Type == target_proto->Type ) ) ) \
+                            {                                                                                              \
+                                Str::Copy( target->field, object->field );                                                  \
+                                UpdateMapObject( target );                                                                 \
+                            }                                                                                              \
+                        }                                                                                                  \
+                    }                                                                                                      \
+                }                                                                                                          \
+            } while( 0 )
+
+        EDIT_PROPERTY_TEXT( "Script name", ScriptName );
+        EDIT_PROPERTY_TEXT( "Function name", FuncName );
+        if( object->MapObjType != MAP_OBJECT_CRITTER )
+            EDIT_PROPERTY( "Direction", ImGuiDataType_S16, Dir );
+        if( ImGui::CollapsingHeader( "Light", ImGuiTreeNodeFlags_DefaultOpen ) )
+        {
+            EDIT_PROPERTY( "Intensity", ImGuiDataType_S8, LightIntensity );
+            EDIT_PROPERTY( "Distance", ImGuiDataType_U8, LightDistance );
+            EDIT_PROPERTY( "Color", ImGuiDataType_U32, LightColor );
+            EDIT_PROPERTY( "Direction offset", ImGuiDataType_U8, LightDirOff );
+            EDIT_PROPERTY( "Day", ImGuiDataType_U8, LightDay );
+        }
+
+        if( object->MapObjType == MAP_OBJECT_CRITTER )
+        {
+            if( ImGui::CollapsingHeader( "Critter", ImGuiTreeNodeFlags_DefaultOpen ) )
+            {
+                EDIT_PROPERTY( "Condition", ImGuiDataType_U8, MCritter.Cond );
+                EDIT_PROPERTY( "Animation 1", ImGuiDataType_U32, MCritter.Anim1 );
+                EDIT_PROPERTY( "Animation 2", ImGuiDataType_U32, MCritter.Anim2 );
+                for( int param_i = 0; param_i < MAPOBJ_CRITTER_PARAMS; param_i++ )
+                {
+                    int param_index = object->MCritter.ParamIndex[ param_i ];
+                    if( param_index < 0 || param_index >= MAX_PARAMS )
+                        continue;
+                    const char* param_name = ConstantsManager::GetParamName( param_index );
+                    char label[ 128 ];
+                    Str::Format( label, "%s##param%d", param_name ? param_name : "Parameter", param_i );
+                    if( ImGui::InputScalar( label, ImGuiDataType_S32, &object->MCritter.ParamValue[ param_i ] ) )
+                    {
+                        properties_changed = true;
+                        if( MapperGuiApplyPropertiesToAll )
+                        {
+                            for( uint property_i = 1; property_i < (uint) SelectedObj.size(); property_i++ )
+                            {
+                                MapObject* target = SelectedObj[ property_i ].MapObj;
+                                if( target && target->MapObjType == MAP_OBJECT_CRITTER &&
+                                    target->MCritter.ParamIndex[ param_i ] == object->MCritter.ParamIndex[ param_i ] )
+                                {
+                                    target->MCritter.ParamValue[ param_i ] = object->MCritter.ParamValue[ param_i ];
+                                    UpdateMapObject( target );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else if( proto && ImGui::CollapsingHeader( "Item / scenery", ImGuiTreeNodeFlags_DefaultOpen ) )
+        {
+            EDIT_PROPERTY( "Offset X", ImGuiDataType_S16, MItem.OffsetX );
+            EDIT_PROPERTY( "Offset Y", ImGuiDataType_S16, MItem.OffsetY );
+            EDIT_PROPERTY( "Stay animation begin", ImGuiDataType_U8, MItem.AnimStayBegin );
+            EDIT_PROPERTY( "Stay animation end", ImGuiDataType_U8, MItem.AnimStayEnd );
+            EDIT_PROPERTY( "Animation wait", ImGuiDataType_U16, MItem.AnimWait );
+            EDIT_PROPERTY_TEXT( "Map picture", RunTime.PicMapName );
+            EDIT_PROPERTY_TEXT( "Inventory picture", RunTime.PicInvName );
+            EDIT_PROPERTY( "Info offset", ImGuiDataType_U8, MItem.InfoOffset );
+
+            if( object->MapObjType == MAP_OBJECT_ITEM )
+            {
+                EDIT_PROPERTY( "Trap value", ImGuiDataType_S16, MItem.TrapValue );
+                for( int value_i = 0; value_i < 5; value_i++ )
+                {
+                    char label[ 32 ];
+                    Str::Format( label, "Value %d", value_i );
+                    if( ImGui::InputScalar( label, ImGuiDataType_S32, &object->MItem.Val[ value_i ] ) )
+                    {
+                        properties_changed = true;
+                        if( MapperGuiApplyPropertiesToAll )
+                        {
+                            for( uint property_i = 1; property_i < (uint) SelectedObj.size(); property_i++ )
+                            {
+                                MapObject* target = SelectedObj[ property_i ].MapObj;
+                                ProtoItem* target_proto = target ? ItemMngr.GetProtoItem( target->ProtoId ) : NULL;
+                                if( target && target->MapObjType == MAP_OBJECT_ITEM && target_proto && target_proto->Type == proto->Type )
+                                {
+                                    target->MItem.Val[ value_i ] = object->MItem.Val[ value_i ];
+                                    UpdateMapObject( target );
+                                }
+                            }
+                        }
+                    }
+                }
+                if( proto->Stackable )
+                    EDIT_PROPERTY( "Count", ImGuiDataType_U32, MItem.Count );
+                if( proto->Deteriorable )
+                {
+                    EDIT_PROPERTY( "Broken flags", ImGuiDataType_U8, MItem.BrokenFlags );
+                    EDIT_PROPERTY( "Broken count", ImGuiDataType_U8, MItem.BrokenCount );
+                    EDIT_PROPERTY( "Deterioration", ImGuiDataType_U16, MItem.Deterioration );
+                }
+                if( proto->Type == ITEM_TYPE_WEAPON && proto->Weapon_MaxAmmoCount )
+                {
+                    EDIT_PROPERTY( "Ammo PID", ImGuiDataType_U16, MItem.AmmoPid );
+                    EDIT_PROPERTY( "Ammo count", ImGuiDataType_U32, MItem.AmmoCount );
+                }
+                else if( proto->Type == ITEM_TYPE_KEY || proto->Type == ITEM_TYPE_CONTAINER || proto->Type == ITEM_TYPE_DOOR )
+                    EDIT_PROPERTY( "Locker / door ID", ImGuiDataType_U32, MItem.LockerDoorId );
+                if( proto->Type == ITEM_TYPE_CONTAINER || proto->Type == ITEM_TYPE_DOOR )
+                {
+                    EDIT_PROPERTY( "Locker condition", ImGuiDataType_U16, MItem.LockerCondition );
+                    EDIT_PROPERTY( "Locker complexity", ImGuiDataType_U16, MItem.LockerComplexity );
+                }
+            }
+            else
+            {
+                EDIT_PROPERTY( "Sprite cut", ImGuiDataType_U8, MScenery.SpriteCut );
+                if( proto->Type == ITEM_TYPE_GRID )
+                {
+                    EDIT_PROPERTY( "Target map PID", ImGuiDataType_U16, MScenery.ToMapPid );
+                    EDIT_PROPERTY( "Target entrance", ImGuiDataType_U32, MScenery.ToEntire );
+                    EDIT_PROPERTY( "Target direction", ImGuiDataType_U8, MScenery.ToDir );
+                }
+                else if( proto->Type == ITEM_TYPE_GENERIC )
+                {
+                    EDIT_PROPERTY( "Parameters count", ImGuiDataType_U8, MScenery.ParamsCount );
+                    for( int param_i = 0; param_i < 5; param_i++ )
+                    {
+                        char label[ 32 ];
+                        Str::Format( label, "Parameter %d", param_i );
+                        if( ImGui::InputScalar( label, ImGuiDataType_S32, &object->MScenery.Param[ param_i ] ) )
+                        {
+                            properties_changed = true;
+                            if( MapperGuiApplyPropertiesToAll )
+                            {
+                                for( uint property_i = 1; property_i < (uint) SelectedObj.size(); property_i++ )
+                                {
+                                    MapObject* target = SelectedObj[ property_i ].MapObj;
+                                    ProtoItem* target_proto = target ? ItemMngr.GetProtoItem( target->ProtoId ) : NULL;
+                                    if( target && target->MapObjType == MAP_OBJECT_SCENERY && target_proto && target_proto->Type == proto->Type )
+                                    {
+                                        target->MScenery.Param[ param_i ] = object->MScenery.Param[ param_i ];
+                                        UpdateMapObject( target );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if( object->ProtoId == SP_SCEN_TRIGGER )
+                        EDIT_PROPERTY( "Trigger number", ImGuiDataType_U32, MScenery.TriggerNum );
+                    else
+                    {
+                        if( ImGui::Checkbox( "Can use", &object->MScenery.CanUse ) )
+                        {
+                            properties_changed = true;
+                            if( MapperGuiApplyPropertiesToAll )
+                                for( uint property_i = 1; property_i < (uint) SelectedObj.size(); property_i++ )
+                                    if( SelectedObj[ property_i ].MapObj && SelectedObj[ property_i ].MapObj->MapObjType == MAP_OBJECT_SCENERY &&
+                                        ItemMngr.GetProtoItem( SelectedObj[ property_i ].MapObj->ProtoId ) &&
+                                        ItemMngr.GetProtoItem( SelectedObj[ property_i ].MapObj->ProtoId )->Type == proto->Type )
+                                    {
+                                        SelectedObj[ property_i ].MapObj->MScenery.CanUse = object->MScenery.CanUse;
+                                        UpdateMapObject( SelectedObj[ property_i ].MapObj );
+                                    }
+                        }
+                        if( ImGui::Checkbox( "Can talk", &object->MScenery.CanTalk ) )
+                        {
+                            properties_changed = true;
+                            if( MapperGuiApplyPropertiesToAll )
+                                for( uint property_i = 1; property_i < (uint) SelectedObj.size(); property_i++ )
+                                    if( SelectedObj[ property_i ].MapObj && SelectedObj[ property_i ].MapObj->MapObjType == MAP_OBJECT_SCENERY &&
+                                        ItemMngr.GetProtoItem( SelectedObj[ property_i ].MapObj->ProtoId ) &&
+                                        ItemMngr.GetProtoItem( SelectedObj[ property_i ].MapObj->ProtoId )->Type == proto->Type )
+                                    {
+                                        SelectedObj[ property_i ].MapObj->MScenery.CanTalk = object->MScenery.CanTalk;
+                                        UpdateMapObject( SelectedObj[ property_i ].MapObj );
+                                    }
+                        }
+                    }
+                }
+            }
+        }
+
+        #undef EDIT_PROPERTY_TEXT
+        #undef EDIT_PROPERTY
+        if( properties_changed )
+        {
+            UpdateMapObject( object );
+            HexMngr.RebuildLight();
+        }
     }
     else
         ImGui::TextDisabled( "Select an object in the viewport." );
     ImGui::End();
 
     const float center_width = screen_width - MapperGuiLeftWidth - MapperGuiRightWidth;
-    ImGui::SetNextWindowPos( ImVec2( MapperGuiLeftWidth, screen_height - MapperGuiBottomHeight ) );
+    ImGui::SetNextWindowPos( ImVec2( MapperGuiLeftWidth, screen_height - MapperGuiStatusHeight - MapperGuiBottomHeight ) );
     ImGui::SetNextWindowSize( ImVec2( center_width, MapperGuiBottomHeight ) );
     ImGui::Begin( "Log", NULL, fixed_flags | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_HorizontalScrollbar );
     ImGui::SetCursorPosY( 0.0f );
     float old_bottom_height = MapperGuiBottomHeight;
-    MapperGuiSplitter( "##bottom_splitter", false, old_bottom_height, 90.0f, screen_height - MapperGuiToolbarHeight - min_view_height );
+    MapperGuiSplitter( "##bottom_splitter", false, old_bottom_height, 90.0f, max_bottom_height );
     if( ImGui::IsItemActive() )
-        MapperGuiBottomHeight = CLAMP( MapperGuiBottomHeight - ImGui::GetIO().MouseDelta.y, 90.0f, screen_height - MapperGuiToolbarHeight - min_view_height );
+        MapperGuiBottomHeight = CLAMP( MapperGuiBottomHeight - ImGui::GetIO().MouseDelta.y, 90.0f, max_bottom_height );
     std::string new_log;
     LogGetBuffer( new_log );
     if( !new_log.empty() )
@@ -1100,11 +1393,51 @@ void FOMapper::BeginImGuiFrame()
     int viewport_x = (int) MapperGuiLeftWidth;
     int viewport_y = (int) MapperGuiToolbarHeight;
     int viewport_width = (int) center_width;
-    int viewport_height = (int) ( screen_height - MapperGuiToolbarHeight - MapperGuiBottomHeight );
+    int viewport_height = (int) ( screen_height - MapperGuiToolbarHeight - MapperGuiBottomHeight - MapperGuiStatusHeight );
     SprMngr.SetWorldViewport( viewport_x, viewport_y, viewport_width, viewport_height );
     Rect viewport = SprMngr.GetWorldViewport();
     bool mouse_in_viewport = GameOpt.MouseX >= viewport.L && GameOpt.MouseX <= viewport.R &&
                              GameOpt.MouseY >= viewport.T && GameOpt.MouseY <= viewport.B;
+
+    ImGui::SetNextWindowPos( ImVec2( 0.0f, screen_height - MapperGuiStatusHeight ) );
+    ImGui::SetNextWindowSize( ImVec2( screen_width, MapperGuiStatusHeight ) );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8.0f, 3.0f ) );
+    ImGui::Begin( "Mapper status", NULL, fixed_flags | ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoNav );
+    ImGui::GetWindowDrawList()->AddLine( ImVec2( 0.0f, screen_height - MapperGuiStatusHeight ),
+        ImVec2( screen_width, screen_height - MapperGuiStatusHeight ), ImGui::GetColorU32( ImGuiCol_Border ) );
+    ImGui::Text( "FPS: %u", GameOpt.FPS );
+    ImGui::SameLine( 0.0f, 12.0f );
+    ImGui::TextDisabled( "|" );
+    ImGui::SameLine( 0.0f, 12.0f );
+    ushort hover_hx = 0;
+    ushort hover_hy = 0;
+    if( mouse_in_viewport && HexMngr.GetHexPixel( GameOpt.MouseX, GameOpt.MouseY, hover_hx, hover_hy ) )
+        ImGui::Text( "Cursor: %u, %u", hover_hx, hover_hy );
+    else
+        ImGui::TextUnformatted( "Cursor: -, -" );
+    ImGui::SameLine( 0.0f, 16.0f );
+    ImGui::Text( "Zoom: %d%%", (int) ( 100.0f / GameOpt.SpritesZoom ) );
+    ImGui::SameLine( 0.0f, 16.0f );
+    const char* selection_mode = SelectType == SELECT_TYPE_OLD ? "Map-aligned" :
+        ( SelectType == SELECT_TYPE_NEW ? "Screen-aligned" : ( SelectType == SELECT_TYPE_TILES ? "Tiled" : "Unknown" ) );
+    ImGui::Text( "Selection: %s", selection_mode );
+    ImGui::SameLine( 0.0f, 12.0f );
+    ImGui::TextDisabled( "|" );
+    ImGui::SameLine( 0.0f, 12.0f );
+    ImGui::Text( "Selected objects: %u", (uint) SelectedObj.size() );
+    ImGui::SameLine( 0.0f, 16.0f );
+    ImGui::Text( "Loaded maps: %u", (uint) LoadedProtoMaps.size() );
+    ImGui::SameLine( 0.0f, 12.0f );
+    ImGui::TextDisabled( "|" );
+    ImGui::SameLine( 0.0f, 12.0f );
+    if( CurProtoMap )
+        ImGui::Text( "Current map: %s", CurProtoMap->GetName() );
+    else
+        ImGui::TextUnformatted( "Current map: -" );
+    ImGui::End();
+    ImGui::PopStyleVar();
+
     ImGui::GetIO().MouseDrawCursor = !mouse_in_viewport;
     SDL_ShowCursor( SDL_FALSE );
 }
@@ -2114,6 +2447,7 @@ void FOMapper::MainLoop()
     if( HexMngr.IsMapLoaded() )
     {
         SprMngr.BeginWorldRendering();
+        DrawIfaceLayer( 0 );
         HexMngr.DrawMap();
 
         // Texts on heads
@@ -5290,6 +5624,8 @@ void FOMapper::CurDraw()
 {
 	int currCurMode = CurMode;
 	if (IsCurInRect(IntWMain, IntX, IntY)) currCurMode = CUR_MODE_DEFAULT;
+	const int world_viewport_offset_x = SprMngr.GetWorldViewportOffsetX();
+	const int world_viewport_offset_y = SprMngr.GetWorldViewportOffsetY();
 
 	switch (currCurMode)
     {
@@ -5326,7 +5662,8 @@ void FOMapper::CurDraw()
                 int x = HexMngr.GetField( hx, hy ).ScrX - ( si->Width / 2 ) + si->OffsX + HEX_OX + GameOpt.ScrOx + proto_item.OffsetX;
                 int y = HexMngr.GetField( hx, hy ).ScrY - si->Height + si->OffsY + HEX_OY + GameOpt.ScrOy + proto_item.OffsetY;
 
-                SprMngr.DrawSpriteSize( spr_id, (int) ( x / GameOpt.SpritesZoom ), (int) ( y / GameOpt.SpritesZoom ),
+                SprMngr.DrawSpriteSize( spr_id, (int) ( x / GameOpt.SpritesZoom ) + world_viewport_offset_x,
+                                        (int) ( y / GameOpt.SpritesZoom ) + world_viewport_offset_y,
                                         si->Width / GameOpt.SpritesZoom, si->Height / GameOpt.SpritesZoom, true, false );
             }
         }
@@ -5362,7 +5699,8 @@ void FOMapper::CurDraw()
                     y += ROOF_OY;
                 }
 
-                SprMngr.DrawSpriteSize( anim, (int) ( ( x + GameOpt.ScrOx ) / GameOpt.SpritesZoom ), (int) ( ( y + GameOpt.ScrOy ) / GameOpt.SpritesZoom ),
+                SprMngr.DrawSpriteSize( anim, (int) ( ( x + GameOpt.ScrOx ) / GameOpt.SpritesZoom ) + world_viewport_offset_x,
+                                        (int) ( ( y + GameOpt.ScrOy ) / GameOpt.SpritesZoom ) + world_viewport_offset_y,
                                         si->Width / GameOpt.SpritesZoom, si->Height / GameOpt.SpritesZoom, true, false );
             }
         }
@@ -5382,7 +5720,8 @@ void FOMapper::CurDraw()
                 int x = HexMngr.GetField( hx, hy ).ScrX - ( si->Width / 2 ) + si->OffsX;
                 int y = HexMngr.GetField( hx, hy ).ScrY - si->Height + si->OffsY;
 
-                SprMngr.DrawSpriteSize( spr_id, (int) ( ( x + GameOpt.ScrOx + HEX_OX ) / GameOpt.SpritesZoom ), (int) ( ( y + GameOpt.ScrOy + HEX_OY ) / GameOpt.SpritesZoom ),
+                SprMngr.DrawSpriteSize( spr_id, (int) ( ( x + GameOpt.ScrOx + HEX_OX ) / GameOpt.SpritesZoom ) + world_viewport_offset_x,
+                                        (int) ( ( y + GameOpt.ScrOy + HEX_OY ) / GameOpt.SpritesZoom ) + world_viewport_offset_y,
                                         si->Width / GameOpt.SpritesZoom, si->Height / GameOpt.SpritesZoom, true, false );
             }
         }
