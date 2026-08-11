@@ -98,6 +98,20 @@ void Job::Erase( int type )
     }
 }
 
+void Job::EraseCritter( Critter* cr )
+{
+    SCOPE_LOCK( JobLocker );
+
+    for( auto it = Jobs.begin(); it != Jobs.end();)
+    {
+        Job& job = *it;
+        if( job.Type == JOB_CRITTER && job.Data == cr )
+            it = Jobs.erase( it );
+        else
+            ++it;
+    }
+}
+
 uint Job::Count()
 {
     SCOPE_LOCK( JobLocker );
@@ -108,6 +122,8 @@ uint Job::Count()
 // Deferred releasing
 static CrVec      DeferredReleaseCritters;
 static UIntVec    DeferredReleaseCrittersCycle;
+static CrVec      DeferredDeleteCritters;
+static UIntVec    DeferredDeleteCrittersCycle;
 static MapVec     DeferredReleaseMaps;
 static UIntVec    DeferredReleaseMapsCycle;
 static LocVec     DeferredReleaseLocs;
@@ -125,6 +141,21 @@ void Job::DeferredRelease( Critter* cr )
 
     DeferredReleaseCritters.push_back( cr );
     DeferredReleaseCrittersCycle.push_back( DeferredReleaseCycle );
+}
+
+void Job::DeferredDelete( Critter* cr )
+{
+    DeferredReleaseLocker.Lock();
+    if( DeferredReleaseCycle == MAX_UINT )
+    {
+        DeferredReleaseLocker.Unlock();
+        cr->Delete();
+        return;
+    }
+
+    DeferredDeleteCritters.push_back( cr );
+    DeferredDeleteCrittersCycle.push_back( DeferredReleaseCycle );
+    DeferredReleaseLocker.Unlock();
 }
 
 void Job::DeferredRelease( Map* map )
@@ -167,7 +198,7 @@ void Job::SetDeferredReleaseCycle( uint cycle )
 }
 
 template< class T1, class T2 >
-void ProcessDeferredReleasing_( T1& cont, T2& cont_cycle )
+void ExtractDeferred_( T1& cont, T2& cont_cycle, T1& ready )
 {
     uint del_count = 0;
     for( uint i = 0, j = (uint) cont_cycle.size(); i < j; i++ )
@@ -179,8 +210,7 @@ void ProcessDeferredReleasing_( T1& cont, T2& cont_cycle )
     }
     if( del_count )
     {
-        for( uint i = 0; i < del_count; i++ )
-            cont[ i ]->Release();
+        ready.insert( ready.end(), cont.begin(), cont.begin() + del_count );
         cont.erase( cont.begin(), cont.begin() + del_count );
         cont_cycle.erase( cont_cycle.begin(), cont_cycle.begin() + del_count );
     }
@@ -188,15 +218,38 @@ void ProcessDeferredReleasing_( T1& cont, T2& cont_cycle )
 
 void Job::ProcessDeferredReleasing()
 {
-    SCOPE_LOCK( DeferredReleaseLocker );
+    CrVec      release_critters;
+    CrVec      delete_critters;
+    MapVec     release_maps;
+    LocVec     release_locs;
+    ItemPtrVec release_items;
+    VarsVec    release_vars;
 
-    // Wait at least 3 cycles
+    DeferredReleaseLocker.Lock();
     if( DeferredReleaseCycle < 3 )
+    {
+        DeferredReleaseLocker.Unlock();
         return;
+    }
 
-    ProcessDeferredReleasing_( DeferredReleaseCritters, DeferredReleaseCrittersCycle );
-    ProcessDeferredReleasing_( DeferredReleaseMaps, DeferredReleaseMapsCycle );
-    ProcessDeferredReleasing_( DeferredReleaseLocs, DeferredReleaseLocsCycle );
-    ProcessDeferredReleasing_( DeferredReleaseItems, DeferredReleaseItemsCycle );
-    ProcessDeferredReleasing_( DeferredReleaseVars, DeferredReleaseVarsCycle );
+    ExtractDeferred_( DeferredReleaseCritters, DeferredReleaseCrittersCycle, release_critters );
+    ExtractDeferred_( DeferredDeleteCritters, DeferredDeleteCrittersCycle, delete_critters );
+    ExtractDeferred_( DeferredReleaseMaps, DeferredReleaseMapsCycle, release_maps );
+    ExtractDeferred_( DeferredReleaseLocs, DeferredReleaseLocsCycle, release_locs );
+    ExtractDeferred_( DeferredReleaseItems, DeferredReleaseItemsCycle, release_items );
+    ExtractDeferred_( DeferredReleaseVars, DeferredReleaseVarsCycle, release_vars );
+    DeferredReleaseLocker.Unlock();
+
+    for( auto it = release_critters.begin(), end = release_critters.end(); it != end; ++it )
+        ( *it )->Release();
+    for( auto it = release_maps.begin(), end = release_maps.end(); it != end; ++it )
+        ( *it )->Release();
+    for( auto it = release_locs.begin(), end = release_locs.end(); it != end; ++it )
+        ( *it )->Release();
+    for( auto it = release_items.begin(), end = release_items.end(); it != end; ++it )
+        ( *it )->Release();
+    for( auto it = release_vars.begin(), end = release_vars.end(); it != end; ++it )
+        ( *it )->Release();
+    for( auto it = delete_critters.begin(), end = delete_critters.end(); it != end; ++it )
+        ( *it )->Delete();
 }

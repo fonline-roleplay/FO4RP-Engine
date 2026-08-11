@@ -528,7 +528,7 @@ void FOServer::MainLoop()
         // Statistics
         Statistics.Uptime = ( Timer::FastTick() - Statistics.ServerStartTick ) / 1000;
 
-//		sync_mngr->UnlockAll();
+        sync_mngr->UnlockAll();
         Thread::Sleep( 100 );
     }
 
@@ -851,7 +851,7 @@ void FOServer::Logic_Work( void* data )
                 loop_min += stats_thread->LoopMin;
                 loop_max += stats_thread->LoopMax;
                 lags += stats_thread->LagsCount;
-                real_min_cycle = MIN( real_min_cycle, stats->LoopCycles );
+                real_min_cycle = MIN( real_min_cycle, stats_thread->LoopCycles );
             }
             uint count = (uint) stats_ptrs.size();
             Statistics.CycleTime = cycle_time / count;

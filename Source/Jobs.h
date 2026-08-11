@@ -43,10 +43,12 @@ public:
     static void PushFront( const Job& job );
     static Job  PopFront();
     static void Erase( int type );
+    static void EraseCritter( Critter* cr );
     static uint Count();
 
     // Deferred releasing
     static void DeferredRelease( Critter* cr );
+    static void DeferredDelete( Critter* cr );
     static void DeferredRelease( Map* cr );
     static void DeferredRelease( Location* cr );
     static void DeferredRelease( Item* cr );

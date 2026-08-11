@@ -379,6 +379,7 @@ void CritterManager::CritterGarbager()
                 cr->GroupMove = NULL;
             }
 
+            Job::EraseCritter( cr );
             cr->IsNotValid = true;
             cr->FullClear();
             Job::DeferredRelease( cr );

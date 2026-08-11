@@ -588,7 +588,7 @@ public:
     bool CanBeRemoved;
     long RefCounter;
     void AddRef()  { InterlockedIncrement( &RefCounter ); }
-    void Release() { if( !InterlockedDecrement( &RefCounter ) ) Delete(); }
+    void Release();
     void Delete();
 };
 
