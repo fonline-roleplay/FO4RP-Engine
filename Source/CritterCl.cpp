@@ -1849,7 +1849,7 @@ void CritterCl::FormatTextPoint( int& x, int& y )
 {
     #ifdef FONLINE_CLIENT
     if( !FOClient::Self->IsScroll() && !GameOpt.MapZooming && !FOClient::Self->HexMngr.AutoScroll.Active )
-    #elifdef FONLINE_MAPPER
+    #elif defined FONLINE_MAPPER
     if( !FOMapper::Self->IsScroll() && !GameOpt.MapZooming && !FOMapper::Self->HexMngr.AutoScroll.Active )
     #endif
     {
