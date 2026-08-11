@@ -969,6 +969,19 @@ void FOMapper::BeginImGuiFrame()
     ImGui::Begin( "Objects", NULL, fixed_flags | ImGuiWindowFlags_NoResize );
     ImGui::TextUnformatted( "Object library" );
     ImGui::Separator();
+    int mode_button_index = 0;
+    for( int mode = INT_MODE_CUSTOM0; mode <= INT_MODE_CUSTOM9; mode++ )
+    {
+        if( TabsName[ mode ].empty() || TabsName[ mode ] == "-" )
+            continue;
+        if( mode_button_index % 2 )
+            ImGui::SameLine();
+        if( ImGui::Selectable( TabsName[ mode ].c_str(), IntMode == mode, 0, ImVec2( 105.0f, 0.0f ) ) )
+            IntSetMode( mode );
+        mode_button_index++;
+    }
+    if( mode_button_index )
+        ImGui::Separator();
     const char* modes[] = { "Items", "Tiles", "Critters", "Fast", "Inventory", "Maps" };
     const int mode_values[] = { INT_MODE_ITEM, INT_MODE_TILE, INT_MODE_CRIT, INT_MODE_FAST, INT_MODE_INCONT, INT_MODE_LIST };
     for( int i = 0; i < 6; i++ )
