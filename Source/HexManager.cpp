@@ -2889,6 +2889,36 @@ void HexManager::GetSmthPixel( int pix_x, int pix_y, ItemHex*& item, CritterCl*&
     }
 }
 
+static bool IsPathFieldBlocked( Field& field, CritterCl* cr, uint arrival_steps )
+{
+    if( !field.IsNotPassed )
+        return false;
+
+    // Multihex occupancy and blocking scenery/items are never predicted away.
+    if( field.IsMultihex )
+        return true;
+    for( ItemHexVec::iterator it = field.Items.begin(), end = field.Items.end(); it != end; ++it )
+        if( !( *it )->IsPassed() )
+            return true;
+
+    CritterCl* blocker = field.Crit;
+    if( !blocker )
+        return true;
+    if( blocker == cr )
+        return false;
+
+    // A walk animation only proves that the critter is entering this hex. A queued
+    // different position proves that it is also going to leave it.
+    if( !cr || blocker->GetMultihex() || blocker->MoveSteps.empty() )
+        return true;
+    if( blocker->MoveSteps.front().first == blocker->GetHexX() &&
+        blocker->MoveSteps.front().second == blocker->GetHexY() )
+        return true;
+
+    uint64 arrival_time = (uint64) arrival_steps * cr->GetMoveTime();
+    return arrival_time < blocker->GetMoveTimeLeft();
+}
+
 bool HexManager::FindPath( CritterCl* cr, ushort start_x, ushort start_y, ushort& end_x, ushort& end_y, UCharVec& steps, int cut )
 {
     // Static data
@@ -2947,7 +2977,7 @@ bool HexManager::FindPath( CritterCl* cr, ushort start_x, ushort start_y, ushort
 
                 if( !mh )
                 {
-                    if( GetField( nx, ny ).IsNotPassed )
+                    if( IsPathFieldBlocked( GetField( nx, ny ), cr, numindex - 1 ) )
                         continue;
                 }
                 else
@@ -2958,7 +2988,7 @@ bool HexManager::FindPath( CritterCl* cr, ushort start_x, ushort start_y, ushort
                         MoveHexByDirUnsafe( nx_, ny_, j );
                     if( nx_ < 0 || ny_ < 0 || nx_ >= maxHexX || ny_ >= maxHexY )
                         continue;
-                    if( GetField( nx_, ny_ ).IsNotPassed )
+                    if( IsPathFieldBlocked( GetField( nx_, ny_ ), cr, numindex - 1 ) )
                         continue;
 
                     // Clock wise hexes
@@ -2972,7 +3002,7 @@ bool HexManager::FindPath( CritterCl* cr, ushort start_x, ushort start_y, ushort
                     for( uint k = 0; k < steps_count && !not_passed; k++ )
                     {
                         MoveHexByDirUnsafe( nx__, ny__, dir_ );
-                        not_passed = GetField( nx__, ny__ ).IsNotPassed;
+                        not_passed = IsPathFieldBlocked( GetField( nx__, ny__ ), cr, numindex - 1 );
                     }
                     if( not_passed )
                         continue;
@@ -2985,7 +3015,7 @@ bool HexManager::FindPath( CritterCl* cr, ushort start_x, ushort start_y, ushort
                     for( uint k = 0; k < steps_count && !not_passed; k++ )
                     {
                         MoveHexByDirUnsafe( nx__, ny__, dir_ );
-                        not_passed = GetField( nx__, ny__ ).IsNotPassed;
+                        not_passed = IsPathFieldBlocked( GetField( nx__, ny__ ), cr, numindex - 1 );
                     }
                     if( not_passed )
                         continue;
