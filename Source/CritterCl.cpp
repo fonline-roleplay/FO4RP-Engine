@@ -1847,11 +1847,12 @@ void CritterCl::DrawTextOnHead()
 
 void CritterCl::FormatTextPoint( int& x, int& y )
 {
+    bool allow_moving = !GameOpt.MapZooming;
     #ifdef FONLINE_CLIENT
-    if( !FOClient::Self->IsScroll() && !GameOpt.MapZooming && !FOClient::Self->HexMngr.AutoScroll.Active )
-    #elif defined FONLINE_MAPPER
-    if( !FOMapper::Self->IsScroll() && !GameOpt.MapZooming && !FOMapper::Self->HexMngr.AutoScroll.Active )
+    allow_moving = allow_moving && !FOClient::Self->IsScroll() && !FOClient::Self->HexMngr.AutoScroll.Active;
     #endif
+
+    if( allow_moving )
     {
         const int distantion = 100;
         int step = 4;
