@@ -54,15 +54,6 @@ BEGIN
 END
 
 #endif    // APSTUDIO_INVOKED
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Shader
-//
-
-IDR_EFFECT_SKINNING    RCDATA                  "../Source/3dSkinning.fx"
-IDR_PS_CONTOUR         RCDATA                  "../Source/3dContourPS.txt"
-
 #endif    // Russian resources
 /////////////////////////////////////////////////////////////////////////////
 
