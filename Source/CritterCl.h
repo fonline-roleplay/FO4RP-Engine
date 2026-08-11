@@ -232,6 +232,8 @@ public:
         MoveSteps.clear();
         CurMoveStep = 0;
     }
+    uint GetMoveTime();
+    uint GetMoveTimeLeft();
     void Move( int dir );
 
     // ReSet

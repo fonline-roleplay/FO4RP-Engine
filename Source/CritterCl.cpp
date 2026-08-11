@@ -950,14 +950,10 @@ ushort CritterCl::PopLastHexY()
     return hy;
 }
 
-void CritterCl::Move( int dir )
+uint CritterCl::GetMoveTime()
 {
-    if( dir < 0 || dir >= DIRS_COUNT || !CritType::IsCanRotate( GetCrType() ) )
-        dir = 0;
-    CrDir = dir;
-
     uint crtype = GetCrType();
-    int  time_move = 0;
+    int  time_move;
 
     if( !IsRunning )
     {
@@ -975,6 +971,27 @@ void CritterCl::Move( int dir )
         if( time_move <= 0 )
             time_move = 200;
     }
+
+    return (uint) time_move;
+}
+
+uint CritterCl::GetMoveTimeLeft()
+{
+    if( !IsWalkAnim() )
+        return 0;
+
+    uint elapsed = Timer::GameTick() - StartTick;
+    return ( elapsed < TickCount ? TickCount - elapsed : 0 );
+}
+
+void CritterCl::Move( int dir )
+{
+    if( dir < 0 || dir >= DIRS_COUNT || !CritType::IsCanRotate( GetCrType() ) )
+        dir = 0;
+    CrDir = dir;
+
+    uint crtype = GetCrType();
+    uint time_move = GetMoveTime();
 
     // Todo: move faster in turn-based, if(IsTurnBased()) time_move/=2;
     TickStart( time_move );
