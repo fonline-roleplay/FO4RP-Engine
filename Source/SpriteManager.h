@@ -236,6 +236,11 @@ private:
     RenderTarget     rt3D, rt3DMS;
     RenderTarget     rt3DSprite, rt3DMSSprite;
     RenderTargetVec  rtStack;
+    Rect             worldViewport;
+    bool             worldViewportCustom;
+    bool             worldRendering;
+    int              worldViewportOffsetX;
+    int              worldViewportOffsetY;
 
 public:
     static AnyFrames* DummyAnimation;
@@ -256,6 +261,13 @@ public:
     void ClearCurrentRenderTarget( uint color );
     void ClearCurrentRenderTargetDS( bool depth, bool stencil );
     void RefreshViewPort();
+    void SetWorldViewport( int x, int y, int width, int height );
+    void ResetWorldViewport();
+    Rect GetWorldViewport() const;
+    int GetWorldViewportOffsetX() const;
+    int GetWorldViewportOffsetY() const;
+    void BeginWorldRendering();
+    void EndWorldRendering();
 
     // Surfaces
 public:

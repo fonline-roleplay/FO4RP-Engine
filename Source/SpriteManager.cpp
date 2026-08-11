@@ -14,6 +14,7 @@ AnyFrames*    SpriteManager::DummyAnimation = NULL;
 
 SpriteManager::SpriteManager(): isInit( 0 ), flushSprCnt( 0 ), curSprCnt( 0 ), SurfType( 0 ), SurfFilterNearest( false ),
 								sceneBeginned( false ), vbMain( 0 ), ibMain( 0 ), baseTextureSize( 0 ),
+								worldViewport( 0, 0, 0, 0 ), worldViewportCustom( false ), worldRendering( false ), worldViewportOffsetX( 0 ), worldViewportOffsetY( 0 ),
 								nearestSampler( 0 ), linearSampler( 0 ),
 								eggValid( false ), eggHx( 0 ), eggHy( 0 ), eggX( 0 ), eggY( 0 ), eggOX( NULL ), eggOY( NULL ),
 								sprEgg( NULL ), eggSurfWidth( 1.0f ), eggSurfHeight( 1.0f ), eggSprWidth( 1 ), eggSprHeight( 1 ),
@@ -823,6 +824,71 @@ Surface* SpriteManager::CreateNewSurface( int w, int h )
     surf->FreeY = SURF_SPRITES_OFFS;
     surfList.push_back( surf );
     return surf;
+}
+
+void SpriteManager::SetWorldViewport( int x, int y, int width, int height )
+{
+    x = CLAMP( x, 0, GameOpt.ScreenWidth - 1 );
+    y = CLAMP( y, 0, GameOpt.ScreenHeight - 1 );
+    width = CLAMP( width, 1, GameOpt.ScreenWidth - x );
+    height = CLAMP( height, 1, GameOpt.ScreenHeight - y );
+    worldViewport = Rect( x, y, x + width - 1, y + height - 1 );
+    worldViewportCustom = true;
+}
+
+void SpriteManager::ResetWorldViewport()
+{
+    worldViewport = Rect( 0, 0, 0, 0 );
+    worldViewportCustom = false;
+}
+
+Rect SpriteManager::GetWorldViewport() const
+{
+    if( !worldViewportCustom )
+        return Rect( 0, 0, GameOpt.ScreenWidth - 1, GameOpt.ScreenHeight - 1 );
+    return worldViewport;
+}
+
+int SpriteManager::GetWorldViewportOffsetX() const
+{
+    Rect viewport = GetWorldViewport();
+    return viewport.L + viewport.W() / 2 - GameOpt.ScreenWidth / 2;
+}
+
+int SpriteManager::GetWorldViewportOffsetY() const
+{
+    Rect viewport = GetWorldViewport();
+    return viewport.T + viewport.H() / 2 - GameOpt.ScreenHeight / 2;
+}
+
+void SpriteManager::BeginWorldRendering()
+{
+    if( worldRendering )
+        return;
+
+    Flush();
+    Rect viewport = GetWorldViewport();
+    worldViewportOffsetX = (int) ( (float) GetWorldViewportOffsetX() * GameOpt.SpritesZoom );
+    worldViewportOffsetY = (int) ( (float) GetWorldViewportOffsetY() * GameOpt.SpritesZoom );
+    GameOpt.ScrOx += worldViewportOffsetX;
+    GameOpt.ScrOy += worldViewportOffsetY;
+    GL( glEnable( GL_SCISSOR_TEST ) );
+    GL( glScissor( viewport.L, GameOpt.ScreenHeight - viewport.B - 1, viewport.W(), viewport.H() ) );
+    worldRendering = true;
+}
+
+void SpriteManager::EndWorldRendering()
+{
+    if( !worldRendering )
+        return;
+
+    Flush();
+    GameOpt.ScrOx -= worldViewportOffsetX;
+    GameOpt.ScrOy -= worldViewportOffsetY;
+    worldViewportOffsetX = 0;
+    worldViewportOffsetY = 0;
+    GL( glDisable( GL_SCISSOR_TEST ) );
+    worldRendering = false;
 }
 
 TextureSampling SpriteManager::GetDefaultSurfaceSampling() const

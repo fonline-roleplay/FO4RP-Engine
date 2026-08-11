@@ -761,7 +761,9 @@ int FOClient::MainLoop()
 
     if( GetMainScreen() == SCREEN_GAME && HexMngr.IsMapLoaded() )
     {
+        SprMngr.BeginWorldRendering();
         GameDraw();
+        SprMngr.EndWorldRendering();
         if( SaveLoadProcessDraft )
             SaveLoadFillDraft();
         ProcessScreenEffectMirror();
@@ -8480,22 +8482,26 @@ void FOClient::ProcessMouseScroll()
     if( IsLMenu() || !GameOpt.MouseScroll )
         return;
 
-    if( GameOpt.MouseX >= GameOpt.ScreenWidth - 1 )
+    Rect viewport = SprMngr.GetWorldViewport();
+    bool inside = GameOpt.MouseX >= viewport.L && GameOpt.MouseX <= viewport.R &&
+                  GameOpt.MouseY >= viewport.T && GameOpt.MouseY <= viewport.B;
+
+    if( inside && GameOpt.MouseX >= viewport.R )
         GameOpt.ScrollMouseRight = true;
     else
         GameOpt.ScrollMouseRight = false;
 
-    if( GameOpt.MouseX <= 0 )
+    if( inside && GameOpt.MouseX <= viewport.L )
         GameOpt.ScrollMouseLeft = true;
     else
         GameOpt.ScrollMouseLeft = false;
 
-    if( GameOpt.MouseY >= GameOpt.ScreenHeight - 1 )
+    if( inside && GameOpt.MouseY >= viewport.B )
         GameOpt.ScrollMouseDown = true;
     else
         GameOpt.ScrollMouseDown = false;
 
-    if( GameOpt.MouseY <= 0 )
+    if( inside && GameOpt.MouseY <= viewport.T )
         GameOpt.ScrollMouseUp = true;
     else
         GameOpt.ScrollMouseUp = false;

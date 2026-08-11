@@ -2671,6 +2671,13 @@ bool HexManager::GetHexPixel( int x, int y, ushort& hx, ushort& hy )
     if( !IsMapLoaded() )
         return false;
 
+    Rect viewport = SprMngr.GetWorldViewport();
+    if( x < viewport.L || x > viewport.R || y < viewport.T || y > viewport.B )
+        return false;
+
+    x -= SprMngr.GetWorldViewportOffsetX();
+    y -= SprMngr.GetWorldViewportOffsetY();
+
     float xf = (float) x - (float) GameOpt.ScrOx / GameOpt.SpritesZoom;
     float yf = (float) y - (float) GameOpt.ScrOy / GameOpt.SpritesZoom;
     float ox = (float) HEX_W / GameOpt.SpritesZoom;
@@ -2724,6 +2731,12 @@ ItemHex* HexManager::GetItemPixel( int x, int y, bool& item_egg )
 {
     if( !IsMapLoaded() )
         return NULL;
+
+    Rect viewport = SprMngr.GetWorldViewport();
+    if( x < viewport.L || x > viewport.R || y < viewport.T || y > viewport.B )
+        return NULL;
+    x -= SprMngr.GetWorldViewportOffsetX();
+    y -= SprMngr.GetWorldViewportOffsetY();
 
     ItemHexVec pix_item;
     ItemHexVec pix_item_egg;
@@ -2831,6 +2844,12 @@ CritterCl* HexManager::GetCritterPixel( int x, int y, bool ignore_dead_and_chose
 {
     if( !IsMapLoaded() || !GameOpt.ShowCrit )
         return NULL;
+
+    Rect viewport = SprMngr.GetWorldViewport();
+    if( x < viewport.L || x > viewport.R || y < viewport.T || y > viewport.B )
+        return NULL;
+    x -= SprMngr.GetWorldViewportOffsetX();
+    y -= SprMngr.GetWorldViewportOffsetY();
 
     CritVec crits;
     for( auto it = allCritters.begin(); it != allCritters.end(); it++ )
