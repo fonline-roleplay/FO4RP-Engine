@@ -48,6 +48,11 @@ public:
     void Finish();
     void MainLoop();
     void RefreshTiles( int tab );
+    bool InitImGui();
+    void FinishImGui();
+    void BeginImGuiFrame();
+    void EndImGuiFrame();
+    void DrawImGuiBrowser();
 
     void ParseKeyboard();
     void ParseMouse();

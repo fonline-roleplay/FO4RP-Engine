@@ -1,5 +1,43 @@
 #include "StdAfx.h"
 #include "Mapper.h"
+#include "ImGuiHelpers.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_sdl2.h"
+#include "imgui/imgui_impl_opengl3.h"
+
+static ImGuiTextBuffer MapperGuiLog;
+static float MapperGuiLeftWidth = 260.0f;
+static float MapperGuiRightWidth = 300.0f;
+static float MapperGuiBottomHeight = 180.0f;
+static const float MapperGuiToolbarHeight = 116.0f;
+static const float MapperGuiSplitterSize = 5.0f;
+static bool MapperGuiInitialized = false;
+static char MapperGuiCommand[ MAX_CHAT_MESSAGE + 1 ] = { 0 };
+static bool MapperGuiCommandWasActive = false;
+
+static int MapperGuiCommandCallback( ImGuiInputTextCallbackData* data )
+{
+    FOMapper* mapper = (FOMapper*) data->UserData;
+    if( data->EventFlag != ImGuiInputTextFlags_CallbackHistory || mapper->ConsoleHistory.empty() )
+        return 0;
+
+    if( data->EventKey == ImGuiKey_UpArrow )
+    {
+        if( mapper->ConsoleHistoryCur > 0 )
+            mapper->ConsoleHistoryCur--;
+    }
+    else if( data->EventKey == ImGuiKey_DownArrow )
+    {
+        if( mapper->ConsoleHistoryCur < (int) mapper->ConsoleHistory.size() )
+            mapper->ConsoleHistoryCur++;
+    }
+
+    const char* history = mapper->ConsoleHistoryCur < (int) mapper->ConsoleHistory.size() ?
+        mapper->ConsoleHistory[ mapper->ConsoleHistoryCur ].c_str() : "";
+    data->DeleteChars( 0, data->BufTextLen );
+    data->InsertChars( 0, history );
+    return 0;
+}
 
 bool      FOMapper::SpritesCanDraw = false;
 FOMapper* FOMapper::Self = NULL;
@@ -125,6 +163,8 @@ bool FOMapper::Init()
 
     // Sprite manager
     if( !SprMngr.Init() )
+        return false;
+    if( !InitImGui() )
         return false;
 
     // Fonts
@@ -557,11 +597,412 @@ void FOMapper::Finish()
     WriteLog( "Mapper finish...\n" );
     ResMngr.Finish();
     HexMngr.Finish();
+    FinishImGui();
     SprMngr.Finish();
     CrMngr.Finish();
     FileManager::EndOfWork();
     FinishScriptSystem();
     WriteLog( "Mapper finish complete.\n" );
+}
+
+bool FOMapper::InitImGui()
+{
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.IniFilename = "FOnlineImgui.ini";
+    io.MouseDrawCursor = true;
+    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+
+    char windows_path[ MAX_FOPATH ];
+    ImFont* mapper_font = NULL;
+    if( GetWindowsDirectoryA( windows_path, sizeof( windows_path ) ) )
+    {
+        string font_path = string( windows_path ) + "\\Fonts\\segoeui.ttf";
+        mapper_font = io.Fonts->AddFontFromFileTTF( font_path.c_str(), 16.0f, NULL, io.Fonts->GetGlyphRangesCyrillic() );
+        if( !mapper_font )
+        {
+            font_path = string( windows_path ) + "\\Fonts\\arial.ttf";
+            mapper_font = io.Fonts->AddFontFromFileTTF( font_path.c_str(), 16.0f, NULL, io.Fonts->GetGlyphRangesCyrillic() );
+        }
+    }
+    if( mapper_font )
+        io.FontDefault = mapper_font;
+    else
+        WriteLog( "Mapper ImGui Windows font with Cyrillic glyphs not found.\n" );
+
+    ImGui::StyleColorsDark();
+
+    if( !ImGui_ImplSDL2_InitForOpenGL( MainWindow, GLContext ) || !ImGui_ImplOpenGL3_Init( "#version 330" ) )
+    {
+        WriteLog( "Mapper ImGui initialization failed.\n" );
+        ImGui::DestroyContext();
+        return false;
+    }
+
+    MapperGuiInitialized = true;
+    IntVisible = false;
+    ObjVisible = false;
+    LogToBuffer( true );
+    return true;
+}
+
+void FOMapper::FinishImGui()
+{
+    if( !MapperGuiInitialized )
+        return;
+
+    LogToBuffer( false );
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+    MapperGuiInitialized = false;
+}
+
+static void MapperGuiSplitter( const char* id, bool vertical, float& value, float minimum, float maximum )
+{
+    ImVec2 available = ImGui::GetContentRegionAvail();
+    ImVec2 size = vertical ? ImVec2( MapperGuiSplitterSize, available.y ) : ImVec2( available.x, MapperGuiSplitterSize );
+    ImGui::InvisibleButton( id, size );
+    if( ImGui::IsItemHovered() || ImGui::IsItemActive() )
+        ImGui::SetMouseCursor( vertical ? ImGuiMouseCursor_ResizeEW : ImGuiMouseCursor_ResizeNS );
+    if( ImGui::IsItemActive() )
+        value = CLAMP( value + ( vertical ? ImGui::GetIO().MouseDelta.x : ImGui::GetIO().MouseDelta.y ), minimum, maximum );
+}
+
+void FOMapper::DrawImGuiBrowser()
+{
+    if( IntMode >= 0 && IntMode < TAB_COUNT && !Tabs[ IntMode ].empty() )
+    {
+        const char* active_name = "Collection";
+        for( auto it = Tabs[ IntMode ].begin(), end = Tabs[ IntMode ].end(); it != end; ++it )
+        {
+            if( &( *it ).second == TabsActive[ IntMode ] )
+            {
+                active_name = ( *it ).first.c_str();
+                break;
+            }
+        }
+
+        if( ImGui::BeginCombo( "##mapper_collection", active_name ) )
+        {
+            for( auto it = Tabs[ IntMode ].begin(), end = Tabs[ IntMode ].end(); it != end; ++it )
+            {
+                bool selected = &( *it ).second == TabsActive[ IntMode ];
+                if( ImGui::Selectable( ( *it ).first.c_str(), selected ) )
+                {
+                    TabsActive[ IntMode ] = &( *it ).second;
+                    RefreshCurProtos();
+                }
+                if( selected )
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+    }
+
+    ImGui::BeginChild( "##mapper_browser_entries", ImVec2( 0.0f, 0.0f ), true );
+    if( IsObjectMode() )
+    {
+        ImGuiListClipper clipper;
+        clipper.Begin( (int) CurItemProtos->size() );
+        while( clipper.Step() )
+        {
+            for( int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++ )
+            {
+                ProtoItem& proto = ( *CurItemProtos )[ i ];
+                const char* name = MsgItem ? MsgItem->GetStr( proto.ProtoId * 100 ) : "";
+                char label[ 512 ];
+                Str::Format( label, "%u  %s##item_%d", proto.ProtoId, name, i );
+                if( ImGui::Selectable( label, GetTabIndex() == (uint) i ) )
+                {
+                    SetTabIndex( i );
+                    CurMode = CUR_MODE_PLACE_OBJECT;
+                }
+            }
+        }
+    }
+    else if( IsTileMode() )
+    {
+        ImGuiListClipper clipper;
+        clipper.Begin( (int) CurTileNames->size() );
+        while( clipper.Step() )
+        {
+            for( int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++ )
+            {
+                const string& full_name = ( *CurTileNames )[ i ];
+                size_t pos = full_name.find_last_of( '\\' );
+                const char* name = pos == string::npos ? full_name.c_str() : full_name.c_str() + pos + 1;
+                char label[ MAX_FOPATH + 32 ];
+                Str::Format( label, "%s##tile_%d", name, i );
+                if( ImGui::Selectable( label, GetTabIndex() == (uint) i ) )
+                {
+                    SetTabIndex( i );
+                    CurMode = CUR_MODE_PLACE_OBJECT;
+                }
+                if( ImGui::IsItemHovered() )
+                    ImGui::SetTooltip( "%s", full_name.c_str() );
+            }
+        }
+    }
+    else if( IsCritMode() )
+    {
+        ImGuiListClipper clipper;
+        clipper.Begin( (int) CurNpcProtos->size() );
+        while( clipper.Step() )
+        {
+            for( int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++ )
+            {
+                CritData* proto = ( *CurNpcProtos )[ i ];
+                const char* name = MsgDlg ? MsgDlg->GetStr( STR_NPC_PROTO_NAME_( proto->ProtoId ) ) : "";
+                char label[ 512 ];
+                Str::Format( label, "%u  %s##critter_%d", proto->ProtoId, name, i );
+                if( ImGui::Selectable( label, GetTabIndex() == (uint) i ) )
+                {
+                    SetTabIndex( i );
+                    CurMode = CUR_MODE_PLACE_OBJECT;
+                }
+            }
+        }
+    }
+    else if( IntMode == INT_MODE_INCONT )
+    {
+        if( SelectedObj.empty() )
+            ImGui::TextDisabled( "Select a critter or container." );
+        else
+        {
+            MapObjectPtrVec& children = SelectedObj[ 0 ].Childs;
+            for( uint i = 0; i < children.size(); i++ )
+            {
+                MapObject* object = children[ i ];
+                ProtoItem* proto = ItemMngr.GetProtoItem( object->ProtoId );
+                uint count = proto && proto->Stackable ? object->MItem.Count : 1;
+                char label[ 128 ];
+                Str::Format( label, "%u  x%u##inventory_%u", object->ProtoId, count ? count : 1, i );
+                if( ImGui::Selectable( label, InContObject == object ) )
+                    InContObject = object;
+            }
+        }
+    }
+    else if( IntMode == INT_MODE_LIST )
+    {
+        for( uint i = 0; i < LoadedProtoMaps.size(); i++ )
+        {
+            ProtoMap* map = LoadedProtoMaps[ i ];
+            char label[ MAX_FOPATH + 32 ];
+            Str::Format( label, "%s##map_%u", map->GetName(), i );
+            if( ImGui::Selectable( label, map == CurProtoMap ) && map != CurProtoMap )
+            {
+                if( CurProtoMap )
+                    HexMngr.GetScreenHexes( CurProtoMap->Header.WorkHexX, CurProtoMap->Header.WorkHexY );
+                SelectClear();
+                if( HexMngr.SetProtoMap( *map ) )
+                {
+                    CurProtoMap = map;
+                    LastSaveCall = Timer::FastTick();
+                    HexMngr.FindSetCenter( map->Header.WorkHexX, map->Header.WorkHexY );
+                }
+            }
+        }
+    }
+    ImGui::EndChild();
+}
+
+void FOMapper::BeginImGuiFrame()
+{
+    if( !MapperGuiInitialized )
+        return;
+
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+
+    const float screen_width = (float) GameOpt.ScreenWidth;
+    const float screen_height = (float) GameOpt.ScreenHeight;
+    const float min_view_width = 200.0f;
+    const float min_view_height = 150.0f;
+    MapperGuiLeftWidth = CLAMP( MapperGuiLeftWidth, 140.0f, screen_width - MapperGuiRightWidth - min_view_width );
+    MapperGuiRightWidth = CLAMP( MapperGuiRightWidth, 180.0f, screen_width - MapperGuiLeftWidth - min_view_width );
+    MapperGuiBottomHeight = CLAMP( MapperGuiBottomHeight, 90.0f, screen_height - MapperGuiToolbarHeight - min_view_height );
+
+    const ImGuiWindowFlags fixed_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings;
+
+    ImGui::SetNextWindowPos( ImVec2( 0.0f, 0.0f ) );
+    ImGui::SetNextWindowSize( ImVec2( screen_width, MapperGuiToolbarHeight ) );
+    ImGui::Begin( "Mapper tools", NULL, fixed_flags | ImGuiWindowFlags_NoResize );
+    if( ImGui::Button( "Save map" ) && HexMngr.IsMapLoaded() )
+        SaveMapFile( HexMngr.CurProtoMap->GetName() );
+    ImGui::SameLine();
+    if( ImGui::Button( "Delete selected" ) && !SelectedObj.empty() )
+        SelectDelete();
+    ImGui::SameLine();
+    ImGui::BeginGroup();
+    bool draw_options_changed = false;
+    if( ImGui::BeginTable( "##draw_options", 2, ImGuiTableFlags_SizingFixedFit, ImVec2( 190.0f, 0.0f ) ) )
+    {
+        ImGui::TableNextColumn();
+        draw_options_changed |= ImGui::Checkbox( "Items", &GameOpt.ShowItem );
+        ImGui::TableNextColumn();
+        draw_options_changed |= ImGui::Checkbox( "Scenery", &GameOpt.ShowScen );
+        ImGui::TableNextColumn();
+        draw_options_changed |= ImGui::Checkbox( "Walls", &GameOpt.ShowWall );
+        ImGui::TableNextColumn();
+        draw_options_changed |= ImGui::Checkbox( "Critters", &GameOpt.ShowCrit );
+        ImGui::TableNextColumn();
+        draw_options_changed |= ImGui::Checkbox( "Tiles", &GameOpt.ShowTile );
+        ImGui::TableNextColumn();
+        draw_options_changed |= ImGui::Checkbox( "Roofs", &GameOpt.ShowRoof );
+        ImGui::EndTable();
+    }
+    ImGui::EndGroup();
+    ImGui::SameLine();
+    ImGui::TextDisabled( "|" );
+    ImGui::SameLine();
+    draw_options_changed |= ImGui::Checkbox( "Fast", &GameOpt.ShowFast );
+    if( draw_options_changed )
+        HexMngr.RefreshMap();
+    ImGui::End();
+
+    const float content_height = screen_height - MapperGuiToolbarHeight;
+    ImGui::SetNextWindowPos( ImVec2( 0.0f, MapperGuiToolbarHeight ) );
+    ImGui::SetNextWindowSize( ImVec2( MapperGuiLeftWidth, content_height ) );
+    ImGui::Begin( "Objects", NULL, fixed_flags | ImGuiWindowFlags_NoResize );
+    ImGui::TextUnformatted( "Object library" );
+    ImGui::Separator();
+    const char* modes[] = { "Items", "Tiles", "Critters", "Fast", "Inventory", "Maps" };
+    const int mode_values[] = { INT_MODE_ITEM, INT_MODE_TILE, INT_MODE_CRIT, INT_MODE_FAST, INT_MODE_INCONT, INT_MODE_LIST };
+    for( int i = 0; i < 6; i++ )
+    {
+        if( i % 2 )
+            ImGui::SameLine();
+        if( ImGui::Selectable( modes[ i ], IntMode == mode_values[ i ], 0, ImVec2( 105.0f, 0.0f ) ) )
+            IntSetMode( mode_values[ i ] );
+    }
+    ImGui::Separator();
+    ImGui::Text( "Loaded maps: %u", (uint) LoadedProtoMaps.size() );
+    if( CurProtoMap )
+        ImGui::Text( "Current: %s", CurProtoMap->GetName() );
+    ImVec2 browser_pos = ImGui::GetCursorPos();
+    ImGui::SetCursorPosX( ImGui::GetWindowWidth() - MapperGuiSplitterSize );
+    ImGui::SetCursorPosY( 0.0f );
+    MapperGuiSplitter( "##left_splitter", true, MapperGuiLeftWidth, 140.0f, screen_width - MapperGuiRightWidth - min_view_width );
+    ImGui::SetCursorPos( browser_pos );
+    ImGui::Separator();
+    DrawImGuiBrowser();
+    ImGui::End();
+
+    ImGui::SetNextWindowPos( ImVec2( screen_width - MapperGuiRightWidth, MapperGuiToolbarHeight ) );
+    ImGui::SetNextWindowSize( ImVec2( MapperGuiRightWidth, content_height ) );
+    ImGui::Begin( "Properties", NULL, fixed_flags | ImGuiWindowFlags_NoResize );
+    ImGui::SetCursorPosX( 0.0f );
+    ImGui::SetCursorPosY( 0.0f );
+    float old_right_width = MapperGuiRightWidth;
+    MapperGuiSplitter( "##right_splitter", true, old_right_width, 180.0f, screen_width - MapperGuiLeftWidth - min_view_width );
+    if( ImGui::IsItemActive() )
+        MapperGuiRightWidth = CLAMP( MapperGuiRightWidth - ImGui::GetIO().MouseDelta.x, 180.0f, screen_width - MapperGuiLeftWidth - min_view_width );
+    ImGui::SetCursorPos( ImVec2( 12.0f, 10.0f ) );
+    ImGui::TextUnformatted( "Selection properties" );
+    ImGui::Separator();
+    ImGui::Text( "Selected objects: %u", (uint) SelectedObj.size() );
+    if( !SelectedObj.empty() && SelectedObj[ 0 ].MapObj )
+    {
+        MapObject* object = SelectedObj[ 0 ].MapObj;
+        ImGui::Text( "Proto ID: %u", object->ProtoId );
+        ImGui::Text( "Hex: %u, %u", object->MapX, object->MapY );
+        ImGui::Text( "Type: %u", object->MapObjType );
+    }
+    else
+        ImGui::TextDisabled( "Select an object in the viewport." );
+    ImGui::End();
+
+    const float center_width = screen_width - MapperGuiLeftWidth - MapperGuiRightWidth;
+    ImGui::SetNextWindowPos( ImVec2( MapperGuiLeftWidth, screen_height - MapperGuiBottomHeight ) );
+    ImGui::SetNextWindowSize( ImVec2( center_width, MapperGuiBottomHeight ) );
+    ImGui::Begin( "Log", NULL, fixed_flags | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_HorizontalScrollbar );
+    ImGui::SetCursorPosY( 0.0f );
+    float old_bottom_height = MapperGuiBottomHeight;
+    MapperGuiSplitter( "##bottom_splitter", false, old_bottom_height, 90.0f, screen_height - MapperGuiToolbarHeight - min_view_height );
+    if( ImGui::IsItemActive() )
+        MapperGuiBottomHeight = CLAMP( MapperGuiBottomHeight - ImGui::GetIO().MouseDelta.y, 90.0f, screen_height - MapperGuiToolbarHeight - min_view_height );
+    std::string new_log;
+    LogGetBuffer( new_log );
+    if( !new_log.empty() )
+        MapperGuiLog.append( new_log.c_str() );
+    float command_height = ImGui::GetFrameHeightWithSpacing();
+    if( ImGui::BeginTabBar( "##mapper_output_tabs" ) )
+    {
+        if( ImGui::BeginTabItem( "Chat" ) )
+        {
+            ImGui::BeginChild( "##mapper_chat", ImVec2( 0.0f, -command_height ), false, ImGuiWindowFlags_HorizontalScrollbar );
+            float chat_width = ImGui::GetContentRegionAvail().x;
+            string chat_text;
+            for( auto it = MessBox.begin(), end = MessBox.end(); it != end; ++it )
+                chat_text += it->Time + it->Mess;
+            ImGuiDrawFOnlineText( chat_text.c_str(), COLOR_TEXT, chat_width );
+            if( ImGui::GetScrollY() >= ImGui::GetScrollMaxY() )
+                ImGui::SetScrollHereY( 1.0f );
+            ImGui::EndChild();
+            ImGui::EndTabItem();
+        }
+        if( ImGui::BeginTabItem( "Engine Log" ) )
+        {
+            ImGui::BeginChild( "##mapper_log", ImVec2( 0.0f, -command_height ), false, ImGuiWindowFlags_HorizontalScrollbar );
+            ImGui::TextUnformatted( MapperGuiLog.begin(), MapperGuiLog.end() );
+            if( ImGui::GetScrollY() >= ImGui::GetScrollMaxY() )
+                ImGui::SetScrollHereY( 1.0f );
+            ImGui::EndChild();
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabBar();
+    }
+
+    if( ConsoleActive && !MapperGuiCommandWasActive )
+    {
+        Str::Copy( MapperGuiCommand, ConsoleStr.c_str() );
+        ConsoleHistoryCur = (int) ConsoleHistory.size();
+        ImGui::SetKeyboardFocusHere();
+    }
+    if( ConsoleActive )
+    {
+        ImGui::SetNextItemWidth( -1.0f );
+        if( ImGui::InputText( "##mapper_command", MapperGuiCommand, sizeof( MapperGuiCommand ),
+            ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackHistory,
+            MapperGuiCommandCallback, this ) )
+        {
+            ConsoleStr = MapperGuiCommand;
+            ConsoleCur = (int) ConsoleStr.length();
+            ConsoleKeyDown( DIK_RETURN, "" );
+            MapperGuiCommand[ 0 ] = 0;
+            if( ConsoleActive )
+                ImGui::SetKeyboardFocusHere( -1 );
+        }
+    }
+    else
+    {
+        ImGui::TextDisabled( "Press Enter to open the command line" );
+    }
+    MapperGuiCommandWasActive = ConsoleActive;
+    ImGui::End();
+
+    int viewport_x = (int) MapperGuiLeftWidth;
+    int viewport_y = (int) MapperGuiToolbarHeight;
+    int viewport_width = (int) center_width;
+    int viewport_height = (int) ( screen_height - MapperGuiToolbarHeight - MapperGuiBottomHeight );
+    SprMngr.SetWorldViewport( viewport_x, viewport_y, viewport_width, viewport_height );
+    Rect viewport = SprMngr.GetWorldViewport();
+    bool mouse_in_viewport = GameOpt.MouseX >= viewport.L && GameOpt.MouseX <= viewport.R &&
+                             GameOpt.MouseY >= viewport.T && GameOpt.MouseY <= viewport.B;
+    ImGui::GetIO().MouseDrawCursor = !mouse_in_viewport;
+    SDL_ShowCursor( SDL_FALSE );
+}
+
+void FOMapper::EndImGuiFrame()
+{
+    if( !MapperGuiInitialized )
+        return;
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
 }
 
 void FOMapper::ChangeGameTime()
@@ -1412,6 +1853,11 @@ void FOMapper::MainLoop()
     SDL_Event event;
     while( SDL_PollEvent( &event ) )
     {
+        if( MapperGuiInitialized )
+            ImGui_ImplSDL2_ProcessEvent( &event );
+        bool capture_mouse = MapperGuiInitialized && ImGui::GetIO().WantCaptureMouse;
+        bool capture_keyboard = MapperGuiInitialized && ImGui::GetIO().WantCaptureKeyboard;
+
         if( event.type == SDL_MOUSEMOTION )
         {
             int sw = 0, sh = 0;
@@ -1423,12 +1869,16 @@ void FOMapper::MainLoop()
         }
         else if( event.type == SDL_KEYDOWN || event.type == SDL_KEYUP )
         {
+            if( capture_keyboard )
+                continue;
             MainWindowKeyboardEvents.push_back( event.type );
             MainWindowKeyboardEvents.push_back( event.key.keysym.scancode );
             MainWindowKeyboardEventsText.push_back( "" );
         }
         else if( event.type == SDL_TEXTINPUT )
         {
+            if( capture_keyboard )
+                continue;
             MainWindowKeyboardEvents.push_back( SDL_KEYDOWN );
             MainWindowKeyboardEvents.push_back( 510 );
             MainWindowKeyboardEventsText.push_back( event.text.text );
@@ -1438,12 +1888,16 @@ void FOMapper::MainLoop()
         }
         else if( event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP )
         {
+            if( capture_mouse )
+                continue;
             MainWindowMouseEvents.push_back( event.type );
             MainWindowMouseEvents.push_back( event.button.button );
             MainWindowMouseEvents.push_back( 0 );
         }
         else if( event.type == SDL_FINGERDOWN || event.type == SDL_FINGERUP )
         {
+            if( capture_mouse )
+                continue;
             MainWindowMouseEvents.push_back( event.type == SDL_FINGERDOWN ? SDL_MOUSEBUTTONDOWN : SDL_MOUSEBUTTONUP );
             MainWindowMouseEvents.push_back( SDL_BUTTON_LEFT );
             MainWindowMouseEvents.push_back( 0 );
@@ -1452,6 +1906,8 @@ void FOMapper::MainLoop()
         }
         else if( event.type == SDL_MOUSEWHEEL )
         {
+            if( capture_mouse )
+                continue;
             MainWindowMouseEvents.push_back( event.type );
             MainWindowMouseEvents.push_back( SDL_BUTTON_MIDDLE );
             MainWindowMouseEvents.push_back( -event.wheel.y );
@@ -1461,6 +1917,8 @@ void FOMapper::MainLoop()
             GameOpt.Quit = true;
         }
     }
+
+    BeginImGuiFrame();
 
     // Script loop
     static uint next_call = 0;
@@ -1545,7 +2003,6 @@ void FOMapper::MainLoop()
         return;
     }
 
-    DrawIfaceLayer( 0 );
     if( HexMngr.IsMapLoaded() )
     {
         SprMngr.BeginWorldRendering();
@@ -1602,16 +2059,11 @@ void FOMapper::MainLoop()
         SprMngr.EndWorldRendering();
     }
 
-    // Iface
-    DrawIfaceLayer( 1 );
-    IntDraw();
-    DrawIfaceLayer( 2 );
-    ConsoleDraw();
-    DrawIfaceLayer( 3 );
-    ObjDraw();
-    DrawIfaceLayer( 4 );
-    CurDraw();
-    DrawIfaceLayer( 5 );
+    Rect world_viewport = SprMngr.GetWorldViewport();
+    if( GameOpt.MouseX >= world_viewport.L && GameOpt.MouseX <= world_viewport.R &&
+        GameOpt.MouseY >= world_viewport.T && GameOpt.MouseY <= world_viewport.B )
+        CurDraw();
+    EndImGuiFrame();
     SprMngr.EndScene();
 
     // Fixed FPS
@@ -5410,7 +5862,7 @@ void FOMapper::AddMess( const char* message_text )
 {
     // Text
     char str[ MAX_FOTEXT ];
-    Str::Format( str, "|%u %c |%u %s\n", COLOR_TEXT, 149, COLOR_TEXT, message_text );
+    Str::Format( str, "|%u %s\n", COLOR_TEXT, message_text );
 
     // Time
     DateTime dt;
