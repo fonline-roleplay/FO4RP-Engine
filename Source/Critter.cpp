@@ -5,6 +5,7 @@
 #include "CritterType.h"
 #include "Access.h"
 #include "CritterManager.h"
+#include "Jobs.h"
 
 const char* CritterEventFuncName[ CRITTER_EVENT_MAX ] =
 {
@@ -3657,6 +3658,12 @@ void Critter::ContinueTimeEvents( int offs_time )
         if( cte.NextTime )
             cte.NextTime += offs_time;
     }
+}
+
+void Critter::Release()
+{
+    if( !InterlockedDecrement( &RefCounter ) )
+        Job::DeferredDelete( this );
 }
 
 void Critter::Delete()
