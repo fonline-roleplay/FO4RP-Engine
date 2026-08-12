@@ -14,6 +14,12 @@ static const float MapperGuiStatusHeight = 24.0f;
 static const float MapperGuiSplitterSize = 5.0f;
 static bool MapperGuiInitialized = false;
 static bool MapperGuiApplyPropertiesToAll = false;
+enum MapperGuiEditorMode
+{
+    MAPPER_GUI_MODE_SCENE,
+    MAPPER_GUI_MODE_ENVIRONMENT,
+};
+static MapperGuiEditorMode MapperGuiMode = MAPPER_GUI_MODE_SCENE;
 static char MapperGuiCommand[ MAX_CHAT_MESSAGE + 1 ] = { 0 };
 static bool MapperGuiCommandWasActive = false;
 
@@ -960,6 +966,24 @@ void FOMapper::BeginImGuiFrame()
     ImGui::SetNextWindowPos( ImVec2( 0.0f, 0.0f ) );
     ImGui::SetNextWindowSize( ImVec2( screen_width, MapperGuiToolbarHeight ) );
     ImGui::Begin( "Mapper tools", NULL, fixed_flags | ImGuiWindowFlags_NoResize );
+    const float mode_group_width = 208.0f;
+    ImVec2 mode_group_pos = ImGui::GetCursorPos();
+    ImGui::BeginGroup();
+    if( ImGui::Selectable( "Scene", MapperGuiMode == MAPPER_GUI_MODE_SCENE, 0, ImVec2( 100.0f, 32.0f ) ) )
+        MapperGuiMode = MAPPER_GUI_MODE_SCENE;
+    ImGui::SameLine();
+    if( ImGui::Selectable( "Environment", MapperGuiMode == MAPPER_GUI_MODE_ENVIRONMENT, 0, ImVec2( 100.0f, 32.0f ) ) )
+        MapperGuiMode = MAPPER_GUI_MODE_ENVIRONMENT;
+    ImGui::SetCursorPosY( mode_group_pos.y + 100.0f - ImGui::GetTextLineHeight() );
+    ImGui::SetCursorPosX( mode_group_pos.x + ( mode_group_width - ImGui::CalcTextSize( "Mode" ).x ) * 0.5f );
+    ImGui::TextDisabled( "Mode" );
+    ImGui::EndGroup();
+    ImGui::SameLine( 0.0f, 12.0f );
+    ImVec2 mode_separator_pos = ImGui::GetCursorScreenPos();
+    ImGui::GetWindowDrawList()->AddLine( mode_separator_pos, ImVec2( mode_separator_pos.x, mode_separator_pos.y + 100.0f ),
+        ImGui::GetColorU32( ImGuiCol_Border ) );
+    ImGui::Dummy( ImVec2( 1.0f, 100.0f ) );
+    ImGui::SameLine( 0.0f, 12.0f );
     if( ImGui::Button( "Save map" ) && HexMngr.IsMapLoaded() )
         SaveMapFile( HexMngr.CurProtoMap->GetName() );
     ImGui::SameLine();
@@ -1034,37 +1058,78 @@ void FOMapper::BeginImGuiFrame()
     ImGui::SetNextWindowPos( ImVec2( 0.0f, MapperGuiToolbarHeight ) );
     ImGui::SetNextWindowSize( ImVec2( MapperGuiLeftWidth, content_height ) );
     ImGui::Begin( "Objects", NULL, fixed_flags | ImGuiWindowFlags_NoResize );
-    ImGui::TextUnformatted( "Object library" );
-    ImGui::Separator();
-    int mode_button_index = 0;
-    for( int mode = INT_MODE_CUSTOM0; mode <= INT_MODE_CUSTOM9; mode++ )
+    ImVec2 browser_pos( 12.0f, 10.0f );
+    if( MapperGuiMode == MAPPER_GUI_MODE_SCENE )
     {
-        if( TabsName[ mode ].empty() || TabsName[ mode ] == "-" )
-            continue;
-        if( mode_button_index % 2 )
-            ImGui::SameLine();
-        if( ImGui::Selectable( TabsName[ mode ].c_str(), IntMode == mode, 0, ImVec2( 105.0f, 0.0f ) ) )
-            IntSetMode( mode );
-        mode_button_index++;
-    }
-    if( mode_button_index )
+        ImGui::TextUnformatted( "Object library" );
         ImGui::Separator();
-    const char* modes[] = { "Items", "Tiles", "Critters", "Fast", "Inventory", "Maps" };
-    const int mode_values[] = { INT_MODE_ITEM, INT_MODE_TILE, INT_MODE_CRIT, INT_MODE_FAST, INT_MODE_INCONT, INT_MODE_LIST };
-    for( int i = 0; i < 6; i++ )
-    {
-        if( i % 2 )
-            ImGui::SameLine();
-        if( ImGui::Selectable( modes[ i ], IntMode == mode_values[ i ], 0, ImVec2( 105.0f, 0.0f ) ) )
-            IntSetMode( mode_values[ i ] );
+        int mode_button_index = 0;
+        for( int mode = INT_MODE_CUSTOM0; mode <= INT_MODE_CUSTOM9; mode++ )
+        {
+            if( TabsName[ mode ].empty() || TabsName[ mode ] == "-" )
+                continue;
+            if( mode_button_index % 2 )
+                ImGui::SameLine();
+            if( ImGui::Selectable( TabsName[ mode ].c_str(), IntMode == mode, 0, ImVec2( 105.0f, 0.0f ) ) )
+                IntSetMode( mode );
+            mode_button_index++;
+        }
+        if( mode_button_index )
+            ImGui::Separator();
+        const char* modes[] = { "Items", "Tiles", "Critters", "Fast", "Inventory", "Maps" };
+        const int mode_values[] = { INT_MODE_ITEM, INT_MODE_TILE, INT_MODE_CRIT, INT_MODE_FAST, INT_MODE_INCONT, INT_MODE_LIST };
+        for( int i = 0; i < 6; i++ )
+        {
+            if( i % 2 )
+                ImGui::SameLine();
+            if( ImGui::Selectable( modes[ i ], IntMode == mode_values[ i ], 0, ImVec2( 105.0f, 0.0f ) ) )
+                IntSetMode( mode_values[ i ] );
+        }
+        ImGui::Separator();
+        browser_pos = ImGui::GetCursorPos();
     }
-    ImGui::Separator();
-    ImVec2 browser_pos = ImGui::GetCursorPos();
+    else
+    {
+        ImGui::TextUnformatted( "Day colors" );
+        ImGui::Separator();
+        if( CurProtoMap )
+        {
+            const char* day_part_names[] = { "Morning", "Day", "Evening", "Night" };
+            bool day_colors_changed = false;
+            for( int day_part = 0; day_part < 4; day_part++ )
+            {
+                float color[ 3 ] =
+                {
+                    (float) CurProtoMap->Header.DayColor[ day_part ] / 255.0f,
+                    (float) CurProtoMap->Header.DayColor[ 4 + day_part ] / 255.0f,
+                    (float) CurProtoMap->Header.DayColor[ 8 + day_part ] / 255.0f,
+                };
+                if( ImGui::ColorEdit3( day_part_names[ day_part ], color, ImGuiColorEditFlags_Uint8 ) )
+                {
+                    CurProtoMap->Header.DayColor[ day_part ] = (uchar) CLAMP( (int) ( color[ 0 ] * 255.0f + 0.5f ), 0, 255 );
+                    CurProtoMap->Header.DayColor[ 4 + day_part ] = (uchar) CLAMP( (int) ( color[ 1 ] * 255.0f + 0.5f ), 0, 255 );
+                    CurProtoMap->Header.DayColor[ 8 + day_part ] = (uchar) CLAMP( (int) ( color[ 2 ] * 255.0f + 0.5f ), 0, 255 );
+                    day_colors_changed = true;
+                }
+            }
+            if( day_colors_changed )
+            {
+                uchar* map_day_colors = HexMngr.GetMapDayColor();
+                for( int color_index = 0; color_index < 12; color_index++ )
+                    map_day_colors[ color_index ] = CurProtoMap->Header.DayColor[ color_index ];
+                ChangeGameTime();
+            }
+        }
+        else
+            ImGui::TextDisabled( "Load a map to edit its environment." );
+        browser_pos = ImGui::GetCursorPos();
+    }
     ImGui::SetCursorPosX( ImGui::GetWindowWidth() - MapperGuiSplitterSize );
     ImGui::SetCursorPosY( 0.0f );
     MapperGuiSplitter( "##left_splitter", true, MapperGuiLeftWidth, 140.0f, screen_width - MapperGuiRightWidth - min_view_width );
     ImGui::SetCursorPos( browser_pos );
-    DrawImGuiBrowser();
+    if( MapperGuiMode == MAPPER_GUI_MODE_SCENE )
+        DrawImGuiBrowser();
     ImGui::End();
 
     ImGui::SetNextWindowPos( ImVec2( screen_width - MapperGuiRightWidth, MapperGuiToolbarHeight ) );
@@ -1077,6 +1142,8 @@ void FOMapper::BeginImGuiFrame()
     if( ImGui::IsItemActive() )
         MapperGuiRightWidth = CLAMP( MapperGuiRightWidth - ImGui::GetIO().MouseDelta.x, 180.0f, screen_width - MapperGuiLeftWidth - min_view_width );
     ImGui::SetCursorPos( ImVec2( 12.0f, 10.0f ) );
+    if( MapperGuiMode == MAPPER_GUI_MODE_SCENE )
+    {
     ImGui::TextUnformatted( "Selection properties" );
     ImGui::Separator();
     if( !SelectedObj.empty() && SelectedObj[ 0 ].MapObj )
@@ -1320,6 +1387,7 @@ void FOMapper::BeginImGuiFrame()
     }
     else
         ImGui::TextDisabled( "Select an object in the viewport." );
+    }
     ImGui::End();
 
     const float center_width = screen_width - MapperGuiLeftWidth - MapperGuiRightWidth;
