@@ -1388,6 +1388,91 @@ void FOMapper::BeginImGuiFrame()
     else
         ImGui::TextDisabled( "Select an object in the viewport." );
     }
+    if( MapperGuiMode == MAPPER_GUI_MODE_ENVIRONMENT )
+    {
+        ImGui::TextUnformatted( "Special light" );
+        ImGui::Separator();
+        MapObject* light_object = !SelectedObj.empty() ? SelectedObj[ 0 ].MapObj : NULL;
+        if( light_object && light_object->ProtoId == SP_SCEN_LIGHT )
+        {
+            ImGui::TextDisabled( "Hex: %u, %u", light_object->MapX, light_object->MapY );
+            bool light_changed = false;
+            int light_intensity = light_object->LightIntensity;
+            if( ImGui::InputInt( "Intensity", &light_intensity ) )
+            {
+                light_object->LightIntensity = (char) CLAMP( light_intensity, -100, 100 );
+                light_changed = true;
+            }
+            int light_radius = light_object->LightDistance;
+            if( ImGui::InputInt( "Radius", &light_radius ) )
+            {
+                light_object->LightDistance = (uchar) CLAMP( light_radius, 0, 255 );
+                light_changed = true;
+            }
+
+            uint light_rgb = light_object->LightColor ? light_object->LightColor & 0xFFFFFF : 0xFFFFFF;
+            float light_color[ 3 ] =
+            {
+                (float) ( ( light_rgb >> 16 ) & 0xFF ) / 255.0f,
+                (float) ( ( light_rgb >> 8 ) & 0xFF ) / 255.0f,
+                (float) ( light_rgb & 0xFF ) / 255.0f,
+            };
+            if( ImGui::ColorEdit3( "Color", light_color, ImGuiColorEditFlags_Uint8 ) )
+            {
+                uint red = (uint) CLAMP( (int) ( light_color[ 0 ] * 255.0f + 0.5f ), 0, 255 );
+                uint green = (uint) CLAMP( (int) ( light_color[ 1 ] * 255.0f + 0.5f ), 0, 255 );
+                uint blue = (uint) CLAMP( (int) ( light_color[ 2 ] * 255.0f + 0.5f ), 0, 255 );
+                light_object->LightColor = ( red << 16 ) | ( green << 8 ) | blue;
+                light_changed = true;
+            }
+
+            bool global_light = FLAG( light_object->LightDay, 1 );
+            bool inverse_light = FLAG( light_object->LightDay, 2 );
+            if( ImGui::Checkbox( "Global", &global_light ) )
+            {
+                if( global_light )
+                    light_object->LightDay |= 1;
+                else
+                    light_object->LightDay &= ~1;
+                light_changed = true;
+            }
+            ImGui::SameLine();
+            if( ImGui::Checkbox( "Inverse", &inverse_light ) )
+            {
+                if( inverse_light )
+                    light_object->LightDay |= 2;
+                else
+                    light_object->LightDay &= ~2;
+                light_changed = true;
+            }
+
+            ImGui::SeparatorText( "Blocked directions" );
+            for( int direction = 0; direction < 6; direction++ )
+            {
+                bool blocked = FLAG( light_object->LightDirOff, LIGHT_DISABLE_DIR( direction ) );
+                char direction_label[ 32 ];
+                Str::Format( direction_label, "Direction %d", direction );
+                if( direction & 1 )
+                    ImGui::SameLine();
+                if( ImGui::Checkbox( direction_label, &blocked ) )
+                {
+                    if( blocked )
+                        light_object->LightDirOff |= LIGHT_DISABLE_DIR( direction );
+                    else
+                        light_object->LightDirOff &= ~LIGHT_DISABLE_DIR( direction );
+                    light_changed = true;
+                }
+            }
+
+            if( light_changed )
+            {
+                UpdateMapObject( light_object );
+                HexMngr.RebuildLight();
+            }
+        }
+        else
+            ImGui::TextDisabled( "Select a special light hex in the viewport." );
+    }
     ImGui::End();
 
     const float center_width = screen_width - MapperGuiLeftWidth - MapperGuiRightWidth;
