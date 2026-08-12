@@ -963,32 +963,34 @@ void FOMapper::BeginImGuiFrame()
         SaveMapFile( HexMngr.CurProtoMap->GetName() );
     ImGui::SameLine();
 
-    const float flags_group_height = 88.0f;
+    const float flags_group_height = 100.0f;
     const float render_group_width = 270.0f;
     const float selection_group_width = 190.0f;
     ImVec2 render_group_pos = ImGui::GetCursorPos();
+
+    ImGui::SameLine( 0.0f, 12.0f );
+    ImVec2 separator_pos = ImGui::GetCursorScreenPos();
+    ImGui::GetWindowDrawList()->AddLine( separator_pos, ImVec2( separator_pos.x, separator_pos.y + flags_group_height ),
+        ImGui::GetColorU32( ImGuiCol_Border ) );
+    ImGui::Dummy( ImVec2( 1.0f, flags_group_height ) );
+    ImGui::SameLine( 0.0f, 12.0f );
+
     ImGui::BeginGroup();
     bool draw_options_changed = false;
-    if( ImGui::BeginTable( "##draw_options", 2, ImGuiTableFlags_SizingFixedFit, ImVec2( 190.0f, 0.0f ) ) )
+    if( ImGui::BeginTable( "##draw_options", 3, ImGuiTableFlags_SizingFixedFit, ImVec2( 200.0f, 0.0f ) ) )
     {
         ImGui::TableNextColumn();
         draw_options_changed |= ImGui::Checkbox( "Items", &GameOpt.ShowItem );
-        ImGui::TableNextColumn();
         draw_options_changed |= ImGui::Checkbox( "Scenery", &GameOpt.ShowScen );
-        ImGui::TableNextColumn();
         draw_options_changed |= ImGui::Checkbox( "Walls", &GameOpt.ShowWall );
         ImGui::TableNextColumn();
         draw_options_changed |= ImGui::Checkbox( "Critters", &GameOpt.ShowCrit );
-        ImGui::TableNextColumn();
         draw_options_changed |= ImGui::Checkbox( "Tiles", &GameOpt.ShowTile );
-        ImGui::TableNextColumn();
         draw_options_changed |= ImGui::Checkbox( "Roofs", &GameOpt.ShowRoof );
+        ImGui::TableNextColumn();
+        draw_options_changed |= ImGui::Checkbox( "Fast", &GameOpt.ShowFast );
         ImGui::EndTable();
     }
-    ImGui::SameLine();
-    ImGui::TextDisabled( "|" );
-    ImGui::SameLine();
-    draw_options_changed |= ImGui::Checkbox( "Fast", &GameOpt.ShowFast );
     ImGui::SetCursorPosY( render_group_pos.y + flags_group_height - ImGui::GetTextLineHeight() );
     ImGui::SetCursorPosX( render_group_pos.x + ( render_group_width - ImGui::CalcTextSize( "Render Flags" ).x ) * 0.5f );
     ImGui::TextDisabled( "Render Flags" );
@@ -997,7 +999,7 @@ void FOMapper::BeginImGuiFrame()
         HexMngr.RefreshMap();
 
     ImGui::SameLine( 0.0f, 12.0f );
-    ImVec2 separator_pos = ImGui::GetCursorScreenPos();
+    separator_pos = ImGui::GetCursorScreenPos();
     ImGui::GetWindowDrawList()->AddLine( separator_pos, ImVec2( separator_pos.x, separator_pos.y + flags_group_height ),
         ImGui::GetColorU32( ImGuiCol_Border ) );
     ImGui::Dummy( ImVec2( 1.0f, flags_group_height ) );
@@ -1061,7 +1063,6 @@ void FOMapper::BeginImGuiFrame()
     ImGui::SetCursorPosY( 0.0f );
     MapperGuiSplitter( "##left_splitter", true, MapperGuiLeftWidth, 140.0f, screen_width - MapperGuiRightWidth - min_view_width );
     ImGui::SetCursorPos( browser_pos );
-    ImGui::Separator();
     DrawImGuiBrowser();
     ImGui::End();
 
