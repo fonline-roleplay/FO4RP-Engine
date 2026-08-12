@@ -1436,6 +1436,8 @@ void FOMapper::BeginImGuiFrame()
         ImGui::Text( "Current map: %s", CurProtoMap->GetName() );
     else
         ImGui::TextUnformatted( "Current map: -" );
+    ImGui::SameLine( 0.0f, 16.0f );
+    ImGui::Text( "Time: %02d:%02d", DayTime / 60 % 24, DayTime % 60 );
     ImGui::End();
     ImGui::PopStyleVar();
 
