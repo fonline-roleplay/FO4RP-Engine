@@ -410,6 +410,7 @@
     <ClInclude Include="..\Source\GL\wglew.h" />
     <ClInclude Include="..\Source\GraphicLoader.h" />
     <ClInclude Include="..\Source\GraphicStructures.h" />
+    <ClInclude Include="..\Source\ImGuiHelpers.h" />
     <ClInclude Include="..\Source\imgui\imconfig.h" />
     <ClInclude Include="..\Source\imgui\imgui.h" />
     <ClInclude Include="..\Source\imgui\imgui_impl_opengl3.h" />

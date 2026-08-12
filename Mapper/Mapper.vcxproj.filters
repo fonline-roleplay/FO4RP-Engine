@@ -704,6 +704,9 @@
     <ClInclude Include="..\Source\imgui\imstb_truetype.h">
       <Filter>ImGui</Filter>
     </ClInclude>
+    <ClInclude Include="..\Source\ImGuiHelpers.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Source\Common.cpp">
@@ -1031,6 +1034,9 @@
       <Filter>ImGui</Filter>
     </ClCompile>
     <ClCompile Include="..\Source\imgui\imgui_stdlib.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\ImGuiHelpers.cpp">
       <Filter>ImGui</Filter>
     </ClCompile>
   </ItemGroup>
