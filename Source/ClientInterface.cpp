@@ -1824,24 +1824,21 @@ void FOClient::InvLMouseUp()
         }
         IfaceHold = IFACE_NONE;
 
-        if (item && Keyb::CtrlDwn)
-		{
-			if(from_slot != SLOT_INV)
-				to_slot = SLOT_INV;
-			else if (from_slot == SLOT_INV)
-			{
-				if (item->Proto->Type == ITEM_TYPE_ARMOR) to_slot = SLOT_ARMOR;
-				else if (item->Proto->Type == ITEM_TYPE_WEAPON) to_slot = SLOT_HAND1;
-				else if (item->Proto->Slot == SLOT_INV) to_slot = SLOT_HAND2;
-				else if (from_slot == SLOT_INV && item->Proto->Slot != SLOT_INV) to_slot = item->Proto->Slot;
-			}
-		}
+        if( item && Keyb::ShiftDwn )
+        {
+            if( from_slot != SLOT_INV )
+                to_slot = SLOT_INV;
+            else if( item->Proto->Slot == SLOT_INV )
+                to_slot = SLOT_HAND1;
+            else
+                to_slot = item->Proto->Slot;
+        }
 
-		if (item && Keyb::ShiftDwn)
-		{
-			AddActionBack(CHOSEN_MOVE_ITEM, item->GetId(), item->GetCount(), SLOT_GROUND, 0);
-			return;
-		}
+        if( item && Keyb::CtrlDwn )
+        {
+            AddActionBack( CHOSEN_MOVE_ITEM, item->GetId(), item->GetCount(), SLOT_GROUND, 0 );
+            return;
+        }
 
 		if (item && Keyb::AltDwn)
 		{
