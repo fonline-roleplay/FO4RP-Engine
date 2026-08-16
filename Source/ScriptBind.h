@@ -1068,8 +1068,6 @@ BIND_ASSERT( engine->RegisterGlobalFunction( "uint GetMsgStrNumUpper(int textMsg
 BIND_ASSERT( engine->RegisterGlobalFunction( "uint GetMsgStrNumLower(int textMsg, uint strNum)", asFUNCTION( BIND_CLASS Global_GetMsgStrNumLower ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "uint GetMsgStrCount(int textMsg, uint strNum)", asFUNCTION( BIND_CLASS Global_GetMsgStrCount ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "bool IsMsgStr(int textMsg, uint strNum)", asFUNCTION( BIND_CLASS Global_IsMsgStr ), asCALL_CDECL ) );
-BIND_ASSERT( engine->RegisterGlobalFunction( "string@ ReplaceText(const string& text, const string& replace, const string& str)", asFUNCTION( BIND_CLASS Global_ReplaceTextStr ), asCALL_CDECL ) );
-BIND_ASSERT( engine->RegisterGlobalFunction( "string@ ReplaceText(const string& text, const string& replace, int i)", asFUNCTION( BIND_CLASS Global_ReplaceTextInt ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "string@ FormatTags(const string& text, const string@+ lexems)", asFUNCTION( BIND_CLASS Global_FormatTags ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "int GetSomeValue(int var)", asFUNCTION( BIND_CLASS Global_GetSomeValue ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "void MoveScreen(uint16 hexX, uint16 hexY, uint speed)", asFUNCTION( BIND_CLASS Global_MoveScreen ), asCALL_CDECL ) );
@@ -1486,8 +1484,6 @@ BIND_ASSERT( engine->RegisterGlobalFunction( "uint GetMsgStrNumUpper(int textMsg
 BIND_ASSERT( engine->RegisterGlobalFunction( "uint GetMsgStrNumLower(int textMsg, uint strNum)", asFUNCTION( BIND_CLASS Global_GetMsgStrNumLower ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "uint GetMsgStrCount(int textMsg, uint strNum)", asFUNCTION( BIND_CLASS Global_GetMsgStrCount ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "bool IsMsgStr(int textMsg, uint strNum)", asFUNCTION( BIND_CLASS Global_IsMsgStr ), asCALL_CDECL ) );
-BIND_ASSERT( engine->RegisterGlobalFunction( "string@ ReplaceText(const string& text, const string& replace, const string& str)", asFUNCTION( BIND_CLASS Global_ReplaceTextStr ), asCALL_CDECL ) );
-BIND_ASSERT( engine->RegisterGlobalFunction( "string@ ReplaceText(const string& text, const string& replace, int i)", asFUNCTION( BIND_CLASS Global_ReplaceTextInt ), asCALL_CDECL ) );
 
 BIND_ASSERT( engine->RegisterGlobalFunction( "void MoveScreen(uint16 hexX, uint16 hexY, uint speed)", asFUNCTION( BIND_CLASS Global_MoveScreen ), asCALL_CDECL ) );
 
@@ -1656,6 +1652,8 @@ BIND_ASSERT( engine->RegisterGlobalFunction( "int Random(int minimum, int maximu
 BIND_ASSERT( engine->RegisterGlobalFunction( "ProtoItem@+ GetProtoItem(uint16 protoId)", asFUNCTION( BIND_CLASS Global_GetProtoItem ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "bool StrToInt(string@+ text, int& result)", asFUNCTION( BIND_CLASS Global_StrToInt ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "bool StrToFloat(string@+ text, float& result)", asFUNCTION( BIND_CLASS Global_StrToFloat ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "string@ ReplaceText(const string& text, const string& replace, const string& str)", asFUNCTION( BIND_CLASS Global_ReplaceTextStr ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "string@ ReplaceText(const string& text, const string& replace, int i)", asFUNCTION( BIND_CLASS Global_ReplaceTextInt ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "uint GetDistantion(uint16 hexX1, uint16 hexY1, uint16 hexX2, uint16 hexY2)", asFUNCTION( BIND_CLASS Global_GetDistantion ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "uint8 GetDirection(uint16 fromHexX, uint16 fromHexY, uint16 toHexX, uint16 toHexY)", asFUNCTION( BIND_CLASS Global_GetDirection ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "uint8 GetOffsetDir(uint16 fromHexX, uint16 fromHexY, uint16 toHexX, uint16 toHexY, float offset)", asFUNCTION( BIND_CLASS Global_GetOffsetDir ), asCALL_CDECL ) );

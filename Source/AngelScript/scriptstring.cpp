@@ -453,53 +453,59 @@ static ScriptString* AddBoolString( bool b, const ScriptString& str )
 // string[]
 // ----------
 
-static ScriptString* GetStringAt( int i, ScriptString& str )
+static bool ResolveStringIndex( uint index, ScriptString& str, int& byte_index, uint& byte_length )
 {
-    uint length;
-    if( !str.indexByteToUTF8( i, &length ) )
-    {
-        // Set a script exception
-        asIScriptContext* ctx = asGetActiveContext();
-        ctx->SetException( "Out of range" );
-
-        // Return a null pointer
-        return 0;
-    }
-
-    return new ScriptString( str.c_str() + i, length );
-}
-
-static void SetStringAt( int i, ScriptString& value, ScriptString& str )
-{
-    uint length;
-    if( !str.indexByteToUTF8( i, &length ) )
-    {
-        // Set a script exception
-        asIScriptContext* ctx = asGetActiveContext();
-        ctx->SetException( "Out of range" );
-        return;
-    }
-
-    string& buffer = *(string*) &str.c_std_str();
-    MEMORY_PROCESS( MEMORY_SCRIPT_STRING, -(int) buffer.capacity() );
-    if( length )
-        buffer.erase( i, length );
-    if( value.length() )
-        buffer.insert( i, value.c_str() );
-    MEMORY_PROCESS( MEMORY_SCRIPT_STRING, (uint) buffer.capacity() );
-}
-
-static char* StringCharAt( uint index, ScriptString& str )
-{
-    if( index >= str.length() )
+    if( index > INT_MAX )
     {
         asIScriptContext* ctx = asGetActiveContext();
         if( ctx )
             ctx->SetException( "Out of range" );
-        return 0;
+        return false;
     }
 
-    return const_cast<char*>( str.c_str() ) + index;
+    byte_index = (int) index;
+    if( !str.indexByteToUTF8( byte_index, &byte_length ) )
+    {
+        asIScriptContext* ctx = asGetActiveContext();
+        if( ctx )
+            ctx->SetException( "Out of range" );
+        return false;
+    }
+    return true;
+}
+
+static ScriptString* GetStringAt( uint index, ScriptString& str )
+{
+    int byte_index;
+    uint byte_length;
+    if( !ResolveStringIndex( index, str, byte_index, byte_length ) )
+        return 0;
+
+    return new ScriptString( str.c_str() + byte_index, byte_length );
+}
+
+static void SetStringAt( uint index, ScriptString& value, ScriptString& str )
+{
+    if( value.lengthUTF8() != 1 || !Str::IsValidUTF8( value.c_str() ) )
+    {
+        asIScriptContext* ctx = asGetActiveContext();
+        if( ctx )
+            ctx->SetException( "String index assignment requires exactly one UTF-8 character" );
+        return;
+    }
+
+    int byte_index;
+    uint byte_length;
+    if( !ResolveStringIndex( index, str, byte_index, byte_length ) )
+        return;
+
+    // Preserve the replacement before modifying the destination in case both
+    // arguments reference the same string object.
+    const string replacement = value.c_std_str();
+    string& buffer = *(string*) &str.c_std_str();
+    MEMORY_PROCESS( MEMORY_SCRIPT_STRING, -(int) buffer.capacity() );
+    buffer.replace( byte_index, byte_length, replacement );
+    MEMORY_PROCESS( MEMORY_SCRIPT_STRING, (uint) buffer.capacity() );
 }
 
 static uchar StringToByte( const ScriptString& str )
@@ -614,9 +620,9 @@ void RegisterScriptString( asIScriptEngine* engine )
     assert( r >= 0 );
 
     // Register the index operator, both as a mutator and as an inspector
-    r = engine->RegisterObjectMethod( "string", "uint8 &opIndex(uint)", asFUNCTION( StringCharAt ), asCALL_CDECL_OBJLAST );
+    r = engine->RegisterObjectMethod( "string", "string@ get_opIndex(uint) const", asFUNCTION( GetStringAt ), asCALL_CDECL_OBJLAST );
     assert( r >= 0 );
-    r = engine->RegisterObjectMethod( "string", "const uint8 &opIndex(uint) const", asFUNCTION( StringCharAt ), asCALL_CDECL_OBJLAST );
+    r = engine->RegisterObjectMethod( "string", "void set_opIndex(uint, const string &in)", asFUNCTION( SetStringAt ), asCALL_CDECL_OBJLAST );
     assert( r >= 0 );
 
     r = engine->RegisterObjectMethod( "string", "uint8 opImplConv() const", asFUNCTION( StringToByte ), asCALL_CDECL_OBJFIRST );

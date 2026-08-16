@@ -889,6 +889,8 @@ public:
         static uint          Global_GetZoneLocationIds( ushort zx, ushort zy, uint zone_radius, CScriptArray* locations );
         static bool          Global_StrToInt( ScriptString* text, int& result );
         static bool          Global_StrToFloat( ScriptString* text, float& result );
+        static ScriptString* Global_ReplaceTextStr( ScriptString& text, ScriptString& replace, ScriptString& str );
+        static ScriptString* Global_ReplaceTextInt( ScriptString& text, ScriptString& replace, int i );
         static bool          Global_RunDialogNpc( Critter* player, Critter* npc, bool ignore_distance );
         static bool          Global_RunDialogNpcDlgPack( Critter* player, Critter* npc, uint dlg_pack, bool ignore_distance );
         static bool          Global_RunDialogHex( Critter* player, uint dlg_pack, ushort hx, ushort hy, bool ignore_distance );

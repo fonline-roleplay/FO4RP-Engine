@@ -5484,6 +5484,26 @@ bool FOServer::SScriptFunc::Global_StrToFloat( ScriptString* text, float& result
     return true;
 }
 
+ScriptString* FOServer::SScriptFunc::Global_ReplaceTextStr( ScriptString& text, ScriptString& replace, ScriptString& str )
+{
+    size_t pos = text.c_std_str().find( replace.c_std_str(), 0 );
+    if( pos == std::string::npos )
+        return new ScriptString( text );
+    string result = text.c_std_str();
+    return new ScriptString( result.replace( pos, replace.length(), str.c_std_str() ) );
+}
+
+ScriptString* FOServer::SScriptFunc::Global_ReplaceTextInt( ScriptString& text, ScriptString& replace, int i )
+{
+    size_t pos = text.c_std_str().find( replace.c_std_str(), 0 );
+    if( pos == std::string::npos )
+        return new ScriptString( text );
+    char val[ 32 ];
+    Str::Format( val, "%d", i );
+    string result = text.c_std_str();
+    return new ScriptString( result.replace( pos, replace.length(), val ) );
+}
+
 bool FOServer::SScriptFunc::Global_RunDialogNpc( Critter* player, Critter* npc, bool ignore_distance )
 {
     if( player->IsNotValid )
