@@ -250,7 +250,7 @@ void HexManager::ReloadSprites()
     cursorPrePic = SprMngr.LoadAnimation( ( curDataPrefix + "move_pre.png" ).c_str(), PT_DATA, ANIM_USE_DUMMY );
     cursorPostPic = SprMngr.LoadAnimation( ( curDataPrefix + "move_post.png" ).c_str(), PT_DATA, ANIM_USE_DUMMY );
     cursorXPic = SprMngr.LoadAnimation( ( curDataPrefix + "move_x.png" ).c_str(), PT_DATA, ANIM_USE_DUMMY );
-	#ifdef FONLINE_MAPPER
+    #if defined(FONLINE_MAPPER) || defined(FORP_ENGINE)
     picTrack1 = SprMngr.LoadAnimation( ( curDataPrefix + "track1.png" ).c_str(), PT_DATA, ANIM_USE_DUMMY );
     picTrack2 = SprMngr.LoadAnimation( ( curDataPrefix + "track2.png" ).c_str(), PT_DATA, ANIM_USE_DUMMY );
 	#else //FONLINE_CLIENT
