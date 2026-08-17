@@ -119,6 +119,7 @@ bool FOServer::InitScriptSystem()
     #define BIND_SERVER
     #define BIND_CLASS    FOServer::SScriptFunc::
     #define BIND_ASSERT( x )    if( ( x ) < 0 ) { WriteLogF( _FUNC_, " - Bind error, line<%d>.\n", __LINE__ ); return false; }
+    #define DOC_ENTRY( x )
     #include "ScriptBind.h"
 
     // Get config file
@@ -256,9 +257,11 @@ int FOServer::DialogGetParam( Critter* master, Critter* slave, uint index )
 #undef BIND_SERVER
 #undef BIND_CLASS
 #undef BIND_ASSERT
+#undef DOC_ENTRY
 #define BIND_CLIENT
 #define BIND_CLASS    BindClass::
 #define BIND_ASSERT( x )    if( ( x ) < 0 ) { WriteLogF( _FUNC_, " - Bind error, line<%d>.\n", __LINE__ ); bind_errors++; }
+#define DOC_ENTRY( x )
 
 namespace ClientBind
 {

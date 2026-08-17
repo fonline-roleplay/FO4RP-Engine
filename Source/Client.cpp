@@ -9540,6 +9540,7 @@ bool FOClient::ReloadScripts()
     #define BIND_CLIENT
     #define BIND_CLASS    FOClient::SScriptFunc::
     #define BIND_ASSERT( x )    if( ( x ) < 0 ) { WriteLog( "Bind error, line<%d>.\n", __LINE__ ); bind_errors++; }
+    #define DOC_ENTRY( x )
     asIScriptEngine* engine = Script::GetEngine();
     int              bind_errors = 0;
     #include "ScriptBind.h"
