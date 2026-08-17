@@ -6581,6 +6581,7 @@ void FOMapper::InitScriptSystem()
     #define BIND_MAPPER
     #define BIND_CLASS    FOMapper::SScriptFunc::
     #define BIND_ASSERT( x )           if( ( x ) < 0 ) { WriteLogF( _FUNC_, " - Bind error, line<%d>.\n", __LINE__ ); }
+    #define DOC_ENTRY( x )
     #include <ScriptBind.h>
 
     // Load scripts

@@ -15,6 +15,7 @@
 #include "AngelScript/scriptstring.h"
 #include "AngelScript/scriptarray.h"
 #include "AngelScript/scriptgrid.h"
+#include "AngelScript/docgen.h"
 #include <stdio.h>
 #include <list>
 #include <set>
@@ -33,9 +34,11 @@ using namespace std;
 
 asIScriptEngine* Engine = NULL;
 asCJITCompiler*  JITCompiler = NULL;
+DocumentationGenerator* DocGen = NULL;
 bool             IsServer = true;
 bool             IsClient = false;
 bool             IsMapper = false;
+bool             GenerateDoc = false;
 char*            Buf = NULL;
 bool             CollectGarbage = false;
 
@@ -179,6 +182,7 @@ void CallBack( const asSMessageInfo* msg, void* param )
 #define BIND_SERVER
 #define BIND_CLASS    BindClass::
 #define BIND_ASSERT( x )            if( ( x ) < 0 ) { printf( "Bind error, line<" # x ">.\n" ); bind_errors++; }
+#define DOC_ENTRY( x )              ( x )
 namespace ServerBind
 {
     #include <DummyData.h>
@@ -194,9 +198,11 @@ namespace ServerBind
 #undef BIND_SERVER
 #undef BIND_CLASS
 #undef BIND_ASSERT
+#undef DOC_ENTRY
 #define BIND_CLIENT
 #define BIND_CLASS    BindClass::
 #define BIND_ASSERT( x )            if( ( x ) < 0 ) { printf( "Bind error, line<" # x ">.\n" ); bind_errors++; }
+#define DOC_ENTRY( x )              ( x )
 namespace ClientBind
 {
     #include <DummyData.h>
@@ -212,9 +218,11 @@ namespace ClientBind
 #undef BIND_CLIENT
 #undef BIND_CLASS
 #undef BIND_ASSERT
+#undef DOC_ENTRY
 #define BIND_MAPPER
 #define BIND_CLASS    BindClass::
 #define BIND_ASSERT( x )            if( ( x ) < 0 ) { printf( "Bind error, line<" # x ">.\n" ); bind_errors++; }
+#define DOC_ENTRY( x )              ( x )
 namespace MapperBind
 {
     #include <DummyData.h>
@@ -238,6 +246,7 @@ int main( int argc, char* argv[] )
                 "ASCompiler script_name.fos\n"
                 " [-client] (compile client scripts)\n"
                 " [-mapper] (compile mapper scripts)\n"
+                " [-doc] (generates documentation)\n"
                 " [-p preprocessor_output.txt]\n"
                 " [-d SOME_DEFINE]*\n"
                 " [-run func_name]*\n"
@@ -258,6 +267,8 @@ int main( int argc, char* argv[] )
             IsServer = false, IsClient = true, IsMapper = false;
         else if( !_stricmp( argv[ i ], "-mapper" ) )
             IsServer = false, IsClient = false, IsMapper = true;
+        else if( !_stricmp( argv[ i ], "-doc" ) )
+            GenerateDoc = true;
         // Preprocessor output
         else if( !_stricmp( argv[ i ], "-p" ) && i + 1 < argc )
             str_prep = argv[ ++i ];
@@ -310,6 +321,20 @@ int main( int argc, char* argv[] )
     Engine->SetEngineProperty( asEP_INCLUDE_JIT_INSTRUCTIONS, 1 );
     Engine->SetJITCompiler( JITCompiler );
 
+    // Setup Doc Generator
+    char docName[128];
+    sprintf(docName, "%s%s%s Script API", (IsServer ? "Server " : ""), (IsClient ? "Client " : ""), (IsMapper ? "Mapper " : ""));
+    ScriptDocumentationOptions docgenOptions;
+    docgenOptions.projectName = "FOnline Engine";
+    docgenOptions.documentationName = docName;
+    docgenOptions.addTimestamp = true;
+    docgenOptions.includeArrayInterface = true;
+    docgenOptions.includeRefInterface = true;
+    docgenOptions.includeStringInterface = true;
+    docgenOptions.includeWeakRefInterface = true;
+    docgenOptions.outputFile = "ScriptAPI.html";
+    DocGen = new DocumentationGenerator(Engine, docgenOptions);
+
     // Extensions
     RegisterScriptArray( Engine, true );
     RegisterScriptString( Engine );
@@ -336,6 +361,8 @@ int main( int argc, char* argv[] )
         bind_errors = MapperBind::Bind( Engine );
     if( bind_errors )
         printf( "Warning, bind result: %d.\n", bind_errors );
+
+    if (GenerateDoc) DocGen->Generate();
 
     // Start compilation
     printf( "Compiling %s ...\n", str_fname );
@@ -535,6 +562,7 @@ int main( int argc, char* argv[] )
         delete Buf;
     Buf = NULL;
     delete JITCompiler;
+    delete DocGen;
 
     return 0;
 }
