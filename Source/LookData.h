@@ -66,8 +66,6 @@ public:
         };
     };
 
-    static LookData ScriptLookData0, ScriptLookData1, ItemLookData, ItemLightLookData;
-
 #ifdef FONLINE_SERVER
     void InitCritter( const Critter& critter);
     void InitMap( const Map& map);
@@ -90,5 +88,7 @@ public:
     static void SetWallMaterialHearMultiplier(unsigned index, unsigned char value);
 
 };
+
+extern LookData ScriptLookData0, ScriptLookData1, ItemLookData, ItemLightLookData;
 #endif // !FONLINE_LOOK_DATA
 

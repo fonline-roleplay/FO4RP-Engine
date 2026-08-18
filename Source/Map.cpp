@@ -657,9 +657,9 @@ bool Map::AddItem( Item* item, ushort hx, ushort hy )
     static LookData lookdata;
 
     if( item->IsLight() )
-        hideitem = LookData::ItemLightLookData;
+        hideitem = ItemLightLookData;
     else
-        hideitem = LookData::ItemLookData;
+        hideitem = ItemLookData;
 
     hideitem.GetMixed( Data.Look, hideitem );
     hideitem.InitItem( *item );
@@ -813,9 +813,9 @@ void Map::ChangeViewItem( Item* item )
     LookData* lookdata;
 
     if( item->IsLight() )
-        hideitem = &LookData::ItemLightLookData;
+        hideitem = &ItemLightLookData;
     else
-        hideitem = &LookData::ItemLookData;
+        hideitem = &ItemLookData;
 
     hideitem->GetMixed( Data.Look, *hideitem );
     hideitem->InitItem( *item );

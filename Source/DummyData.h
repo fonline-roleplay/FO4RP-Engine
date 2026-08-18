@@ -518,6 +518,49 @@ struct ProtoMap
     void Release() {}
 };
 
+struct LookData
+{
+    int ViewDirMultiplier[4];
+    int HearDirMultiplier[4];
+
+    int RunningNoiseMultiplier;
+    int RunningHearMultiplier;
+
+    int MaxView;
+    int MaxHear;
+
+    int Vision;
+    int Invis;
+
+    int HideViewDirMultiplier[6];
+    int HideHearDirMultiplier[6];
+
+    int HideViewMultiplier;
+    int HideHearMultiplier;
+
+    int dir;
+    int hexx;
+    int hexy;
+
+    int isplayer;
+    int isruning;
+
+    int access;
+
+    LookData& operator=( const int ) { return *this; }
+
+    static void GetWallMaterialHearMultiplier()         {}
+    static void SetWallMaterialHearMultiplier()         {}
+    void InitCritter( const Critter& critter )          {}
+    void InitMap( const Map& map )                      {}
+    void InitItem( const Item& item )                   {}
+
+    void AddRef()                                       {}
+    void Release()                                      {}
+};
+
+int ScriptLookData0, ScriptLookData1, ItemLookData, ItemLightLookData;
+
 struct BindClass
 {
     #ifdef BIND_SERVER
@@ -928,6 +971,8 @@ struct BindClass
     static void Global_GetImageColor()          {}
     static void Global_Synchronize()            {}
     static void Global_Resynchronize()          {}
+
+    static void CheckLook()                     {}
     #endif
 
     #ifdef BIND_CLIENT
@@ -1160,8 +1205,6 @@ struct BindClass
     static void Global_GetMsgStrNumLower()  {}
     static void Global_GetMsgStrCount()     {}
     static void Global_IsMsgStr()           {}
-    static void Global_ReplaceTextStr()     {}
-    static void Global_ReplaceTextInt()     {}
     static void Global_MoveScreen()         {}
     static void Global_MoveHexByDir()       {}
     static void Global_AppendIfaceIni()     {}
@@ -1201,6 +1244,8 @@ struct BindClass
     static void Global_GetProtoItem()           {}
     static void Global_StrToInt()               {}
     static void Global_StrToFloat()             {}
+    static void Global_ReplaceTextStr()         {}
+    static void Global_ReplaceTextInt()         {}
     static void Global_GetDistantion()          {}
     static void Global_GetDirection()           {}
     static void Global_GetOffsetDir()           {}

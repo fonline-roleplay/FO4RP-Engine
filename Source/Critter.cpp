@@ -893,9 +893,9 @@ void Critter::ProcessVisibleItemVec( ItemPtrVec& items )
             else
             {
                 if( item->IsLight() )
-                    hideitem = LookData::ItemLightLookData;
+                    hideitem = ItemLightLookData;
                 else
-                    hideitem = LookData::ItemLookData;
+                    hideitem = ItemLookData;
 
                 hideitem.GetMixed( map->Data.Look, hideitem );
                 hideitem.InitItem( *item );

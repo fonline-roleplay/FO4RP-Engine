@@ -15,7 +15,7 @@ static asFREEFUNC_t  userFree = asFreeMem;
 
 unsigned char LookData::WallMaterialHearMultiplier[MATERIALS_COUNT];
 
-LookData LookData::ScriptLookData0, LookData::ScriptLookData1, LookData::ItemLookData, LookData::ItemLightLookData;
+LookData ScriptLookData0, ScriptLookData1, ItemLookData, ItemLightLookData;
 
 LookData::LookData() : refcounter(1)
 {
