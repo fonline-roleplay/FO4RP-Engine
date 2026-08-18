@@ -154,6 +154,7 @@
     <ClInclude Include="..\Source\AngelScript\as_tokenizer.h" />
     <ClInclude Include="..\Source\AngelScript\as_typeinfo.h" />
     <ClInclude Include="..\Source\AngelScript\as_variablescope.h" />
+    <ClInclude Include="..\Source\AngelScript\docgen.h" />
     <ClInclude Include="..\Source\AngelScript\preprocessor.h" />
     <ClInclude Include="..\Source\AngelScript\scriptany.h" />
     <ClInclude Include="..\Source\AngelScript\scriptarray.h" />
@@ -294,6 +295,7 @@
     <ClCompile Include="..\Source\AngelScript\as_variablescope.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\docgen.cpp" />
     <ClCompile Include="..\Source\AngelScript\preprocessor.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>

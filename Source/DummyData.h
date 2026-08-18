@@ -943,6 +943,8 @@ struct BindClass
     static void Global_GetImageColor()          {}
     static void Global_Synchronize()            {}
     static void Global_Resynchronize()          {}
+
+    static void CheckLook()                     {}
     #endif
 
     #ifdef BIND_CLIENT
@@ -1177,8 +1179,6 @@ struct BindClass
     static void Global_GetMsgStrNumLower()  {}
     static void Global_GetMsgStrCount()     {}
     static void Global_IsMsgStr()           {}
-    static void Global_ReplaceTextStr()     {}
-    static void Global_ReplaceTextInt()     {}
     static void Global_MoveScreen()         {}
     static void Global_MoveHexByDir()       {}
     static void Global_AppendIfaceIni()     {}
@@ -1218,6 +1218,8 @@ struct BindClass
     static void Global_GetProtoItem()           {}
     static void Global_StrToInt()               {}
     static void Global_StrToFloat()             {}
+    static void Global_ReplaceTextStr()         {}
+    static void Global_ReplaceTextInt()         {}
     static void Global_GetDistantion()          {}
     static void Global_GetDirection()           {}
     static void Global_GetOffsetDir()           {}

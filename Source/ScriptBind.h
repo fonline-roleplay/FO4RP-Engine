@@ -22,9 +22,9 @@ BIND_ASSERT( engine->RegisterObjectMethod( "DataVal", "const int opIndex(uint) c
 
 // Item prototype
 BIND_ASSERT( engine->RegisterObjectType( "ProtoItem", 0, asOBJ_REF ) );
+DOC_ENTRY( DocGen->DocumentObjectType( r, "Represents <b>Item</b> Initial/Static Parameters." ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "ProtoItem", asBEHAVE_ADDREF, "void f()", asMETHOD( ProtoItem, AddRef ), asCALL_THISCALL ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "ProtoItem", asBEHAVE_RELEASE, "void f()", asMETHOD( ProtoItem, Release ), asCALL_THISCALL ) );
-
 BIND_ASSERT( engine->RegisterObjectProperty( "ProtoItem", "const uint16 ProtoId", OFFSETOF( ProtoItem, ProtoId ) ) );
 BIND_ASSERT( engine->RegisterObjectProperty( "ProtoItem", "const int Type", OFFSETOF( ProtoItem, Type ) ) );
 BIND_ASSERT( engine->RegisterObjectProperty( "ProtoItem", "const uint PicMap", OFFSETOF( ProtoItem, PicMap ) ) );
@@ -147,39 +147,48 @@ BIND_ASSERT( engine->RegisterObjectProperty( "ProtoItem", "const uint8 ColorCont
 
 #ifdef BIND_SERVER
 BIND_ASSERT( engine->RegisterObjectMethod( "ProtoItem", "string@ GetScriptName() const", asFUNCTION( BIND_CLASS ProtoItem_GetScriptName ), asCALL_CDECL_OBJFIRST ) );
+DOC_ENTRY( DocGen->DocumentObjectMethod( r, "Returns the name of the script specified in the prototype." ) );
 
 /************************************************************************/
 /* Types                                                                */
 /************************************************************************/
 BIND_ASSERT( engine->RegisterObjectType( "GameVar", 0, asOBJ_REF ) );
+DOC_ENTRY( DocGen->DocumentObjectType( r, "Represents a <b>Game Variable</b>." ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "GameVar", asBEHAVE_ADDREF, "void f()", asMETHOD( GameVar, AddRef ), asCALL_THISCALL ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "GameVar", asBEHAVE_RELEASE, "void f()", asMETHOD( GameVar, Release ), asCALL_THISCALL ) );
 
 BIND_ASSERT( engine->RegisterObjectType( "NpcPlane", 0, asOBJ_REF ) );
+DOC_ENTRY( DocGen->DocumentObjectType( r, "Represents an <b>AI Plan for NPC</b>." ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "NpcPlane", asBEHAVE_ADDREF, "void f()", asMETHOD( AIDataPlane, AddRef ), asCALL_THISCALL ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "NpcPlane", asBEHAVE_RELEASE, "void f()", asMETHOD( AIDataPlane, Release ), asCALL_THISCALL ) );
 
 BIND_ASSERT( engine->RegisterObjectType( "Item", 0, asOBJ_REF ) );
+DOC_ENTRY( DocGen->DocumentObjectType( r, "Represents an <b>Item Instance</b>." ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "Item", asBEHAVE_ADDREF, "void f()", asMETHOD( Item, AddRef ), asCALL_THISCALL ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "Item", asBEHAVE_RELEASE, "void f()", asMETHOD( Item, Release ), asCALL_THISCALL ) );
 
 BIND_ASSERT( engine->RegisterObjectType( "Scenery", 0, asOBJ_REF ) );
+DOC_ENTRY( DocGen->DocumentObjectType( r, "Represents a <b>Static Object Instance</b>." ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "Scenery", asBEHAVE_ADDREF, "void f()", asMETHOD( MapObject, AddRef ), asCALL_THISCALL ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "Scenery", asBEHAVE_RELEASE, "void f()", asMETHOD( MapObject, Release ), asCALL_THISCALL ) );
 
 BIND_ASSERT( engine->RegisterObjectType( "SceneryClient", 0, asOBJ_REF ) );
+DOC_ENTRY( DocGen->DocumentObjectType( r, "Represents a <b>Scenery that will be sent to Clients</b>." ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "SceneryClient", asBEHAVE_ADDREF, "void f()", asMETHOD( SceneryCl, AddRef ), asCALL_THISCALL ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "SceneryClient", asBEHAVE_RELEASE, "void f()", asMETHOD( SceneryCl, Release ), asCALL_THISCALL ) );
 
 BIND_ASSERT( engine->RegisterObjectType( "Critter", 0, asOBJ_REF ) );
+DOC_ENTRY( DocGen->DocumentObjectType( r, "Represents a <b>Critter Instance</b>." ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "Critter", asBEHAVE_ADDREF, "void f()", asMETHOD( Critter, AddRef ), asCALL_THISCALL ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "Critter", asBEHAVE_RELEASE, "void f()", asMETHOD( Critter, Release ), asCALL_THISCALL ) );
 
 BIND_ASSERT( engine->RegisterObjectType( "Map", 0, asOBJ_REF ) );
+DOC_ENTRY( DocGen->DocumentObjectType( r, "Represents a <b>Map Instance</b>." ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "Map", asBEHAVE_ADDREF, "void f()", asMETHOD( Map, AddRef ), asCALL_THISCALL ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "Map", asBEHAVE_RELEASE, "void f()", asMETHOD( Map, Release ), asCALL_THISCALL ) );
 
 BIND_ASSERT( engine->RegisterObjectType( "Location", 0, asOBJ_REF ) );
+DOC_ENTRY( DocGen->DocumentObjectType( r, "Represents a <b>Location Instance</b>." ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "Location", asBEHAVE_ADDREF, "void f()", asMETHOD( Location, AddRef ), asCALL_THISCALL ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "Location", asBEHAVE_RELEASE, "void f()", asMETHOD( Location, Release ), asCALL_THISCALL ) );
 
@@ -187,11 +196,13 @@ BIND_ASSERT( engine->RegisterObjectBehaviour( "Location", asBEHAVE_RELEASE, "voi
 /* Synchronizer                                                         */
 /************************************************************************/
 BIND_ASSERT( engine->RegisterObjectType( "Synchronizer", sizeof( SyncObject ), asOBJ_VALUE ) );
+DOC_ENTRY( DocGen->DocumentObjectType( r, "Represents a <b>Mutex Instance</b> for Scripts." ) );
 
 BIND_ASSERT( engine->RegisterObjectBehaviour( "Synchronizer", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION( BIND_CLASS Synchronizer_Constructor ), asCALL_CDECL_OBJFIRST ) );
 BIND_ASSERT( engine->RegisterObjectBehaviour( "Synchronizer", asBEHAVE_DESTRUCT, "void f()", asFUNCTION( BIND_CLASS Synchronizer_Destructor ), asCALL_CDECL_OBJFIRST ) );
 
 BIND_ASSERT( engine->RegisterObjectMethod( "Synchronizer", "void Lock()", asMETHOD( SyncObject, Lock ), asCALL_THISCALL ) );
+DOC_ENTRY( DocGen->DocumentObjectMethod( r, "Will <b>lock</b> current script thread <b>if server multithreading is enabled</b>." ) );
 
 /************************************************************************/
 /* GameVar                                                              */
@@ -1669,7 +1680,6 @@ BIND_ASSERT( engine->RegisterGlobalFunction( "bool LoadConstants(int constCollec
 BIND_ASSERT( engine->RegisterGlobalFunction( "void AllowSlot(uint8 index, string& slotName)", asFUNCTION( BIND_CLASS Global_AllowSlot ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "uint DecodeUTF8(const string& text, uint& length)", asFUNCTION( BIND_CLASS Global_DecodeUTF8 ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "string@ EncodeUTF8(uint ucs)", asFUNCTION( BIND_CLASS Global_EncodeUTF8 ), asCALL_CDECL ) );
-
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/

@@ -181,14 +181,15 @@ void CallBack( const asSMessageInfo* msg, void* param )
 #define OFFSETOF( type, member )    ( (int) offsetof( type, member ) )
 #define BIND_SERVER
 #define BIND_CLASS    BindClass::
-#define BIND_ASSERT( x )            if( ( x ) < 0 ) { printf( "Bind error, line<" # x ">.\n" ); bind_errors++; }
-#define DOC_ENTRY( x )              ( x )
+#define BIND_ASSERT( x )            r = x; if( ( r ) < 0 ) { printf( "Bind error, line<" # x ">.\n" ); bind_errors++; }
+#define DOC_ENTRY( x )              r = x; if( ( r ) < 0 ) { printf( "Doc error, line<" # x ">.\n" ); }
 namespace ServerBind
 {
     #include <DummyData.h>
     static int Bind( asIScriptEngine* engine )
     {
         int bind_errors = 0;
+        int r = 0;
         #include <ScriptBind.h>
         return bind_errors;
     }
@@ -201,14 +202,15 @@ namespace ServerBind
 #undef DOC_ENTRY
 #define BIND_CLIENT
 #define BIND_CLASS    BindClass::
-#define BIND_ASSERT( x )            if( ( x ) < 0 ) { printf( "Bind error, line<" # x ">.\n" ); bind_errors++; }
-#define DOC_ENTRY( x )              ( x )
+#define BIND_ASSERT( x )            r = x; if( ( r ) < 0 ) { printf( "Bind error, line<" # x ">.\n" ); bind_errors++; }
+#define DOC_ENTRY( x )              r = x; if( ( r ) < 0 ) { printf( "Doc error, line<" # x ">.\n" ); }
 namespace ClientBind
 {
     #include <DummyData.h>
     static int Bind( asIScriptEngine* engine )
     {
         int bind_errors = 0;
+        int r = 0;
         #include <ScriptBind.h>
         return bind_errors;
     }
@@ -221,14 +223,15 @@ namespace ClientBind
 #undef DOC_ENTRY
 #define BIND_MAPPER
 #define BIND_CLASS    BindClass::
-#define BIND_ASSERT( x )            if( ( x ) < 0 ) { printf( "Bind error, line<" # x ">.\n" ); bind_errors++; }
-#define DOC_ENTRY( x )              ( x )
+#define BIND_ASSERT( x )            r = x; if( ( r ) < 0 ) { printf( "Bind error, line<" # x ">.\n" ); bind_errors++; }
+#define DOC_ENTRY( x )              r = x; if( ( r ) < 0 ) { printf( "Doc error, line<" # x ">.\n" ); }
 namespace MapperBind
 {
     #include <DummyData.h>
     static int Bind( asIScriptEngine* engine )
     {
         int bind_errors = 0;
+        int r = 0;
         #include <ScriptBind.h>
         return bind_errors;
     }
@@ -332,6 +335,7 @@ int main( int argc, char* argv[] )
     docgenOptions.includeRefInterface = true;
     docgenOptions.includeStringInterface = true;
     docgenOptions.includeWeakRefInterface = true;
+    docgenOptions.htmlSafe = false;
     docgenOptions.outputFile = "ScriptAPI.html";
     DocGen = new DocumentationGenerator(Engine, docgenOptions);
 
