@@ -640,7 +640,6 @@ bool FOServer::Act_Attack( Critter* cr, uchar rate_weap, uint target_id, ushort 
     {
         cr->Send_XY( cr );
         cr->Send_XY( t_cr );
-        return false;
     }
 
     if( t_cr )
@@ -658,8 +657,6 @@ bool FOServer::Act_Attack( Critter* cr, uchar rate_weap, uint target_id, ushort 
         {
             cr->Send_XY( cr );
             cr->Send_XY( t_cr );
-            // if(cr->IsPlayer()) WriteLogF(_FUNC_," - Distance trace fail, critter<%s>, target critter<%s>.\n",cr->GetInfo(),t_cr->GetInfo());
-            return false;
         }
     }
 

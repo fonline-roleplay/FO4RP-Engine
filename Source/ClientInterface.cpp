@@ -2652,39 +2652,6 @@ void FOClient::GameLMouseDown()
             SetAction( CHOSEN_USE_ITEM, Chosen->ItemSlotMain->GetId(), Chosen->ItemSlotMain->GetProtoId(), item->IsItem() ? TARGET_ITEM : TARGET_SCENERY, item->GetId(), USE_USE );
         }
     }
-    else if( IsCurMode( CUR_USE_WEAPON ) && Chosen->ItemSlotMain->IsWeapon() && Chosen->GetUse() < MAX_USES )
-    {
-        CritterCl* cr;
-        ushort thx;
-        ushort thy;
-        HexMngr.GetHexPixel( GameOpt.MouseX, GameOpt.MouseY, thx, thy );
-        cr = HexMngr.GetCritterPixel( GameOpt.MouseX, GameOpt.MouseY, true );
-        if( cr == Chosen )
-            cr = NULL;
-
-        if( cr )
-        {
-            // Memory target id
-            TargetSmth.SetCritter( cr->GetId() );
-
-            // Aim shoot
-            if( Chosen->ItemSlotMain->IsWeapon() && Chosen->GetUse() < MAX_USES && cr != Chosen && Chosen->IsAim() )
-            {
-                if( !CritType::IsCanAim( Chosen->GetCrType() ) )
-                    AddMess( FOMB_GAME, "Aim attack is not aviable for this critter type." );
-                else if( !Chosen->IsRawParam( MODE_NO_AIM ) )
-                    ShowScreen( SCREEN__AIM );
-                return;
-            }
-
-            // Use item
-            SetAction( CHOSEN_USE_ITEM, Chosen->ItemSlotMain->GetId(), Chosen->ItemSlotMain->GetProtoId(), TARGET_CRITTER, cr->GetId(), Chosen->GetFullRate() );
-        }
-        else
-        {
-            SetAction( CHOSEN_USE_ITEM, Chosen->ItemSlotMain->GetId(), Chosen->ItemSlotMain->GetProtoId(), TARGET_HEX, ( thx << 16 ) | ( thy & 0xFFFF ), Chosen->GetFullRate() );
-        }
-    }
     else if( IsCurMode( CUR_USE_SKILL ) )
     {
         CritterCl* cr;
