@@ -2126,11 +2126,11 @@ void FOMapper::ParseMouse()
 {
     // Mouse position
     int mx = 0, my = 0;
-    SDL_GetMouseState( &mx, &my );
-	int w = 0, h = 0;
-	SDL_GetWindowPosition( MainWindow, &w, &h );
-    GameOpt.MouseX = mx;
-	GameOpt.MouseY = my;
+    SDL_GetGlobalMouseState( &mx, &my );
+    int w = 0, h = 0;
+    SDL_GetWindowPosition( MainWindow, &w, &h );
+    GameOpt.MouseX = mx - w;
+    GameOpt.MouseY = my - h;
     GameOpt.MouseX = CLAMP( GameOpt.MouseX, 0, GameOpt.ScreenWidth - 1 );
     GameOpt.MouseY = CLAMP( GameOpt.MouseY, 0, GameOpt.ScreenHeight - 1 );
 
@@ -2167,26 +2167,22 @@ void FOMapper::ParseMouse()
     // Mouse Scroll
     if( GameOpt.MouseScroll )
     {
-        Rect viewport = SprMngr.GetWorldViewport();
-        bool inside = GameOpt.MouseX >= viewport.L && GameOpt.MouseX <= viewport.R &&
-                      GameOpt.MouseY >= viewport.T && GameOpt.MouseY <= viewport.B;
-
-        if( inside && GameOpt.MouseX >= viewport.R )
+        if( GameOpt.MouseX >= GameOpt.ScreenWidth - 1 )
             GameOpt.ScrollMouseRight = true;
         else
             GameOpt.ScrollMouseRight = false;
 
-        if( inside && GameOpt.MouseX <= viewport.L )
+        if( GameOpt.MouseX <= 0 )
             GameOpt.ScrollMouseLeft = true;
         else
             GameOpt.ScrollMouseLeft = false;
 
-        if( inside && GameOpt.MouseY >= viewport.B )
+        if( GameOpt.MouseY >= GameOpt.ScreenHeight - 1 )
             GameOpt.ScrollMouseDown = true;
         else
             GameOpt.ScrollMouseDown = false;
 
-        if( inside && GameOpt.MouseY <= viewport.T )
+        if( GameOpt.MouseY <= 0 )
             GameOpt.ScrollMouseUp = true;
         else
             GameOpt.ScrollMouseUp = false;
