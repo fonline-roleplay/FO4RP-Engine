@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "Server.h"
+#include "SHA2/sha2.h"
 #include "AngelScript/preprocessor.h"
 #include "Version.h"
 #include "ScriptPragmas.h"
@@ -186,6 +187,9 @@ bool FOServer::InitScriptSystem()
         { &ServerFunctions.PlayerAllowCommand, "player_allowcommand", "bool %s(Critter@,string@,uint8)" },
         { &ServerFunctions.CheckTrapLook, "check_trap_look", "bool %s(Map&,Critter&,Item&)" },
 		{ &ServerFunctions.MapInit, "map_init", "bool %s(Map&,bool)" },
+        { &ServerFunctions.ManagedFileUpload, "managed_file_upload", "bool %s(Critter&,string&,uint)" },
+        { &ServerFunctions.ManagedFileDownload, "managed_file_download", "bool %s(Critter&,string&)" },
+        { &ServerFunctions.ManagedFileUploadFinished, "managed_file_upload_finished", "void %s(Critter&,string&,string&)" },
     };
     if( !Script::BindReservedFunctions( (char*) scripts_cfg.GetBuf(), "server", BindGameFunc, sizeof( BindGameFunc ) / sizeof( BindGameFunc[ 0 ] ) ) )
     {
@@ -6456,6 +6460,121 @@ void FOServer::SScriptFunc::Global_Resynchronize()
 {
     if( !Script::ResynchronizeThread() )
         SCRIPT_ERROR_R( "Invalid call." );
+}
+
+bool FOServer::SScriptFunc::Global_WriteManagedFile( ScriptString& name, CScriptArray& data )
+{
+    const uint data_len = data.GetSize();
+    if( !FOServer::IsManagedFileNameValid( name.c_str() ) || data_len > MANAGED_FILE_MAX_SIZE )
+        return false;
+
+    char dir[MAX_FOPATH];
+    FOServer::GetManagedFileDirectory( dir );
+    FileManager::CreateDirectoryTree( dir );
+    MakeDirectory( dir );
+    char path[MAX_FOPATH];
+    FOServer::GetManagedFilePath( name.c_str(), path );
+    char temp_path[MAX_FOPATH];
+    Str::Format( temp_path, "%s.script.tmp", path );
+    void* file = FileOpen( temp_path, true, true );
+    if( !file || ( data_len && !FileWrite( file, data.At( 0 ), data_len ) ) )
+    {
+        if( file )
+            FileClose( file );
+        FileDelete( temp_path );
+        return false;
+    }
+    FileClose( file );
+    FileDelete( path );
+    if( !FileRename( temp_path, path ) )
+    {
+        FileDelete( temp_path );
+        return false;
+    }
+    return true;
+}
+
+bool FOServer::SScriptFunc::Global_ReadManagedFile( ScriptString& name, CScriptArray& data )
+{
+    if( !FOServer::IsManagedFileNameValid( name.c_str() ) )
+        return false;
+    char path[MAX_FOPATH];
+    FOServer::GetManagedFilePath( name.c_str(), path );
+    FileManager file;
+    if( !file.LoadFile( path, -1 ) || file.GetFsize() > MANAGED_FILE_MAX_SIZE )
+        return false;
+    data.Resize( file.GetFsize() );
+    if( file.GetFsize() )
+        memcpy( data.At( 0 ), file.GetBuf(), file.GetFsize() );
+    return true;
+}
+
+bool FOServer::SScriptFunc::Global_DeleteManagedFile( ScriptString& name )
+{
+    if( !FOServer::IsManagedFileNameValid( name.c_str() ) )
+        return false;
+    char path[MAX_FOPATH];
+    FOServer::GetManagedFilePath( name.c_str(), path );
+    return FileDelete( path );
+}
+
+bool FOServer::SScriptFunc::Global_ManagedFileExists( ScriptString& name )
+{
+    if( !FOServer::IsManagedFileNameValid( name.c_str() ) )
+        return false;
+    char path[MAX_FOPATH];
+    FOServer::GetManagedFilePath( name.c_str(), path );
+    return FileExist( path );
+}
+
+ScriptString* FOServer::SScriptFunc::Global_GetManagedFileHash( ScriptString& name )
+{
+    if( !FOServer::IsManagedFileNameValid( name.c_str() ) )
+        return NULL;
+    char path[MAX_FOPATH];
+    FOServer::GetManagedFilePath( name.c_str(), path );
+    FileManager file;
+    if( !file.LoadFile( path, -1 ) || file.GetFsize() > MANAGED_FILE_MAX_SIZE )
+        return NULL;
+
+    uchar hash[MANAGED_FILE_HASH_SIZE];
+    sha256( file.GetFsize() ? file.GetBuf() : (const uchar*)"", file.GetFsize(), hash );
+    static const char hex_digits[] = "0123456789abcdef";
+    char hash_hex[MANAGED_FILE_HASH_SIZE * 2 + 1];
+    for( uint i = 0; i < MANAGED_FILE_HASH_SIZE; i++ )
+    {
+        hash_hex[i * 2] = hex_digits[hash[i] >> 4];
+        hash_hex[i * 2 + 1] = hex_digits[hash[i] & 0x0F];
+    }
+    hash_hex[MANAGED_FILE_HASH_SIZE * 2] = 0;
+    return new ScriptString( hash_hex );
+}
+
+uint FOServer::SScriptFunc::Global_GetManagedFileNames( CScriptArray& names )
+{
+    names.Resize( 0 );
+    char dir[MAX_FOPATH];
+    FOServer::GetManagedFileDirectory( dir );
+    char search_path[MAX_FOPATH];
+    Str::Format( search_path, "%s%s", dir, DIR_SLASH_S );
+    FIND_DATA fd;
+    void* find = FileFindFirst( search_path, NULL, fd );
+    if( !find )
+        return 0;
+
+    StrVec file_names;
+    do
+    {
+        if( !fd.IsDirectory && FOServer::IsManagedFileNameValid( fd.FileName ) )
+            file_names.push_back( fd.FileName );
+    } while( FileFindNext( find, fd ) );
+    FileFindClose( find );
+    std::sort( file_names.begin(), file_names.end() );
+
+    names.Resize( (uint)file_names.size() );
+    for( uint i = 0; i < file_names.size(); i++ )
+        *(ScriptString*)names.At( i ) = file_names[i];
+    return (uint)file_names.size();
 }
 
 LookData* FOServer::SScriptFunc::Crit_GetLookData( Critter* critter )

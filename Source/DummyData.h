@@ -973,6 +973,12 @@ struct BindClass
     static void Global_Resynchronize()          {}
 
     static void CheckLook()                     {}
+
+    static void Global_WriteManagedFile()       {}
+    static void Global_DeleteManagedFile()      {}
+    static void Global_ManagedFileExists()      {}
+    static void Global_GetManagedFileHash()     {}
+    static void Global_GetManagedFileNames()    {}
     #endif
 
     #ifdef BIND_CLIENT
@@ -1082,6 +1088,11 @@ struct BindClass
     static void Global_ChangeViewBorder()       {}
 
     static void Global_SetConsoleMode()         {}
+    static void Global_RequestManagedFile()     {}
+    static void Global_UploadManagedFile()      {}
+    static void Global_UploadManagedFilePath()  {}
+    static void Global_OpenFileDialog()         {}
+    static void Global_GetManagedFileState()    {}
 
     static int  GmapActive, GmapWait;
     static int  GmapZoom;
@@ -1110,6 +1121,7 @@ struct BindClass
     static void Global_GetCritterTypeName()             {}
     static void Global_GetCritterSoundName()            {}
     static void Global_GetGlobalMapRelief()             {}
+    static void Global_ReadManagedFile()                {}
     #endif
 
     #ifdef BIND_MAPPER
@@ -1233,7 +1245,7 @@ struct BindClass
     static void Global_KeyboardPress()      {}
     static void Global_SetRainAnimation()   {}
     static void Global_GetFPS()             {}
-	static void Global_ChosenRefreshMap() {}
+	static void Global_ChosenRefreshMap()   {}
     static int  ConsoleActive;
     #endif
 

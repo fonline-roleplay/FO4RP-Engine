@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "Server.h"
+#include "SHA2/sha2.h"
 
 #include <algorithm>
 #include <random>
@@ -2565,6 +2566,137 @@ void FOServer::Process_SingleplayerSaveLoad( Client* cl )
         BOUT_END( cl );
         cl->Disconnect();
     }
+}
+
+bool FOServer::IsManagedFileNameValid( const char* name )
+{
+    const size_t len = name ? strlen( name ) : 0;
+    if( !len || len > MANAGED_FILE_MAX_NAME ) return false;
+    for( size_t i = 0; i < len; i++ )
+        if( !( ( name[ i ] >= 'a' && name[ i ] <= 'z' ) || ( name[ i ] >= 'A' && name[ i ] <= 'Z' ) ||
+               ( name[ i ] >= '0' && name[ i ] <= '9' ) || name[ i ] == '_' || name[ i ] == '-' || name[ i ] == '.' ) )
+            return false;
+    return name[ 0 ] != '.';
+}
+
+void FOServer::GetManagedFileDirectory( char* path )
+{
+    Str::Format( path, "%sManagedFiles", FileManager::GetPath( PT_SERVER_ROOT ) );
+}
+
+void FOServer::GetManagedFilePath( const char* name, char* path )
+{
+    char dir[ MAX_FOPATH ];
+    GetManagedFileDirectory( dir );
+    Str::Format( path, "%s%s%s", dir, DIR_SLASH_S, name );
+}
+
+static void SendManagedFileResult( Client* cl, uchar status, const char* name, const uchar* hash, const uchar* data, uint data_len )
+{
+    static const uchar empty_hash[ MANAGED_FILE_HASH_SIZE ] = {};
+    const ushort name_len = (ushort) strlen( name );
+    const uint msg_len = MANAGED_FILE_MESSAGE_FIXED_SIZE + name_len + data_len;
+    BOUT_BEGIN( cl );
+    cl->Bout << NETMSG_MANAGED_FILE << msg_len << status << name_len;
+    cl->Bout.Push( name, name_len );
+    cl->Bout.Push( (const char*) ( hash ? hash : empty_hash ), MANAGED_FILE_HASH_SIZE );
+    cl->Bout << data_len;
+    if( data_len ) cl->Bout.Push( (const char*) data, data_len );
+    BOUT_END( cl );
+}
+
+static bool IsManagedFileOperationAllowed( int bind_id, Client* cl, const char* name, uint data_len, bool upload )
+{
+    if( bind_id <= 0 || !Script::PrepareContext( bind_id, _FUNC_, cl->GetInfo() ) )
+        return false;
+
+    ScriptString* script_name = new ScriptString( name );
+    Script::SetArgObject( cl );
+    Script::SetArgObject( script_name );
+    if( upload )
+        Script::SetArgUInt( data_len );
+    const bool allowed = Script::RunPrepared() && Script::GetReturnedBool();
+    script_name->Release();
+    return allowed;
+}
+
+static void NotifyManagedFileUploadFinished( Client* cl, const char* name, const uchar* hash )
+{
+    if( ServerFunctions.ManagedFileUploadFinished <= 0 ||
+        !Script::PrepareContext( ServerFunctions.ManagedFileUploadFinished, _FUNC_, cl->GetInfo() ) )
+        return;
+
+    static const char hex_digits[] = "0123456789abcdef";
+    char hash_hex[ MANAGED_FILE_HASH_SIZE * 2 + 1 ];
+    for( uint i = 0; i < MANAGED_FILE_HASH_SIZE; i++ )
+    {
+        hash_hex[ i * 2 ] = hex_digits[ hash[ i ] >> 4 ];
+        hash_hex[ i * 2 + 1 ] = hex_digits[ hash[ i ] & 0x0F ];
+    }
+    hash_hex[ MANAGED_FILE_HASH_SIZE * 2 ] = 0;
+    ScriptString* script_name = new ScriptString( name );
+    ScriptString* script_hash = new ScriptString( hash_hex );
+    Script::SetArgObject( cl );
+    Script::SetArgObject( script_name );
+    Script::SetArgObject( script_hash );
+    Script::RunPrepared();
+    script_hash->Release();
+    script_name->Release();
+}
+
+void FOServer::Process_ManagedFile( Client* cl )
+{
+    uint msg_len, data_len;
+    uchar client_hash[ MANAGED_FILE_HASH_SIZE ];
+    uchar operation;
+    ushort name_len;
+    cl->Bin >> msg_len >> operation >> name_len;
+    if( msg_len > MANAGED_FILE_MAX_MESSAGE_SIZE || name_len == 0 || name_len > MANAGED_FILE_MAX_NAME ) { cl->Disconnect(); return; }
+    char name[ MANAGED_FILE_MAX_NAME + 1 ] = {};
+    cl->Bin.Pop( name, name_len );
+    cl->Bin.Pop( (char*) client_hash, MANAGED_FILE_HASH_SIZE );
+    cl->Bin >> data_len;
+    if( !IsManagedFileNameValid( name ) || data_len > MANAGED_FILE_MAX_SIZE || ( operation == MANAGED_FILE_DOWNLOAD && data_len != 0 ) ) { cl->Disconnect(); return; }
+    UCharVec data( data_len );
+    if( data_len ) cl->Bin.Pop( (char*) &data[ 0 ], data_len );
+    if( cl->Bin.IsError() ) { cl->Disconnect(); return; }
+
+    char dir[ MAX_FOPATH ];
+    GetManagedFileDirectory( dir );
+    FileManager::CreateDirectoryTree( dir );
+    MakeDirectory( dir );
+    char path[ MAX_FOPATH ];
+    GetManagedFilePath( name, path );
+
+    if( operation == MANAGED_FILE_UPLOAD )
+    {
+        uchar hash[ MANAGED_FILE_HASH_SIZE ];
+        sha256( data_len ? &data[ 0 ] : (const uchar*) "", data_len, hash );
+        if( memcmp( hash, client_hash, MANAGED_FILE_HASH_SIZE ) != 0 ) { SendManagedFileResult( cl, MANAGED_FILE_ERROR, name, NULL, NULL, 0 ); return; }
+        if( !IsManagedFileOperationAllowed( ServerFunctions.ManagedFileUpload, cl, name, data_len, true ) ) { SendManagedFileResult( cl, MANAGED_FILE_FORBIDDEN, name, NULL, NULL, 0 ); return; }
+        char temp_path[ MAX_FOPATH ];
+        Str::Format( temp_path, "%s.upload.%u.tmp", path, cl->GetId() );
+        void* file = FileOpen( temp_path, true, true );
+        if( !file || ( data_len && !FileWrite( file, &data[ 0 ], data_len ) ) ) { if( file ) FileClose( file ); FileDelete( temp_path ); SendManagedFileResult( cl, MANAGED_FILE_ERROR, name, NULL, NULL, 0 ); return; }
+        FileClose( file );
+        FileDelete( path );
+        if( !FileRename( temp_path, path ) ) { FileDelete( temp_path ); SendManagedFileResult( cl, MANAGED_FILE_ERROR, name, NULL, NULL, 0 ); return; }
+        SendManagedFileResult( cl, MANAGED_FILE_UP_TO_DATE, name, hash, NULL, 0 );
+        NotifyManagedFileUploadFinished( cl, name, hash );
+        return;
+    }
+    if( operation == MANAGED_FILE_DOWNLOAD )
+    {
+        if( !IsManagedFileOperationAllowed( ServerFunctions.ManagedFileDownload, cl, name, 0, false ) ) { SendManagedFileResult( cl, MANAGED_FILE_FORBIDDEN, name, NULL, NULL, 0 ); return; }
+        FileManager file;
+        if( !file.LoadFile( path, -1 ) || file.GetFsize() > MANAGED_FILE_MAX_SIZE ) { SendManagedFileResult( cl, MANAGED_FILE_ERROR, name, NULL, NULL, 0 ); return; }
+        uchar hash[ MANAGED_FILE_HASH_SIZE ];
+        sha256( file.GetFsize() ? file.GetBuf() : (const uchar*) "", file.GetFsize(), hash );
+        if( memcmp( hash, client_hash, MANAGED_FILE_HASH_SIZE ) == 0 ) SendManagedFileResult( cl, MANAGED_FILE_UP_TO_DATE, name, hash, NULL, 0 );
+        else SendManagedFileResult( cl, MANAGED_FILE_DATA, name, hash, file.GetBuf(), file.GetFsize() );
+        return;
+    }
+    cl->Disconnect();
 }
 
 void FOServer::Process_ParseToGame( Client* cl )

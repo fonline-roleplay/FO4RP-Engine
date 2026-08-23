@@ -386,6 +386,9 @@ struct ServerScriptFunctions
     int PlayerAllowCommand;
     int CheckTrapLook;
 	int MapInit;
+    int ManagedFileUpload;
+    int ManagedFileDownload;
+    int ManagedFileUploadFinished;
 } extern ServerFunctions;
 
 // Net events

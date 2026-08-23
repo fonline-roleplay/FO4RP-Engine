@@ -209,6 +209,8 @@ public:
     void Net_OnAutomapsInfo();
     void Net_OnCheckUID4();
     void Net_OnViewMap();
+    void Net_SendManagedFile( uchar operation, const char* name, const uchar* hash, const uchar* data, uint data_len );
+    void Net_OnManagedFile();
 
     void Net_OnLookData();
 
@@ -655,11 +657,18 @@ public:
 		static ScriptString* Global_CustomCall( ScriptString& command, ScriptString& separator );
 		static void			 Global_SetUserConfig( CScriptArray& key_values );
 
-        static void Global_SetDebugLookMode( bool isDebug );
-        static bool Global_IsDebugLookMode();
-        static void Global_ChangeViewBorder();
+        static void          Global_SetDebugLookMode( bool isDebug );
+        static bool          Global_IsDebugLookMode();
+        static void          Global_ChangeViewBorder();
 
-        static void Global_SetConsoleMode( bool shouldEnable );
+        static void          Global_SetConsoleMode( bool shouldEnable );
+
+        static bool          Global_RequestManagedFile( ScriptString& name );
+        static bool          Global_UploadManagedFile( ScriptString& name, CScriptArray& data );
+        static bool          Global_UploadManagedFilePath( ScriptString& name, ScriptString& path );
+        static ScriptString* Global_OpenFileDialog( ScriptString& filter );
+        static int           Global_GetManagedFileState( ScriptString& name );
+        static bool          Global_ReadManagedFile( ScriptString& name, CScriptArray& data );
 
         static bool&         ConsoleActive;
         static bool&         GmapActive, & GmapWait;

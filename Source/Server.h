@@ -51,6 +51,10 @@ public:
     static void Process_CreateClient( Client* cl );
     static void Process_LogIn( ClientPtr& cl );
     static void Process_SingleplayerSaveLoad( Client* cl );
+    static bool IsManagedFileNameValid( const char* name );
+    static void GetManagedFileDirectory( char* path );
+    static void GetManagedFilePath( const char* name, char* path );
+    static void Process_ManagedFile( Client* cl );
     static void Process_Dir( Client* cl );
     static void Process_ChangeItem( Client* cl );
     static void Process_RateItem( Client* cl );
@@ -934,6 +938,12 @@ public:
         static uint          Global_GetImageColor( uint index, uint x, uint y );
         static void          Global_Synchronize();
         static void          Global_Resynchronize();
+        static bool          Global_WriteManagedFile( ScriptString& name, CScriptArray& data );
+        static bool          Global_ReadManagedFile( ScriptString& name, CScriptArray& data );
+        static bool          Global_DeleteManagedFile( ScriptString& name );
+        static bool          Global_ManagedFileExists( ScriptString& name );
+        static ScriptString* Global_GetManagedFileHash( ScriptString& name );
+        static uint          Global_GetManagedFileNames( CScriptArray& names );
 
         static LookData* Crit_GetLookData( Critter* critter );
         static LookData* Map_GetLookData( Map* map );

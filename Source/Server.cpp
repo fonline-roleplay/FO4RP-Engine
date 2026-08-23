@@ -1605,6 +1605,12 @@ void FOServer::Process( ClientPtr& cl )
                 BIN_END( cl );
                 continue;
             }
+            case NETMSG_SEND_MANAGED_FILE:
+            {
+                Process_ManagedFile( cl );
+                BIN_END( cl );
+                continue;
+            }
             case NETMSG_SEND_TEXT:
             {
                 Process_Text( cl );

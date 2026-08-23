@@ -571,6 +571,8 @@ bool BufferManager::NeedProcess()
     case NETMSG_SEND_SET_USER_HOLO_STR:
     case NETMSG_USER_HOLO_STR:
     case NETMSG_AUTOMAPS_INFO:
+    case NETMSG_SEND_MANAGED_FILE:
+    case NETMSG_MANAGED_FILE:
         return ( msg_len + bufReadPos <= bufEndPos );
     default:
         // Unknown message
@@ -831,6 +833,8 @@ void BufferManager::SkipMsg( uint msg )
     case NETMSG_SEND_SET_USER_HOLO_STR:
     case NETMSG_USER_HOLO_STR:
     case NETMSG_AUTOMAPS_INFO:
+    case NETMSG_SEND_MANAGED_FILE:
+    case NETMSG_MANAGED_FILE:
     {
         // Changeable size
         EncryptKey( sizeof( msg ) );

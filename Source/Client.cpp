@@ -3,6 +3,12 @@
 #include "Access.h"
 #include "Defence.h"
 #include "Version.h"
+#include "SHA2/sha2.h"
+
+#ifdef FO_WINDOWS
+# include <commdlg.h>
+# pragma comment( lib, "Comdlg32.lib" )
+#endif
 
 // Check buffer for error
 #define CHECK_IN_BUFF_ERROR                          \
@@ -20,6 +26,8 @@ LookData*    FOClient::ChosenLookData = NULL;
 LookData*    FOClient::MapLookData = NULL;
 bool         FOClient::SpritesCanDraw = false;
 static uint* UID4 = NULL;
+static map< string, int > ManagedFileStates;
+
 FOClient::FOClient(): Active( false )
 {
     Self = this;
@@ -3091,6 +3099,9 @@ void FOClient::NetProcess()
             break;
         case NETMSG_SEND_LOOK_DATA:
             Net_OnLookData();
+            break;
+        case NETMSG_MANAGED_FILE:
+            Net_OnManagedFile();
             break;
 
         default:
@@ -6936,6 +6947,83 @@ void FOClient::Net_OnViewMap()
         TViewGmapLocId = loc_id;
         TViewGmapLocEntrance = loc_ent;
     }
+}
+
+static bool IsManagedFileNameValid( const char* name )
+{
+    const size_t len = name ? strlen( name ) : 0;
+    if( !len || len > MANAGED_FILE_MAX_NAME ) return false;
+    for( size_t i = 0; i < len; i++ )
+        if( !( ( name[i] >= 'a' && name[i] <= 'z' ) || ( name[i] >= 'A' && name[i] <= 'Z' ) ||
+               ( name[i] >= '0' && name[i] <= '9' ) || name[i] == '_' || name[i] == '-' || name[i] == '.' ) )
+            return false;
+    return name[0] != '.';
+}
+
+static void GetManagedClientPath( const char* name, char* path )
+{
+    char relative_name[MAX_FOPATH];
+    Str::Format( relative_name, "ManagedFiles%s%s", DIR_SLASH_S, name );
+    FileManager::GetFullPath( relative_name, PT_DATA, path );
+}
+
+static void GetManagedClientDirectory( char* path )
+{
+    FileManager::GetFullPath( "ManagedFiles", PT_DATA, path );
+}
+
+static void RegisterManagedClientFile( const char* name )
+{
+    char resource_name[MAX_FOPATH];
+    Str::Format( resource_name, "%sManagedFiles/%s", FileManager::GetPath( PT_DATA ), name );
+    Str::AddNameHash( resource_name );
+}
+
+void FOClient::Net_SendManagedFile( uchar operation, const char* name, const uchar* hash, const uchar* data, uint data_len )
+{
+    if( !IsConnected || !IsManagedFileNameValid( name ) || !hash || data_len > MANAGED_FILE_MAX_SIZE ) return;
+    const ushort name_len = (ushort)strlen( name );
+    const uint msg_len = MANAGED_FILE_MESSAGE_FIXED_SIZE + name_len + data_len;
+    Bout << NETMSG_SEND_MANAGED_FILE;
+    Bout << msg_len;
+    Bout << operation;
+    Bout << name_len;
+    Bout.Push( name, name_len );
+    Bout.Push( (const char*)hash, MANAGED_FILE_HASH_SIZE );
+    Bout << data_len;
+    if( data_len ) Bout.Push( (const char*)data, data_len );
+}
+
+void FOClient::Net_OnManagedFile()
+{
+    uint msg_len, data_len;
+    uchar hash[MANAGED_FILE_HASH_SIZE];
+    uchar status;
+    ushort name_len;
+    Bin >> msg_len >> status >> name_len;
+    if( name_len == 0 || name_len > MANAGED_FILE_MAX_NAME || msg_len > MANAGED_FILE_MAX_MESSAGE_SIZE ) { Bin.SkipMsg( NETMSG_MANAGED_FILE ); return; }
+    char name[MANAGED_FILE_MAX_NAME + 1] = {};
+    Bin.Pop( name, name_len );
+    Bin.Pop( (char*)hash, MANAGED_FILE_HASH_SIZE );
+    Bin >> data_len;
+    if( !IsManagedFileNameValid( name ) || data_len > MANAGED_FILE_MAX_SIZE ) { Bin.SkipMsg( NETMSG_MANAGED_FILE ); return; }
+    UCharVec data( data_len );
+    if( data_len ) Bin.Pop( (char*)&data[0], data_len );
+    CHECK_IN_BUFF_ERROR;
+    if( status == MANAGED_FILE_UP_TO_DATE ) { ManagedFileStates[name] = MANAGED_FILE_STATE_READY; return; }
+    uchar actual_hash[MANAGED_FILE_HASH_SIZE];
+    sha256( data_len ? &data[0] : (const uchar*)"", data_len, actual_hash );
+    if( status != MANAGED_FILE_DATA || memcmp( actual_hash, hash, MANAGED_FILE_HASH_SIZE ) != 0 ) { ManagedFileStates[name] = MANAGED_FILE_STATE_ERROR; return; }
+    char dir[MAX_FOPATH];
+    GetManagedClientDirectory( dir );
+    FileManager::CreateDirectoryTree( dir );
+    MakeDirectory( dir );
+    char path[MAX_FOPATH]; GetManagedClientPath( name, path );
+    void* file = FileOpen( path, true );
+    if( !file || ( data_len && !FileWrite( file, &data[0], data_len ) ) ) { if( file ) FileClose( file ); ManagedFileStates[name] = MANAGED_FILE_STATE_ERROR; return; }
+    FileClose( file );
+    RegisterManagedClientFile( name );
+    ManagedFileStates[name] = MANAGED_FILE_STATE_READY;
 }
 
 void FOClient::SetGameColor( uint color )
@@ -12326,6 +12414,100 @@ void FOClient::SScriptFunc::Global_SetConsoleMode( bool shouldEnable )
         Self->ConsoleStr[0] = 0;
         Self->ConsoleCur = 0;
     }
+}
+
+bool FOClient::SScriptFunc::Global_RequestManagedFile( ScriptString& name )
+{
+    if( !IsManagedFileNameValid( name.c_str() ) ) return false;
+    char path[MAX_FOPATH]; GetManagedClientPath( name.c_str(), path );
+    FileManager file;
+    uchar hash[MANAGED_FILE_HASH_SIZE] = {};
+    if( file.LoadFile( path, -1 ) && file.GetFsize() <= MANAGED_FILE_MAX_SIZE )
+    {
+        sha256( file.GetFsize() ? file.GetBuf() : (const uchar*)"", file.GetFsize(), hash );
+        RegisterManagedClientFile( name.c_str() );
+    }
+    ManagedFileStates[name.c_str()] = MANAGED_FILE_STATE_PENDING;
+    Self->Net_SendManagedFile( MANAGED_FILE_DOWNLOAD, name.c_str(), hash, NULL, 0 );
+    return true;
+}
+
+bool FOClient::SScriptFunc::Global_UploadManagedFile( ScriptString& name, CScriptArray& data )
+{
+    if( !IsManagedFileNameValid( name.c_str() ) || data.GetSize() > MANAGED_FILE_MAX_SIZE ) return false;
+    const uint len = data.GetSize();
+    const uchar* bytes = len ? (const uchar*)data.At( 0 ) : NULL;
+    uchar hash[MANAGED_FILE_HASH_SIZE];
+    sha256( len ? bytes : (const uchar*)"", len, hash );
+    char dir[MAX_FOPATH];
+    GetManagedClientDirectory( dir );
+    FileManager::CreateDirectoryTree( dir );
+    MakeDirectory( dir );
+    char path[MAX_FOPATH]; GetManagedClientPath( name.c_str(), path );
+    void* file = FileOpen( path, true );
+    if( !file || ( len && !FileWrite( file, bytes, len ) ) ) { if( file ) FileClose( file ); return false; }
+    FileClose( file );
+    RegisterManagedClientFile( name.c_str() );
+    ManagedFileStates[name.c_str()] = MANAGED_FILE_STATE_PENDING;
+    Self->Net_SendManagedFile( MANAGED_FILE_UPLOAD, name.c_str(), hash, bytes, len );
+    return true;
+}
+
+bool FOClient::SScriptFunc::Global_UploadManagedFilePath( ScriptString& name, ScriptString& local_path )
+{
+    if( !IsManagedFileNameValid( name.c_str() ) ) return false;
+    FileManager source;
+    if( !source.LoadFile( local_path.c_str(), -1 ) || source.GetFsize() > MANAGED_FILE_MAX_SIZE ) return false;
+    const uint len = source.GetFsize();
+    const uchar* bytes = len ? source.GetBuf() : NULL;
+    uchar hash[MANAGED_FILE_HASH_SIZE];
+    sha256( len ? bytes : (const uchar*)"", len, hash );
+    char dir[MAX_FOPATH];
+    GetManagedClientDirectory( dir );
+    FileManager::CreateDirectoryTree( dir );
+    MakeDirectory( dir );
+    char path[MAX_FOPATH]; GetManagedClientPath( name.c_str(), path );
+    void* file = FileOpen( path, true );
+    if( !file || ( len && !FileWrite( file, bytes, len ) ) ) { if( file ) FileClose( file ); return false; }
+    FileClose( file );
+    RegisterManagedClientFile( name.c_str() );
+    ManagedFileStates[name.c_str()] = MANAGED_FILE_STATE_PENDING;
+    Self->Net_SendManagedFile( MANAGED_FILE_UPLOAD, name.c_str(), hash, bytes, len );
+    return true;
+}
+
+ScriptString* FOClient::SScriptFunc::Global_OpenFileDialog( ScriptString& filter )
+{
+#ifdef FO_WINDOWS
+    char file_name[MAX_FOPATH] = {};
+    OPENFILENAMEA dialog = {};
+    dialog.lStructSize = sizeof( dialog );
+    dialog.lpstrFilter = filter.c_str();
+    dialog.lpstrFile = file_name;
+    dialog.nMaxFile = sizeof( file_name );
+    dialog.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
+    if( GetOpenFileNameA( &dialog ) )
+        return new ScriptString( file_name );
+#else
+    return NULL;
+#endif
+}
+
+int FOClient::SScriptFunc::Global_GetManagedFileState( ScriptString& name )
+{
+    map< string, int >::iterator it = ManagedFileStates.find( name.c_str() );
+    return it != ManagedFileStates.end() ? it->second : MANAGED_FILE_STATE_UNKNOWN;
+}
+
+bool FOClient::SScriptFunc::Global_ReadManagedFile( ScriptString& name, CScriptArray& data )
+{
+    if( !IsManagedFileNameValid( name.c_str() ) ) return false;
+    char path[MAX_FOPATH]; GetManagedClientPath( name.c_str(), path );
+    FileManager file;
+    if( !file.LoadFile( path, -1 ) || file.GetFsize() > MANAGED_FILE_MAX_SIZE ) return false;
+    data.Resize( file.GetFsize() );
+    if( file.GetFsize() ) memcpy( data.At( 0 ), file.GetBuf(), file.GetFsize() );
+    return true;
 }
 
 bool&  FOClient::SScriptFunc::ConsoleActive = FOClient::ConsoleActive;

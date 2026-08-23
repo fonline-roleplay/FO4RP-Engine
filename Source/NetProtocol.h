@@ -1145,4 +1145,56 @@
 // LookData map
 // ////////////////////////////////////////////////////////////////////////
 
+#define MANAGED_FILE_HASH_SIZE                       ( 32 )
+#define MANAGED_FILE_MAX_SIZE                        ( 1024 * 1024 )
+#define MANAGED_FILE_MAX_NAME                        ( 96 )
+#define MANAGED_FILE_MESSAGE_FIXED_SIZE               ( sizeof( uint ) * 3 + sizeof( uchar ) + sizeof( ushort ) + MANAGED_FILE_HASH_SIZE )
+#define MANAGED_FILE_MAX_MESSAGE_SIZE                 ( MANAGED_FILE_MESSAGE_FIXED_SIZE + MANAGED_FILE_MAX_NAME + MANAGED_FILE_MAX_SIZE )
+
+enum ManagedFileOperation
+{
+    MANAGED_FILE_UPLOAD = 1,
+    MANAGED_FILE_DOWNLOAD = 2,
+};
+
+enum ManagedFileStatus
+{
+    MANAGED_FILE_UP_TO_DATE = 1,
+    MANAGED_FILE_DATA = 2,
+    MANAGED_FILE_ERROR = 3,
+    MANAGED_FILE_FORBIDDEN = 4,
+};
+
+enum ManagedFileState
+{
+    MANAGED_FILE_STATE_ERROR = -1,
+    MANAGED_FILE_STATE_UNKNOWN = 0,
+    MANAGED_FILE_STATE_PENDING = 1,
+    MANAGED_FILE_STATE_READY = 2,
+};
+
+#define NETMSG_SEND_MANAGED_FILE                     MAKE_NETMSG_HEADER( 174 )
+// ////////////////////////////////////////////////////////////////////////
+// Sends send/get file request
+// uint msg_len
+// uchar operation (ManagedFileOperation)
+// ushort name_len - file name size
+// char[name_len] - file name
+// char[MANAGED_FILE_HASH_SIZE] - hash
+// uint data_len
+// if data_len > 0
+//   uchar[data_len] data
+// ////////////////////////////////////////////////////////////////////////
+#define NETMSG_MANAGED_FILE                          MAKE_NETMSG_HEADER( 175 )
+
+// ////////////////////////////////////////////////////////////////////////
+// Gets file from server to client
+// uint msg_len
+// uchar status (ManagedFileStatus)
+// ushort name_len
+// char[name_len] name
+// char[MANAGED_FILE_HASH_SIZE] - hash
+// uint data_len
+// uchar[data_len] data
+// ////////////////////////////////////////////////////////////////////////
 #endif // __NET_PROTOCOL__

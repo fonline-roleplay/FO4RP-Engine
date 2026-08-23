@@ -872,6 +872,11 @@ BIND_ASSERT( engine->RegisterGlobalFunction( "uint GetImageColor(uint index, uin
 BIND_ASSERT( engine->RegisterGlobalFunction( "void Synchronize()", asFUNCTION( BIND_CLASS Global_Synchronize ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "void Resynchronize()", asFUNCTION( BIND_CLASS Global_Resynchronize ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "bool SetParameterDialogGetBehaviour(uint index, string& funcName)", asFUNCTION( BIND_CLASS Global_SetParameterDialogGetBehaviour ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "bool WriteManagedFile(string& name, const uint8[]& data)", asFUNCTION( BIND_CLASS Global_WriteManagedFile ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "bool DeleteManagedFile(string& name)", asFUNCTION( BIND_CLASS Global_DeleteManagedFile ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "bool ManagedFileExists(string& name)", asFUNCTION( BIND_CLASS Global_ManagedFileExists ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "string@ GetManagedFileHash(string& name)", asFUNCTION( BIND_CLASS Global_GetManagedFileHash ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "uint GetManagedFileNames(string[]& names)", asFUNCTION( BIND_CLASS Global_GetManagedFileNames ), asCALL_CDECL ) );
 #endif
 
 #ifdef BIND_CLIENT
@@ -1111,6 +1116,11 @@ BIND_ASSERT( engine->RegisterGlobalFunction( "bool IsDebugLookMode( )", asFUNCTI
 BIND_ASSERT( engine->RegisterGlobalFunction( "void ChangeViewBorder()", asFUNCTION( BIND_CLASS Global_ChangeViewBorder ), asCALL_CDECL ) );
 
 BIND_ASSERT( engine->RegisterGlobalFunction( "void SetConsoleMode( bool shouldEnable )", asFUNCTION( BIND_CLASS Global_SetConsoleMode ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "bool RequestManagedFile(string& name)", asFUNCTION( BIND_CLASS Global_RequestManagedFile ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "bool UploadManagedFile(string& name, const uint8[]& data)", asFUNCTION( BIND_CLASS Global_UploadManagedFile ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "bool UploadManagedFile(string& name, string& localPath)", asFUNCTION( BIND_CLASS Global_UploadManagedFilePath ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "string@ OpenFileDialog(string& filters)", asFUNCTION( BIND_CLASS Global_OpenFileDialog ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "int GetManagedFileState(string& name)", asFUNCTION( BIND_CLASS Global_GetManagedFileState ), asCALL_CDECL ) );
 
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __GmapActive", &BIND_CLASS GmapActive ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "bool __GmapWait", &BIND_CLASS GmapWait ) );
@@ -1145,6 +1155,7 @@ BIND_ASSERT( engine->RegisterGlobalFunction( "int GetCritterAnimType(uint crType
 BIND_ASSERT( engine->RegisterGlobalFunction( "uint GetCritterAlias(uint crType)", asFUNCTION( BIND_CLASS Global_GetCritterAlias ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "string@ GetCritterTypeName(uint crType)", asFUNCTION( BIND_CLASS Global_GetCritterTypeName ), asCALL_CDECL ) );
 BIND_ASSERT( engine->RegisterGlobalFunction( "string@ GetCritterSoundName(uint crType)", asFUNCTION( BIND_CLASS Global_GetCritterSoundName ), asCALL_CDECL ) );
+BIND_ASSERT( engine->RegisterGlobalFunction( "bool ReadManagedFile(string& name, uint8[]& data)", asFUNCTION( BIND_CLASS Global_ReadManagedFile ), asCALL_CDECL ) );
 
 BIND_ASSERT( engine->RegisterGlobalProperty( "const uint16 __Year", &GameOpt.Year ) );
 BIND_ASSERT( engine->RegisterGlobalProperty( "const uint16 __Month", &GameOpt.Month ) );
