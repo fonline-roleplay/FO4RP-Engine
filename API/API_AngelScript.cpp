@@ -70,3 +70,7 @@ void ScriptArray_InsertAt(CScriptArray* array, uint index, void* value) {
 void* ScriptArray_GetBuffer(CScriptArray* array) {
 	return array->GetBuffer();
 }
+
+void* ScriptArray_At(CScriptArray* array, uint at) {
+	return array->At(at);
+}

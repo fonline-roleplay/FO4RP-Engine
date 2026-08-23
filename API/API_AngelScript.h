@@ -25,5 +25,6 @@ EXPORT void ScriptArray_Resize(CScriptArray* array, uint size);
 EXPORT void ScriptArray_ResizeAt(CScriptArray* array, int delta, uint at);
 EXPORT void ScriptArray_InsertAt(CScriptArray* array, uint index, void* value);
 EXPORT void* ScriptArray_GetBuffer(CScriptArray* array);
+EXPORT void* ScriptArray_At(CScriptArray* array, uint at);
 
 #endif // __API_ANGELSCRIPT__
