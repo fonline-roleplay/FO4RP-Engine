@@ -971,7 +971,7 @@ void FOMapper::DrawImGuiBrowser()
                     char id[ 64 ];
                     char pid[ 32 ];
                     Str::Format( id, "##item_%d", i );
-                    Str::Format( pid, "PID %u", proto.ProtoId );
+                    Str::Format( pid, "%u", proto.ProtoId );
                     if( MapperGuiSpriteButton( id, sprite_id, GetTabIndex() == (uint) i, NULL, inventory_sprite_id, true, pid ) )
                     {
                         SetTabIndex( i );
@@ -1047,7 +1047,7 @@ void FOMapper::DrawImGuiBrowser()
                     char id[ 64 ];
                     char pid[ 32 ];
                     Str::Format( id, "##critter_%d", i );
-                    Str::Format( pid, "PID %u", proto->ProtoId );
+                    Str::Format( pid, "%u", proto->ProtoId );
                     if( MapperGuiSpriteButton( id, sprite_id, GetTabIndex() == (uint) i, NULL, 0, true, pid ) )
                     {
                         SetTabIndex( i );
@@ -1081,7 +1081,7 @@ void FOMapper::DrawImGuiBrowser()
                 char pid[ 32 ];
                 Str::Format( id, "##inventory_%u", i );
                 Str::Format( count_text, "x%u", count ? count : 1 );
-                Str::Format( pid, "PID %u", object->ProtoId );
+                Str::Format( pid, "%u", object->ProtoId );
                 if( MapperGuiSpriteButton( id, sprite_id, InContObject == object, count_text, 0, false, pid ) )
                     InContObject = object;
                 if( ImGui::IsItemHovered() )
