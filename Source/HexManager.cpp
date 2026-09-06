@@ -2105,14 +2105,14 @@ void HexManager::DrawMap()
     SprMngr.DrawRenderTarget( rtMap, false );
 }
 
-bool HexManager::Scroll()
+bool HexManager::Scroll( int offset_x, int offset_y )
 {
     if( !IsMapLoaded() )
         return false;
 
     // Scroll delay
     float time_k = 1.0f;
-    if( GameOpt.ScrollDelay )
+    if( GameOpt.ScrollDelay && !offset_x && !offset_y )
     {
         uint        tick = Timer::FastTick();
         static uint last_tick = tick;
@@ -2122,12 +2122,15 @@ bool HexManager::Scroll()
         last_tick = tick;
     }
 
-    bool is_scroll = ( GameOpt.ScrollMouseLeft || GameOpt.ScrollKeybLeft ||
-                       GameOpt.ScrollMouseRight || GameOpt.ScrollKeybRight ||
-                       GameOpt.ScrollMouseUp || GameOpt.ScrollKeybUp ||
-                       GameOpt.ScrollMouseDown || GameOpt.ScrollKeybDown );
+    bool is_directional_scroll = ( GameOpt.ScrollMouseLeft || GameOpt.ScrollKeybLeft ||
+                                   GameOpt.ScrollMouseRight || GameOpt.ScrollKeybRight ||
+                                   GameOpt.ScrollMouseUp || GameOpt.ScrollKeybUp ||
+                                   GameOpt.ScrollMouseDown || GameOpt.ScrollKeybDown );
+    bool is_scroll = is_directional_scroll || offset_x || offset_y;
     int scr_ox = GameOpt.ScrOx;
     int scr_oy = GameOpt.ScrOy;
+    scr_ox += offset_x;
+    scr_oy += offset_y;
 
     if( is_scroll && AutoScroll.CanStop )
         AutoScroll.Active = false;
@@ -2173,7 +2176,7 @@ bool HexManager::Scroll()
         AutoScroll.OffsY -= yscroll;
         AutoScroll.OffsXStep -= xscroll;
         AutoScroll.OffsYStep -= yscroll;
-        if( !xscroll && !yscroll )
+        if( !xscroll && !yscroll && !offset_x && !offset_y )
             return false;
         if( !DistSqrt( 0, 0, (int) AutoScroll.OffsX, (int) AutoScroll.OffsY ) )
             AutoScroll.Active = false;
@@ -2197,7 +2200,7 @@ bool HexManager::Scroll()
             yscroll += 1;
         if( GameOpt.ScrollMouseDown || GameOpt.ScrollKeybDown )
             yscroll -= 1;
-        if( !xscroll && !yscroll )
+        if( !xscroll && !yscroll && !offset_x && !offset_y )
             return false;
 
         scr_ox += (int) ( xscroll * GameOpt.ScrollStep * GameOpt.SpritesZoom * time_k );

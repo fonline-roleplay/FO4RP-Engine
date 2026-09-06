@@ -218,7 +218,7 @@ public:
 
     void     RebuildMap( int rx, int ry );
     void     DrawMap();
-    bool     Scroll();
+    bool     Scroll( int offset_x = 0, int offset_y = 0 );
     Sprites& GetDrawTree() { return mainTree; }
     void     RefreshMap()  { RebuildMap( screenHexX, screenHexY ); }
 

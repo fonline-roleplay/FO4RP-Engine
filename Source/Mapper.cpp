@@ -18,6 +18,9 @@ static const float MapperGuiStatusHeight = 24.0f;
 static const float MapperGuiSplitterSize = 5.0f;
 static bool MapperGuiInitialized = false;
 static bool MapperGuiApplyPropertiesToAll = false;
+static bool MapperViewportPanning = false;
+static float MapperViewportPanRemainderX = 0.0f;
+static float MapperViewportPanRemainderY = 0.0f;
 enum MapperGuiEditorMode
 {
     MAPPER_GUI_MODE_SCENE,
@@ -2279,7 +2282,7 @@ void FOMapper::ParseMouse()
     }
 
     // Mouse Scroll
-    if( GameOpt.MouseScroll )
+    if( GameOpt.MouseScroll && !MapperViewportPanning )
     {
         if( GameOpt.MouseX >= GameOpt.ScreenWidth - 1 )
             GameOpt.ScrollMouseRight = true;
@@ -2300,6 +2303,13 @@ void FOMapper::ParseMouse()
             GameOpt.ScrollMouseUp = true;
         else
             GameOpt.ScrollMouseUp = false;
+    }
+    else if( MapperViewportPanning )
+    {
+        GameOpt.ScrollMouseLeft = false;
+        GameOpt.ScrollMouseRight = false;
+        GameOpt.ScrollMouseUp = false;
+        GameOpt.ScrollMouseDown = false;
     }
 
     // Get buffered data
@@ -2576,6 +2586,19 @@ void FOMapper::MainLoop()
             int y = (int) ( event.motion.y / (float) sh * (float) GameOpt.ScreenHeight );
             GameOpt.MouseX = CLAMP( x, 0, GameOpt.ScreenWidth - 1 );
             GameOpt.MouseY = CLAMP( y, 0, GameOpt.ScreenHeight - 1 );
+
+            if( MapperViewportPanning )
+            {
+                MapperViewportPanRemainderX += event.motion.xrel / (float) sw * (float) GameOpt.ScreenWidth * GameOpt.SpritesZoom;
+                MapperViewportPanRemainderY += event.motion.yrel / (float) sh * (float) GameOpt.ScreenHeight * GameOpt.SpritesZoom;
+
+                int pan_x = (int) MapperViewportPanRemainderX;
+                int pan_y = (int) MapperViewportPanRemainderY;
+                MapperViewportPanRemainderX -= (float) pan_x;
+                MapperViewportPanRemainderY -= (float) pan_y;
+                if( pan_x || pan_y )
+                    HexMngr.Scroll( pan_x, pan_y );
+            }
         }
         else if( event.type == SDL_KEYDOWN || event.type == SDL_KEYUP )
         {
@@ -2598,6 +2621,39 @@ void FOMapper::MainLoop()
         }
         else if( event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP )
         {
+            if( event.button.button == SDL_BUTTON_MIDDLE )
+            {
+                if( event.type == SDL_MOUSEBUTTONUP && MapperViewportPanning )
+                {
+                    MapperViewportPanning = false;
+                    MapperViewportPanRemainderX = 0.0f;
+                    MapperViewportPanRemainderY = 0.0f;
+                    SDL_CaptureMouse( SDL_FALSE );
+                    continue;
+                }
+
+                if( event.type == SDL_MOUSEBUTTONDOWN && MapperGuiInitialized )
+                {
+                    int sw = 0, sh = 0;
+                    SDL_GetWindowSize( MainWindow, &sw, &sh );
+                    int x = (int) ( event.button.x / (float) sw * (float) GameOpt.ScreenWidth );
+                    int y = (int) ( event.button.y / (float) sh * (float) GameOpt.ScreenHeight );
+                    Rect viewport = SprMngr.GetWorldViewport();
+                    if( x >= viewport.L && x <= viewport.R && y >= viewport.T && y <= viewport.B )
+                    {
+                        MapperViewportPanning = true;
+                        MapperViewportPanRemainderX = 0.0f;
+                        MapperViewportPanRemainderY = 0.0f;
+                        GameOpt.ScrollMouseLeft = false;
+                        GameOpt.ScrollMouseRight = false;
+                        GameOpt.ScrollMouseUp = false;
+                        GameOpt.ScrollMouseDown = false;
+                        SDL_CaptureMouse( SDL_TRUE );
+                        continue;
+                    }
+                }
+            }
+
             if( capture_mouse )
                 continue;
             MainWindowMouseEvents.push_back( event.type );
@@ -2625,6 +2681,13 @@ void FOMapper::MainLoop()
         else if( event.type == SDL_QUIT )
         {
             GameOpt.Quit = true;
+        }
+        else if( event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_FOCUS_LOST && MapperViewportPanning )
+        {
+            MapperViewportPanning = false;
+            MapperViewportPanRemainderX = 0.0f;
+            MapperViewportPanRemainderY = 0.0f;
+            SDL_CaptureMouse( SDL_FALSE );
         }
     }
 
