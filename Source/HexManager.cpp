@@ -351,7 +351,7 @@ bool HexManager::AddItem( uint id, ushort pid, ushort hx, ushort hy, bool is_add
                                                  f.ScrX + HEX_OX, f.ScrY + HEX_OY, 0, &item->SprId, &item->ScrX, &item->ScrY, &item->Alpha,
                                                  &item->DrawEffect, &item->SprDrawValid );
             if( !item->IsNoLightInfluence() && !( item->IsFlat() && item->IsScenOrGrid() ) )
-                spr.SetLight( hexLight, maxHexX, maxHexY );
+                spr.SetLight( item->Proto->Corner, hexLight, maxHexX, maxHexY );
             item->SetSprite( &spr );
         }
 
@@ -479,7 +479,7 @@ void HexManager::ProcessItems()
                                                             f_.ScrX + HEX_OX, f_.ScrY + HEX_OY, 0, &item->SprId, &item->ScrX, &item->ScrY, &item->Alpha,
                                                             &item->DrawEffect, &item->SprDrawValid );
                     if( !item->IsNoLightInfluence() && !( item->IsFlat() && item->IsScenOrGrid() ) )
-                        item->SprDraw->SetLight( hexLight, maxHexX, maxHexY );
+                        item->SprDraw->SetLight( item->Proto->Corner, hexLight, maxHexX, maxHexY );
 
 					#ifdef FONLINE_CLIENT
 					item->UpdateContour();
@@ -649,7 +649,7 @@ bool HexManager::RunEffect( ushort eff_pid, ushort from_hx, ushort from_hy, usho
                                                 f.ScrX + HEX_OX, f.ScrY + HEX_OY, 0, &item->SprId, &item->ScrX, &item->ScrY, &item->Alpha,
                                                 &item->DrawEffect, &item->SprDrawValid );
         if( !item->IsNoLightInfluence() && !( item->IsFlat() && item->IsScenOrGrid() ) )
-            item->SprDraw->SetLight( hexLight, maxHexX, maxHexY );
+            item->SprDraw->SetLight( item->Proto->Corner, hexLight, maxHexX, maxHexY );
     }
 
     return true;
@@ -934,7 +934,7 @@ void HexManager::RebuildMap( int rx, int ry )
                         rainData.push_back( new_drop );
 
                         mainTree.AddSprite( DRAW_ORDER_RAIN, nx, ny, 0, f.ScrX + HEX_OX, f.ScrY + HEX_OY, 0, &new_drop->CurSprId,
-                                            &new_drop->OffsX, &new_drop->OffsY, NULL, &Effect::Rain, NULL ).SetLight( hexLight, maxHexX, maxHexY );
+                                            &new_drop->OffsX, &new_drop->OffsY, NULL, &Effect::Rain, NULL ).SetLight( CORNER_EAST_WEST, hexLight, maxHexX, maxHexY );
                     }
                     else if( !roofSkip || roofSkip != GetField( rofx, rofy ).RoofNum )
                     {
@@ -942,7 +942,7 @@ void HexManager::RebuildMap( int rx, int ry )
                         rainData.push_back( new_drop );
 
                         roofRainTree.AddSprite( DRAW_ORDER_RAIN, nx, ny, 0, f.ScrX + HEX_OX, f.ScrY + HEX_OY, 0, &new_drop->CurSprId,
-                                                &new_drop->OffsX, &new_drop->OffsY, NULL, &Effect::Rain, NULL ).SetLight( hexLight, maxHexX, maxHexY );
+                                                &new_drop->OffsX, &new_drop->OffsY, NULL, &Effect::Rain, NULL ).SetLight( CORNER_EAST_WEST, hexLight, maxHexX, maxHexY );
                     }
                     if( new_drop )
                     {
@@ -1029,7 +1029,7 @@ void HexManager::RebuildMap( int rx, int ry )
                     Sprite& spr = mainTree.AddSprite( DRAW_ORDER_ITEM_AUTO( item ), nx, ny + item->Proto->DrawOrderOffsetHexY, item->SpriteCut,
                                                       f.ScrX + HEX_OX, f.ScrY + HEX_OY, 0, &item->SprId, &item->ScrX, &item->ScrY, alpha, &item->DrawEffect, &item->SprDrawValid );
                     if( !item->IsNoLightInfluence() && !( item->IsFlat() && item->IsScenOrGrid() ) )
-                        spr.SetLight( hexLight, maxHexX, maxHexY );
+                        spr.SetLight( item->Proto->Corner, hexLight, maxHexX, maxHexY );
                     item->SetSprite( &spr );
                 }
             }
@@ -1042,7 +1042,7 @@ void HexManager::RebuildMap( int rx, int ry )
                 Sprite& spr = mainTree.AddSprite( DRAW_ORDER_CRIT_AUTO( cr ), nx, ny, 0,
                                                   f.ScrX + HEX_OX, f.ScrY + HEX_OY, 0, &cr->SprId, &cr->SprOx, &cr->SprOy,
                                                   &cr->Alpha, &cr->DrawEffect, &cr->SprDrawValid );
-                spr.SetLight( hexLight, maxHexX, maxHexY );
+                spr.SetLight( CORNER_EAST_WEST, hexLight, maxHexX, maxHexY );
                 spr.SetScale( cr->Scale );
                 cr->SprDraw = &spr;
 
@@ -1069,7 +1069,7 @@ void HexManager::RebuildMap( int rx, int ry )
                     Sprite& spr = mainTree.AddSprite( DRAW_ORDER_CRIT_AUTO( cr ), nx, ny, 0,
                                                       f.ScrX + HEX_OX, f.ScrY + HEX_OY, 0, &cr->SprId, &cr->SprOx, &cr->SprOy,
                                                       &cr->Alpha, &cr->DrawEffect, &cr->SprDrawValid );
-                    spr.SetLight( hexLight, maxHexX, maxHexY );
+                    spr.SetLight( CORNER_EAST_WEST, hexLight, maxHexX, maxHexY );
                     spr.SetScale( cr->Scale );
 
 					//dead critters containers
@@ -2451,7 +2451,7 @@ void HexManager::SetCrit( CritterCl* cr )
     {
         Sprite& spr = mainTree.InsertSprite( DRAW_ORDER_CRIT_AUTO( cr ), hx, hy, 0, f.ScrX + HEX_OX, f.ScrY + HEX_OY,
                                              0, &cr->SprId, &cr->SprOx, &cr->SprOy, &cr->Alpha, &cr->DrawEffect, &cr->SprDrawValid );
-        spr.SetLight( hexLight, maxHexX, maxHexY );
+        spr.SetLight( CORNER_EAST_WEST, hexLight, maxHexX, maxHexY );
         spr.SetScale( cr->Scale );
 		cr->SprDraw = &spr;
 

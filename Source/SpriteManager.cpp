@@ -3738,39 +3738,34 @@ bool SpriteManager::DrawSprites( Sprites& dtree, bool collect_contours, bool use
         }
 
         // Base color
-        uint cur_color;
+        uint color_r;
+        uint color_l;
         if( spr->Color )
-            cur_color = ( spr->Color | 0xFF000000 );
+            color_r = color_l = ( spr->Color | 0xFF000000 );
         else
-            cur_color = baseColor;
+            color_r = color_l = baseColor;
 
         // Light
         if( spr->Light )
         {
-            int    lr = *spr->Light;
-            int    lg = *( spr->Light + 1 );
-            int    lb = *( spr->Light + 2 );
-            uchar& r = ( (uchar*) &cur_color )[ 2 ];
-            uchar& g = ( (uchar*) &cur_color )[ 1 ];
-            uchar& b = ( (uchar*) &cur_color )[ 0 ];
-            int    ir = (int) r + lr;
-            int    ig = (int) g + lg;
-            int    ib = (int) b + lb;
-            if( ir > 0xFF )
-                ir = 0xFF;
-            if( ig > 0xFF )
-                ig = 0xFF;
-            if( ib > 0xFF )
-                ib = 0xFF;
-            r = ir;
-            g = ig;
-            b = ib;
+            static auto apply_light = []( uint& color, uchar* light, uchar* side_light )
+            {
+                uchar& r = ( (uchar*) &color )[ 2 ];
+                uchar& g = ( (uchar*) &color )[ 1 ];
+                uchar& b = ( (uchar*) &color )[ 0 ];
+                r = MIN( (int) r + ( (int) light[ 0 ] + (int) side_light[ 0 ] ) / 2, 0xFF );
+                g = MIN( (int) g + ( (int) light[ 1 ] + (int) side_light[ 1 ] ) / 2, 0xFF );
+                b = MIN( (int) b + ( (int) light[ 2 ] + (int) side_light[ 2 ] ) / 2, 0xFF );
+            };
+            apply_light( color_r, spr->Light, spr->LightRight );
+            apply_light( color_l, spr->Light, spr->LightLeft );
         }
 
         // Alpha
         if( spr->Alpha )
         {
-            ( (uchar*) &cur_color )[ 3 ] = *spr->Alpha;
+            ( (uchar*) &color_r )[ 3 ] = *spr->Alpha;
+            ( (uchar*) &color_l )[ 3 ] = *spr->Alpha;
         }
 
         // Process flashing
@@ -3794,16 +3789,18 @@ bool SpriteManager::DrawSprites( Sprites& dtree, bool collect_contours, bool use
                 }
                 tick = cur_tick + 100;
             }
-            int r = ( ( cur_color >> 16 ) & 0xFF ) + cnt;
-            int g = ( ( cur_color >> 8 ) & 0xFF ) + cnt;
-            int b = ( cur_color & 0xFF ) + cnt;
-            r = CLAMP( r, 0, 0xFF );
-            g = CLAMP( g, 0, 0xFF );
-            b = CLAMP( b, 0, 0xFF );
-            ( (uchar*) &cur_color )[ 2 ] = r;
-            ( (uchar*) &cur_color )[ 1 ] = g;
-            ( (uchar*) &cur_color )[ 0 ] = b;
-            cur_color &= spr->FlashMask;
+            static auto apply_flash = []( uint& color, int flash, uint mask )
+            {
+                int r = ( ( color >> 16 ) & 0xFF ) + flash;
+                int g = ( ( color >> 8 ) & 0xFF ) + flash;
+                int b = ( color & 0xFF ) + flash;
+                ( (uchar*) &color )[ 2 ] = CLAMP( r, 0, 0xFF );
+                ( (uchar*) &color )[ 1 ] = CLAMP( g, 0, 0xFF );
+                ( (uchar*) &color )[ 0 ] = CLAMP( b, 0, 0xFF );
+                color &= mask;
+            };
+            apply_flash( color_r, cnt, spr->FlashMask );
+            apply_flash( color_l, cnt, spr->FlashMask );
         }
 
         // Render 3d
@@ -3905,25 +3902,25 @@ bool SpriteManager::DrawSprites( Sprites& dtree, bool collect_contours, bool use
         vBuffer[ mulpos ].y = yf + hf;
         vBuffer[ mulpos ].tu = si->SprRect.L;
         vBuffer[ mulpos ].tv = si->SprRect.B;
-        vBuffer[ mulpos++ ].diffuse = cur_color;
+        vBuffer[ mulpos++ ].diffuse = color_l;
 
         vBuffer[ mulpos ].x = xf;
         vBuffer[ mulpos ].y = yf;
         vBuffer[ mulpos ].tu = si->SprRect.L;
         vBuffer[ mulpos ].tv = si->SprRect.T;
-        vBuffer[ mulpos++ ].diffuse = cur_color;
+        vBuffer[ mulpos++ ].diffuse = color_l;
 
         vBuffer[ mulpos ].x = xf + wf;
         vBuffer[ mulpos ].y = yf;
         vBuffer[ mulpos ].tu = si->SprRect.R;
         vBuffer[ mulpos ].tv = si->SprRect.T;
-        vBuffer[ mulpos++ ].diffuse = cur_color;
+        vBuffer[ mulpos++ ].diffuse = color_r;
 
         vBuffer[ mulpos ].x = xf + wf;
         vBuffer[ mulpos ].y = yf + hf;
         vBuffer[ mulpos ].tu = si->SprRect.R;
         vBuffer[ mulpos ].tv = si->SprRect.B;
-        vBuffer[ mulpos++ ].diffuse = cur_color;
+        vBuffer[ mulpos++ ].diffuse = color_r;
 
         // Cutted sprite
         if( spr->CutType )

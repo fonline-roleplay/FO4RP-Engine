@@ -663,4 +663,12 @@ const char ClientSaveSignature[ 4 ] = { 'F', 'O', 0, CLIENT_SAVE_LAST };
 #define USER_HOLO_MAX_TITLE_LEN      ( 40 )
 #define USER_HOLO_MAX_LEN            ( 2000 )
 
+// Corner type
+#define CORNER_NORTH_SOUTH            ( 0 )
+#define CORNER_WEST                   ( 1 )
+#define CORNER_EAST                   ( 2 )
+#define CORNER_SOUTH                  ( 3 )
+#define CORNER_NORTH                  ( 4 )
+#define CORNER_EAST_WEST              ( 5 )
+
 #endif // ___DEFINES___
