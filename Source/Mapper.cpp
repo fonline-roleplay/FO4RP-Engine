@@ -765,6 +765,12 @@ static int MapperGuiGridColumns()
     return MAX( 1, (int) ( ImGui::GetContentRegionAvail().x / 72.0f ) );
 }
 
+static int MapperGuiWrapClockValue( int value, int range )
+{
+    value %= range;
+    return value < 0 ? value + range : value;
+}
+
 void FOMapper::DrawImGuiBrowser()
 {
     if( IntMode >= 0 && IntMode < TAB_COUNT && !Tabs[ IntMode ].empty() )
@@ -1106,6 +1112,30 @@ void FOMapper::BeginImGuiFrame()
     }
     else
     {
+        ImGui::TextUnformatted( "Daytime (HH:MM)" );
+        ImGui::Separator();
+        int daytime_hour = (int) ( DayTime / 60 % 24 );
+        int daytime_minute = (int) ( DayTime % 60 );
+        bool daytime_changed = false;
+        float daytime_start_x = ImGui::GetCursorPosX();
+        float daytime_spacing = ImGui::GetStyle().ItemSpacing.x;
+        float daytime_field_width = ( ImGui::GetContentRegionAvail().x - daytime_spacing ) * 0.5f;
+        ImGui::TextDisabled( "Hour" );
+        ImGui::SameLine( daytime_start_x + daytime_field_width + daytime_spacing, 0.0f );
+        ImGui::TextDisabled( "Minute" );
+        ImGui::SetNextItemWidth( daytime_field_width );
+        daytime_changed |= ImGui::DragInt( "##mapper_daytime_hour", &daytime_hour, 1.0f, 0, 0, "%02d" );
+        ImGui::SameLine( 0.0f, daytime_spacing );
+        ImGui::SetNextItemWidth( daytime_field_width );
+        daytime_changed |= ImGui::DragInt( "##mapper_daytime_minute", &daytime_minute, 1.0f, 0, 0, "%02d" );
+        if( daytime_changed )
+        {
+            int time = MapperGuiWrapClockValue( daytime_hour * 60 + daytime_minute, 24 * 60 );
+            DayTime = (uint) time;
+            ChangeGameTime();
+        }
+
+        ImGui::Spacing();
         ImGui::TextUnformatted( "Day colors" );
         ImGui::Separator();
         if( CurProtoMap )
