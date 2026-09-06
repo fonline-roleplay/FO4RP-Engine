@@ -29,6 +29,8 @@ enum MapperGuiEditorMode
 static MapperGuiEditorMode MapperGuiMode = MAPPER_GUI_MODE_SCENE;
 static char MapperGuiCommand[ MAX_CHAT_MESSAGE + 1 ] = { 0 };
 static bool MapperGuiCommandWasActive = false;
+static char MapperGuiObjectSearch[ MAX_FOTEXT ] = { 0 };
+static bool MapperGuiScrollToSelectedEntry = false;
 
 static void MapperGuiSettingsReadInit( ImGuiContext*, ImGuiSettingsHandler* )
 {
@@ -829,6 +831,82 @@ static int MapperGuiWrapClockValue( int value, int range )
 
 void FOMapper::DrawImGuiBrowser()
 {
+    ImGui::SetNextItemWidth( -1.0f );
+    if( ImGui::InputTextWithHint( "##mapper_object_search", "Item PID or alias", MapperGuiObjectSearch,
+        sizeof( MapperGuiObjectSearch ), ImGuiInputTextFlags_EnterReturnsTrue ) )
+    {
+        int found_pid = -1;
+        if( Str::IsNumber( MapperGuiObjectSearch ) )
+            found_pid = atoi( MapperGuiObjectSearch );
+        else
+            found_pid = ConstantsManager::GetItemPid( MapperGuiObjectSearch );
+
+        if( found_pid > 0 && found_pid <= 0xFFFF )
+        {
+            SubTab* found_tab = NULL;
+            uint found_index = 0;
+            int found_mode = -1;
+
+            auto find_in_mode = [ & ]( int mode )
+            {
+                for( auto it = Tabs[ mode ].begin(), end = Tabs[ mode ].end(); it != end; ++it )
+                {
+                    if( ( *it ).first == DEFAULT_SUB_TAB )
+                        continue;
+
+                    SubTab& tab = ( *it ).second;
+                    for( uint i = 0; i < tab.ItemProtos.size(); i++ )
+                    {
+                        if( tab.ItemProtos[ i ].ProtoId == (ushort) found_pid )
+                        {
+                            found_tab = &tab;
+                            found_index = i;
+                            found_mode = mode;
+                            return;
+                        }
+                    }
+                }
+
+                auto default_tab = Tabs[ mode ].find( DEFAULT_SUB_TAB );
+                if( default_tab == Tabs[ mode ].end() )
+                    return;
+
+                SubTab& tab = ( *default_tab ).second;
+                for( uint i = 0; i < tab.ItemProtos.size(); i++ )
+                {
+                    if( tab.ItemProtos[ i ].ProtoId == (ushort) found_pid )
+                    {
+                        found_tab = &tab;
+                        found_index = i;
+                        found_mode = mode;
+                        return;
+                    }
+                }
+            };
+
+            for( int mode = INT_MODE_CUSTOM0; mode <= INT_MODE_CUSTOM9 && !found_tab; mode++ )
+            {
+                if( TabsName[ mode ].empty() || TabsName[ mode ] == "-" )
+                    continue;
+                find_in_mode( mode );
+            }
+
+            if( !found_tab )
+                find_in_mode( INT_MODE_ITEM );
+
+            if( found_tab )
+            {
+                if( IntMode != found_mode )
+                    IntSetMode( found_mode );
+                TabsActive[ found_mode ] = found_tab;
+                RefreshCurProtos();
+                SetTabIndex( found_index );
+                CurMode = CUR_MODE_PLACE_OBJECT;
+                MapperGuiScrollToSelectedEntry = true;
+            }
+        }
+    }
+
     if( IntMode >= 0 && IntMode < TAB_COUNT && !Tabs[ IntMode ].empty() )
     {
         const char* active_name = "Collection";
@@ -862,6 +940,11 @@ void FOMapper::DrawImGuiBrowser()
     if( IsObjectMode() )
     {
         int columns = MapperGuiGridColumns();
+        if( MapperGuiScrollToSelectedEntry )
+        {
+            ImGui::SetScrollY( (float) ( GetTabIndex() / columns ) * 88.0f );
+            MapperGuiScrollToSelectedEntry = false;
+        }
         int count = (int) CurItemProtos->size();
         ImGuiListClipper clipper;
         clipper.Begin( ( count + columns - 1 ) / columns, 88.0f );
@@ -903,6 +986,11 @@ void FOMapper::DrawImGuiBrowser()
     else if( IsTileMode() )
     {
         int columns = MapperGuiGridColumns();
+        if( MapperGuiScrollToSelectedEntry )
+        {
+            ImGui::SetScrollY( (float) ( GetTabIndex() / columns ) * 72.0f );
+            MapperGuiScrollToSelectedEntry = false;
+        }
         int count = (int) CurTileNames->size();
         ImGuiListClipper clipper;
         clipper.Begin( ( count + columns - 1 ) / columns, 72.0f );
@@ -935,6 +1023,11 @@ void FOMapper::DrawImGuiBrowser()
     else if( IsCritMode() )
     {
         int columns = MapperGuiGridColumns();
+        if( MapperGuiScrollToSelectedEntry )
+        {
+            ImGui::SetScrollY( (float) ( GetTabIndex() / columns ) * 88.0f );
+            MapperGuiScrollToSelectedEntry = false;
+        }
         int count = (int) CurNpcProtos->size();
         ImGuiListClipper clipper;
         clipper.Begin( ( count + columns - 1 ) / columns, 88.0f );
@@ -4829,6 +4922,7 @@ void FOMapper::PipCursorObj()
     SetTabIndex( tabIndex );
     if( CurProtoScroll )
         ( *CurProtoScroll ) = ( tabIndex - ( int( ProtosOnScreen ) / 2 ) ) > 0 ? ( tabIndex - ( int( ProtosOnScreen ) / 2 ) ) : tabIndex;
+    MapperGuiScrollToSelectedEntry = true;
 
     CurMode = CUR_MODE_PLACE_OBJECT;
 }
