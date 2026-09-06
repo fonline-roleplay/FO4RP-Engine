@@ -1944,17 +1944,19 @@ void FOMapper::ParseKeyboard()
                 SelectDelete();
                 break;
             case DIK_ADD:
-                if( !ConsoleActive && SelectedObj.empty() )
+                if( !ConsoleActive )
                 {
                     DayTime += 60;
                     ChangeGameTime();
+                    continue;
                 }
                 break;
             case DIK_SUBTRACT:
-                if( !ConsoleActive && SelectedObj.empty() )
+                if( !ConsoleActive )
                 {
                     DayTime -= 60;
                     ChangeGameTime();
+                    continue;
                 }
                 break;
             case DIK_TAB:
@@ -1986,17 +1988,19 @@ void FOMapper::ParseKeyboard()
                 ExitProcess( 0 );
                 break;
             case DIK_ADD:
-                if( !ConsoleActive && SelectedObj.empty() )
+                if( !ConsoleActive )
                 {
                     DayTime += 1;
                     ChangeGameTime();
+                    continue;
                 }
                 break;
             case DIK_SUBTRACT:
-                if( !ConsoleActive && SelectedObj.empty() )
+                if( !ConsoleActive )
                 {
                     DayTime -= 1;
                     ChangeGameTime();
+                    continue;
                 }
                 break;
             case DIK_0:
