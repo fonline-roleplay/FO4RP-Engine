@@ -2,13 +2,17 @@
 #include "Mapper.h"
 #include "ImGuiHelpers.h"
 #include "imgui/imgui.h"
+#include "imgui/imgui_internal.h"
 #include "imgui/imgui_impl_sdl2.h"
 #include "imgui/imgui_impl_opengl3.h"
 
 static ImGuiTextBuffer MapperGuiLog;
-static float MapperGuiLeftWidth = 260.0f;
-static float MapperGuiRightWidth = 300.0f;
-static float MapperGuiBottomHeight = 180.0f;
+static const float MapperGuiDefaultLeftWidth = 260.0f;
+static const float MapperGuiDefaultRightWidth = 300.0f;
+static const float MapperGuiDefaultBottomHeight = 180.0f;
+static float MapperGuiLeftWidth = MapperGuiDefaultLeftWidth;
+static float MapperGuiRightWidth = MapperGuiDefaultRightWidth;
+static float MapperGuiBottomHeight = MapperGuiDefaultBottomHeight;
 static const float MapperGuiToolbarHeight = 116.0f;
 static const float MapperGuiStatusHeight = 24.0f;
 static const float MapperGuiSplitterSize = 5.0f;
@@ -22,6 +26,49 @@ enum MapperGuiEditorMode
 static MapperGuiEditorMode MapperGuiMode = MAPPER_GUI_MODE_SCENE;
 static char MapperGuiCommand[ MAX_CHAT_MESSAGE + 1 ] = { 0 };
 static bool MapperGuiCommandWasActive = false;
+
+static void MapperGuiSettingsReadInit( ImGuiContext*, ImGuiSettingsHandler* )
+{
+    MapperGuiLeftWidth = MapperGuiDefaultLeftWidth;
+    MapperGuiRightWidth = MapperGuiDefaultRightWidth;
+    MapperGuiBottomHeight = MapperGuiDefaultBottomHeight;
+}
+
+static void* MapperGuiSettingsReadOpen( ImGuiContext*, ImGuiSettingsHandler*, const char* name )
+{
+    return strcmp( name, "Panels" ) == 0 ? &MapperGuiLeftWidth : NULL;
+}
+
+static void MapperGuiSettingsReadLine( ImGuiContext*, ImGuiSettingsHandler*, void*, const char* line )
+{
+    float value = 0.0f;
+    if( sscanf( line, "LeftWidth=%f", &value ) == 1 )
+        MapperGuiLeftWidth = value;
+    else if( sscanf( line, "RightWidth=%f", &value ) == 1 )
+        MapperGuiRightWidth = value;
+    else if( sscanf( line, "BottomHeight=%f", &value ) == 1 )
+        MapperGuiBottomHeight = value;
+}
+
+static void MapperGuiSettingsWriteAll( ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buffer )
+{
+    buffer->appendf( "[%s][Panels]\n", handler->TypeName );
+    buffer->appendf( "LeftWidth=%g\n", MapperGuiLeftWidth );
+    buffer->appendf( "RightWidth=%g\n", MapperGuiRightWidth );
+    buffer->appendf( "BottomHeight=%g\n\n", MapperGuiBottomHeight );
+}
+
+static void MapperGuiAddSettingsHandler()
+{
+    ImGuiSettingsHandler handler;
+    handler.TypeName = "MapperLayout";
+    handler.TypeHash = ImHashStr( handler.TypeName );
+    handler.ReadInitFn = MapperGuiSettingsReadInit;
+    handler.ReadOpenFn = MapperGuiSettingsReadOpen;
+    handler.ReadLineFn = MapperGuiSettingsReadLine;
+    handler.WriteAllFn = MapperGuiSettingsWriteAll;
+    ImGui::AddSettingsHandler( &handler );
+}
 
 static int MapperGuiCommandCallback( ImGuiInputTextCallbackData* data )
 {
@@ -617,6 +664,7 @@ bool FOMapper::InitImGui()
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    MapperGuiAddSettingsHandler();
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = "FOnlineImgui.ini";
     io.MouseDrawCursor = true;
@@ -675,7 +723,12 @@ static void MapperGuiSplitter( const char* id, bool vertical, float& value, floa
     if( ImGui::IsItemHovered() || ImGui::IsItemActive() )
         ImGui::SetMouseCursor( vertical ? ImGuiMouseCursor_ResizeEW : ImGuiMouseCursor_ResizeNS );
     if( ImGui::IsItemActive() )
+    {
+        float old_value = value;
         value = CLAMP( value + ( vertical ? ImGui::GetIO().MouseDelta.x : ImGui::GetIO().MouseDelta.y ), minimum, maximum );
+        if( value != old_value )
+            ImGui::MarkIniSettingsDirty();
+    }
 }
 
 static bool MapperGuiDrawSprite( ImDrawList* draw_list, uint sprite_id, const ImVec2& area_min, const ImVec2& area_max, bool linear )
@@ -1186,7 +1239,12 @@ void FOMapper::BeginImGuiFrame()
     float old_right_width = MapperGuiRightWidth;
     MapperGuiSplitter( "##right_splitter", true, old_right_width, 180.0f, screen_width - MapperGuiLeftWidth - min_view_width );
     if( ImGui::IsItemActive() )
+    {
+        float previous_right_width = MapperGuiRightWidth;
         MapperGuiRightWidth = CLAMP( MapperGuiRightWidth - ImGui::GetIO().MouseDelta.x, 180.0f, screen_width - MapperGuiLeftWidth - min_view_width );
+        if( MapperGuiRightWidth != previous_right_width )
+            ImGui::MarkIniSettingsDirty();
+    }
     ImGui::SetCursorPos( ImVec2( 12.0f, 10.0f ) );
     if( MapperGuiMode == MAPPER_GUI_MODE_SCENE )
     {
@@ -1529,7 +1587,12 @@ void FOMapper::BeginImGuiFrame()
     float old_bottom_height = MapperGuiBottomHeight;
     MapperGuiSplitter( "##bottom_splitter", false, old_bottom_height, 90.0f, max_bottom_height );
     if( ImGui::IsItemActive() )
+    {
+        float previous_bottom_height = MapperGuiBottomHeight;
         MapperGuiBottomHeight = CLAMP( MapperGuiBottomHeight - ImGui::GetIO().MouseDelta.y, 90.0f, max_bottom_height );
+        if( MapperGuiBottomHeight != previous_bottom_height )
+            ImGui::MarkIniSettingsDirty();
+    }
     std::string new_log;
     LogGetBuffer( new_log );
     if( !new_log.empty() )
