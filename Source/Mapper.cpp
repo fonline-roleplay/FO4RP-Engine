@@ -703,9 +703,11 @@ static bool MapperGuiDrawSprite( ImDrawList* draw_list, uint sprite_id, const Im
 }
 
 static bool MapperGuiSpriteButton( const char* id, uint sprite_id, bool selected, const char* overlay = NULL, uint second_sprite_id = 0,
-    bool ground_sprite = false )
+    bool ground_sprite = false, const char* footer = NULL )
 {
-    const ImVec2 button_size( 68.0f, 68.0f );
+    const float picture_height = 68.0f;
+    const float footer_height = footer && footer[ 0 ] ? 16.0f : 0.0f;
+    const ImVec2 button_size( 68.0f, picture_height + footer_height );
     ImVec2 p0 = ImGui::GetCursorScreenPos();
     ImGui::InvisibleButton( id, button_size );
     bool clicked = ImGui::IsItemClicked();
@@ -714,37 +716,46 @@ static bool MapperGuiSpriteButton( const char* id, uint sprite_id, bool selected
     ImU32 background = ImGui::GetColorU32( selected ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_FrameBg );
     ImU32 border = ImGui::GetColorU32( selected ? ImGuiCol_CheckMark : ImGuiCol_Border );
     ImVec2 p1( p0.x + button_size.x, p0.y + button_size.y );
+    ImVec2 picture_end( p1.x, p0.y + picture_height );
     draw_list->AddRectFilled( p0, p1, background, 3.0f );
     draw_list->AddRect( p0, p1, border, 3.0f, 0, selected ? 2.0f : 1.0f );
 
     bool drawn = false;
     if( second_sprite_id && second_sprite_id != sprite_id )
     {
-        float middle = p0.y + button_size.y * 0.5f;
+        float middle = p0.y + picture_height * 0.5f;
         drawn |= MapperGuiDrawSprite( draw_list, sprite_id, ImVec2( p0.x + 4.0f, p0.y + 3.0f ), ImVec2( p1.x - 4.0f, middle - 1.0f ),
             ground_sprite && GameOpt.SpritesFiltering );
-        drawn |= MapperGuiDrawSprite( draw_list, second_sprite_id, ImVec2( p0.x + 4.0f, middle + 1.0f ), ImVec2( p1.x - 4.0f, p1.y - 3.0f ), false );
+        drawn |= MapperGuiDrawSprite( draw_list, second_sprite_id, ImVec2( p0.x + 4.0f, middle + 1.0f ), ImVec2( p1.x - 4.0f, picture_end.y - 3.0f ), false );
         draw_list->AddLine( ImVec2( p0.x + 4.0f, middle ), ImVec2( p1.x - 4.0f, middle ), ImGui::GetColorU32( ImGuiCol_Border ) );
     }
     else
-        drawn = MapperGuiDrawSprite( draw_list, sprite_id, ImVec2( p0.x + 4.0f, p0.y + 4.0f ), ImVec2( p1.x - 4.0f, p1.y - 4.0f ),
+        drawn = MapperGuiDrawSprite( draw_list, sprite_id, ImVec2( p0.x + 4.0f, p0.y + 4.0f ), ImVec2( p1.x - 4.0f, picture_end.y - 4.0f ),
             ground_sprite && GameOpt.SpritesFiltering );
 
     if( !drawn )
     {
         const char* missing = "?";
         ImVec2 size = ImGui::CalcTextSize( missing );
-        draw_list->AddText( ImVec2( p0.x + ( button_size.x - size.x ) * 0.5f, p0.y + ( button_size.y - size.y ) * 0.5f ),
+        draw_list->AddText( ImVec2( p0.x + ( button_size.x - size.x ) * 0.5f, p0.y + ( picture_height - size.y ) * 0.5f ),
             ImGui::GetColorU32( ImGuiCol_TextDisabled ), missing );
     }
 
     if( overlay && overlay[ 0 ] )
     {
         ImVec2 size = ImGui::CalcTextSize( overlay );
-        ImVec2 text_pos( p0.x + button_size.x - size.x - 4.0f, p0.y + button_size.y - size.y - 3.0f );
+        ImVec2 text_pos( p0.x + button_size.x - size.x - 4.0f, picture_end.y - size.y - 3.0f );
         draw_list->AddRectFilled( ImVec2( text_pos.x - 2.0f, text_pos.y - 1.0f ),
             ImVec2( text_pos.x + size.x + 2.0f, text_pos.y + size.y + 1.0f ), IM_COL32( 0, 0, 0, 180 ) );
         draw_list->AddText( text_pos, IM_COL32_WHITE, overlay );
+    }
+    if( footer_height > 0.0f )
+    {
+        draw_list->AddLine( ImVec2( p0.x + 1.0f, picture_end.y ), ImVec2( p1.x - 1.0f, picture_end.y ),
+            ImGui::GetColorU32( ImGuiCol_Border ) );
+        ImVec2 size = ImGui::CalcTextSize( footer );
+        draw_list->AddText( ImVec2( p0.x + ( button_size.x - size.x ) * 0.5f,
+            picture_end.y + ( footer_height - size.y ) * 0.5f ), ImGui::GetColorU32( ImGuiCol_Text ), footer );
     }
     return clicked;
 }
@@ -791,7 +802,7 @@ void FOMapper::DrawImGuiBrowser()
         int columns = MapperGuiGridColumns();
         int count = (int) CurItemProtos->size();
         ImGuiListClipper clipper;
-        clipper.Begin( ( count + columns - 1 ) / columns, 72.0f );
+        clipper.Begin( ( count + columns - 1 ) / columns, 88.0f );
         while( clipper.Step() )
         {
             for( int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++ )
@@ -813,8 +824,10 @@ void FOMapper::DrawImGuiBrowser()
                             inventory_sprite_id = anim->GetCurSprId();
                     }
                     char id[ 64 ];
+                    char pid[ 32 ];
                     Str::Format( id, "##item_%d", i );
-                    if( MapperGuiSpriteButton( id, sprite_id, GetTabIndex() == (uint) i, NULL, inventory_sprite_id, true ) )
+                    Str::Format( pid, "PID %u", proto.ProtoId );
+                    if( MapperGuiSpriteButton( id, sprite_id, GetTabIndex() == (uint) i, NULL, inventory_sprite_id, true, pid ) )
                     {
                         SetTabIndex( i );
                         CurMode = CUR_MODE_PLACE_OBJECT;
@@ -862,7 +875,7 @@ void FOMapper::DrawImGuiBrowser()
         int columns = MapperGuiGridColumns();
         int count = (int) CurNpcProtos->size();
         ImGuiListClipper clipper;
-        clipper.Begin( ( count + columns - 1 ) / columns, 72.0f );
+        clipper.Begin( ( count + columns - 1 ) / columns, 88.0f );
         while( clipper.Step() )
         {
             for( int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++ )
@@ -877,8 +890,10 @@ void FOMapper::DrawImGuiBrowser()
                     CritData* proto = ( *CurNpcProtos )[ i ];
                     uint sprite_id = ResMngr.GetCritSprId( proto->BaseType, 1, 1, NpcDir, &proto->Params[ ST_ANIM3D_LAYER_BEGIN ] );
                     char id[ 64 ];
+                    char pid[ 32 ];
                     Str::Format( id, "##critter_%d", i );
-                    if( MapperGuiSpriteButton( id, sprite_id, GetTabIndex() == (uint) i, NULL, 0, true ) )
+                    Str::Format( pid, "PID %u", proto->ProtoId );
+                    if( MapperGuiSpriteButton( id, sprite_id, GetTabIndex() == (uint) i, NULL, 0, true, pid ) )
                     {
                         SetTabIndex( i );
                         CurMode = CUR_MODE_PLACE_OBJECT;
@@ -908,9 +923,11 @@ void FOMapper::DrawImGuiBrowser()
                 uint sprite_id = anim ? anim->GetCurSprId() : 0;
                 char id[ 64 ];
                 char count_text[ 32 ];
+                char pid[ 32 ];
                 Str::Format( id, "##inventory_%u", i );
                 Str::Format( count_text, "x%u", count ? count : 1 );
-                if( MapperGuiSpriteButton( id, sprite_id, InContObject == object, count_text ) )
+                Str::Format( pid, "PID %u", object->ProtoId );
+                if( MapperGuiSpriteButton( id, sprite_id, InContObject == object, count_text, 0, false, pid ) )
                     InContObject = object;
                 if( ImGui::IsItemHovered() )
                     ImGui::SetTooltip( "%u  %s", object->ProtoId, proto && MsgItem ? MsgItem->GetStr( proto->ProtoId * 100 ) : "" );
