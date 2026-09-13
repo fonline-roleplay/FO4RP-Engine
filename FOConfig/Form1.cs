@@ -6,6 +6,7 @@ namespace FOConfig
     public partial class Form1 : Form
     {
         readonly string[] CONFIG_NAMES = ["Client.cfg", "FOnline.cfg"];
+        readonly string CLIENT_EXE_NAME = "Client64.exe";
         string CurrConfigName = "";
         readonly IniFile cfgFile = new IniFile();
 
@@ -535,7 +536,7 @@ namespace FOConfig
         private void PlayBtn_Click(object sender, EventArgs e)
         {
             SaveConfig();
-            Process.Start("ClientOGL64.exe");
+            Process.Start(CLIENT_EXE_NAME);
             Close();
         }
     }
