@@ -2225,7 +2225,6 @@ void FOClient::ConsoleKeyDown( uchar dik, const char* dik_text )
 
         ConsoleStr = "";
         ConsoleCur = 0;
-        MessBoxGenerate();
     }
 
     if( !ConsoleActive )
@@ -2239,7 +2238,6 @@ void FOClient::ConsoleKeyDown( uchar dik, const char* dik_text )
         ConsoleHistoryCur--;
         ConsoleStr = ConsoleHistory[ ConsoleHistoryCur ];
         ConsoleCur = (uint) ConsoleStr.length();
-        MessBoxGenerate();
         return;
     case DIK_DOWN:
         if( ConsoleHistoryCur + 1 >= (int) ConsoleHistory.size() )
@@ -2247,17 +2245,14 @@ void FOClient::ConsoleKeyDown( uchar dik, const char* dik_text )
             ConsoleHistoryCur = (int) ConsoleHistory.size();
             ConsoleStr = "";
             ConsoleCur = 0;
-            MessBoxGenerate();
             return;
         }
         ConsoleHistoryCur++;
         ConsoleStr = ConsoleHistory[ ConsoleHistoryCur ];
         ConsoleCur = (uint) ConsoleStr.length();
-        MessBoxGenerate();
         return;
     default:
         Keyb::GetChar( dik, dik_text, ConsoleStr, &ConsoleCur, MAX_CHAT_MESSAGE, KIF_NO_SPEC_SYMBOLS );
-        MessBoxGenerate();
         if( dik == DIK_PAUSE )
             break;
         ConsoleLastKey = dik;
@@ -2275,10 +2270,7 @@ void FOClient::ConsoleKeyUp( uchar key )
 void FOClient::ConsoleProcess()
 {
     if( ConsoleLastKey && Timer::ProcessAccelerator( ACCELERATE_CONSOLE ) )
-    {
         Keyb::GetChar( ConsoleLastKey, ConsoleLastKeyText.c_str(), ConsoleStr, &ConsoleCur, MAX_CHAT_MESSAGE, KIF_NO_SPEC_SYMBOLS );
-        MessBoxGenerate();
-    }
 }
 
 // ==============================================================================================================================
@@ -3220,8 +3212,8 @@ void FOClient::MessBoxDraw()
 
     if( IsMainScreen( SCREEN_GAME ) && IntMessBoxBack && IntMessBoxBack != SpriteManager::DummyAnimation )
     {
-        const Rect background( chat_rect.L - 8, chat_rect.T - 12, chat_rect.R + 5, chat_rect.B + 10 );
-        SprMngr.DrawSpriteNinePatch( IntMessBoxBack->GetCurSprId(), background, 8, 12, 5, 10 );
+        const Rect background( chat_rect.L - MESSBOX_OUTLINE, chat_rect.T - MESSBOX_OUTLINE, chat_rect.R + MESSBOX_OUTLINE, chat_rect.B + MESSBOX_OUTLINE );
+        SprMngr.DrawSpriteNinePatch( IntMessBoxBack->GetCurSprId(), background, MESSBOX_OUTLINE, MESSBOX_OUTLINE, MESSBOX_OUTLINE, MESSBOX_INPUT_OUTLINE );
     }
 
     if( !MessBoxCurText.empty() )
@@ -3230,7 +3222,11 @@ void FOClient::MessBoxDraw()
     if( ConsoleActive && IsMainScreen( SCREEN_GAME ) )
     {
         const int font = ( GameOpt.NewChatFont ? FONT_CHAT : FONT_DEFAULT );
-        const Rect input_rect = MessBoxCurRectInput();
+        Rect input_rect = MessBoxCurRectInput();
+        input_rect.L += MESSBOX_INPUT_PADDING;
+        input_rect.T += MESSBOX_INPUT_PADDING;
+        input_rect.R -= MESSBOX_INPUT_PADDING;
+        input_rect.B -= MESSBOX_INPUT_PADDING;
         char* buf = (char*) Str::FormatBuf( "%s", ConsoleStr.c_str() );
         Str::Insert( &buf[ ConsoleCur ], Timer::FastTick() % 800 < 400 ? "!" : "." );
         SprMngr.DrawStr( input_rect, buf, 0, 0, font );
@@ -3299,9 +3295,9 @@ Rect FOClient::MessBoxCurRectDraw()
 Rect FOClient::MessBoxCurRectText()
 {
     Rect r = MessBoxCurRectDraw();
-    if( ConsoleActive && IsMainScreen( SCREEN_GAME ) && !r.IsZero() )
+    if( IsMainScreen( SCREEN_GAME ) && !r.IsZero() )
     {
-        r.B = MessBoxCurRectInput().T - 1;
+        r.B = MessBoxCurRectInput().T - MESSBOX_OUTLINE;
         if( r.B < r.T )
             r.B = r.T;
     }
@@ -3311,19 +3307,14 @@ Rect FOClient::MessBoxCurRectText()
 Rect FOClient::MessBoxCurRectInput()
 {
     Rect r = MessBoxCurRectDraw();
-    if( !ConsoleActive || !IsMainScreen( SCREEN_GAME ) || r.IsZero() )
+    if( !IsMainScreen( SCREEN_GAME ) || r.IsZero() )
         return Rect( 0, 0, 0, 0 );
 
-    const int padding = 2;
     const int font = ( GameOpt.NewChatFont ? FONT_CHAT : FONT_DEFAULT );
-    string input = ConsoleStr;
-    input.insert( ConsoleCur, "!" );
-    int text_height = SprMngr.GetLinesHeight( MAX( r.W() - padding * 2, 1 ), 0, input.c_str(), font );
-    if( text_height <= 0 )
-        text_height = SprMngr.GetLineHeight( font );
-
-    const int top = MAX( r.B - text_height - padding * 2 + 1, r.T );
-    return Rect( r.L + padding, top + padding, r.R - padding, r.B );
+    int text_height = SprMngr.GetLineHeight( font ) * MESSBOX_INPUT_LINES;
+    const int input_height = text_height + MESSBOX_OUTLINE;
+    const int top = MAX( r.B - input_height, r.T );
+    return Rect( r.L, top, r.R, r.B );
 }
 
 Rect FOClient::MessBoxCurRectScroll()

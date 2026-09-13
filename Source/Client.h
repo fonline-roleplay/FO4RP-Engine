@@ -1671,6 +1671,13 @@ public:
     #define FOMB_TALK                  ( 1 )
     #define FOMB_COMBAT_RESULT         ( 2 )
     #define FOMB_VIEW                  ( 3 )
+
+    #define MESSBOX_OUTLINE            ( 8 )
+    #define MESSBOX_INPUT_OUTLINE      ( 40 )
+
+    #define MESSBOX_INPUT_PADDING      ( 2 )
+    #define MESSBOX_INPUT_LINES        ( 2 )
+
     struct MessBoxMessage
     {
         int    Type;
