@@ -244,7 +244,6 @@ public:
             char Unknown1[143];
 
 			uint EffectSpeed; // UserData + 496
-            char Unknown2[12];
 		} FORPData;
 	};
 

@@ -823,7 +823,7 @@ public:
 /************************************************************************/
 /* Main iface                                                           */
 /************************************************************************/
-    AnyFrames* IntMainPic, * MessBoxBackgroundPic, * IntPBMessFilter1Dn, * IntPBMessFilter2Dn, * IntPBMessFilter3Dn,
+    AnyFrames* IntMainPic, * IntMessBoxBack, * IntPBMessFilter1Dn, * IntPBMessFilter2Dn, * IntPBMessFilter3Dn,
     * IntPBScrUpDn, * IntPBScrDnDn, * IntPBSlotsDn,
     * IntPBInvDn, * IntPBMenuDn, * IntPBSkillDn, * IntPBMapDn, * IntPBChaDn, * IntPBPipDn,
     * IntDiodeG, * IntDiodeY, * IntDiodeR, * IntBreakTimePic, * IntWApCostPicNone;
