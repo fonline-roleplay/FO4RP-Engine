@@ -3227,9 +3227,18 @@ void FOClient::MessBoxDraw()
         input_rect.T += MESSBOX_INPUT_PADDING;
         input_rect.R -= MESSBOX_INPUT_PADDING;
         input_rect.B -= MESSBOX_INPUT_PADDING;
-        char* buf = (char*) Str::FormatBuf( "%s", ConsoleStr.c_str() );
-        Str::Insert( &buf[ ConsoleCur ], Timer::FastTick() % 800 < 400 ? "!" : "." );
-        SprMngr.DrawStr( input_rect, buf, 0, 0, font );
+
+        string input = ConsoleStr;
+        input.insert( ConsoleCur, Timer::FastTick() % 800 < 400 ? "!" : "." );
+        string input_before_cursor = ConsoleStr.substr( 0, ConsoleCur );
+        input_before_cursor += "_";
+
+        const int text_width = MAX( input_rect.W(), 1 );
+        const int cursor_line = MAX( SprMngr.GetLinesCount( text_width, 0, input_before_cursor.c_str(), font ) - 1, 0 );
+        const int line_count = SprMngr.GetLinesCount( text_width, 0, input.c_str(), font );
+        const int max_first_line = MAX( line_count - MESSBOX_INPUT_LINES, 0 );
+        const int first_line = MIN( MAX( cursor_line - MESSBOX_INPUT_LINES + 1, 0 ), max_first_line );
+        SprMngr.DrawStr( input_rect, input.c_str(), first_line > 0 ? FT_SKIPLINES( first_line ) : 0, 0, font );
     }
 
     MessBoxDrawEditor();
