@@ -19,6 +19,7 @@ uint       CritterCl::ParametersMin[ MAX_PARAMETERS_ARRAYS ] = { 0 };
 uint       CritterCl::ParametersMax[ MAX_PARAMETERS_ARRAYS ] = { MAX_PARAMS - 1 };
 bool       CritterCl::ParametersOffset[ MAX_PARAMETERS_ARRAYS ] = { false };
 bool       CritterCl::SlotEnabled[ 0x100 ] = { true, true, true, true, false };
+static const int CRITTER_ON_HEAD_TEXT_WIDTH = 200;
 
 CritterCl::CritterCl(): CrDir( 0 ), SprId( 0 ), Id( 0 ), Pid( 0 ), NameColor( 0 ), ContourColor( 0 ),
                         Cond( 0 ), Anim1Life( 0 ), Anim1Knockout( 0 ), Anim1Dead( 0 ), Anim2Life( 0 ), Anim2Knockout( 0 ), Anim2Dead( 0 ),
@@ -1770,14 +1771,18 @@ void CritterCl::GetNameTextInfo( bool& nameVisible, int& x, int& y, int& w, int&
     else
         Str::Copy( str, strTextOnHead.c_str() );
 
-    Rect tr = GetTextRect();
-    x = (int) ( (float) ( tr.L + tr.W() / 2 + GameOpt.ScrOx ) / GameOpt.SpritesZoom - 100.0f );
-    y = (int) ( (float) ( tr.T + GameOpt.ScrOy ) / GameOpt.SpritesZoom - 70.0f );
+    int text_height = SprMngr.GetLinesHeight( CRITTER_ON_HEAD_TEXT_WIDTH, 0, str );
+    if( text_height <= 0 )
+        text_height = SprMngr.GetLineHeight();
 
-    SprMngr.GetTextInfo( 200, 70, str, -1, FT_CENTERX | FT_BOTTOM | FT_BORDERED, w, h, lines );
+    Rect tr = GetTextRect();
+    x = (int) ( (float) ( tr.L + tr.W() / 2 + GameOpt.ScrOx ) / GameOpt.SpritesZoom - CRITTER_ON_HEAD_TEXT_WIDTH / 2.0f );
+    y = (int) ( (float) ( tr.T + GameOpt.ScrOy ) / GameOpt.SpritesZoom - text_height );
+
+    SprMngr.GetTextInfo( CRITTER_ON_HEAD_TEXT_WIDTH, text_height, str, -1, FT_CENTERX | FT_BOTTOM | FT_BORDERED, w, h, lines );
     FormatTextPoint( x, y );
-    x += 100 - ( w / 2 );
-    y += 70 - h;
+    x += CRITTER_ON_HEAD_TEXT_WIDTH / 2 - w / 2;
+    y += text_height - h;
 }
 
 void CritterCl::DrawTextOnHead()
@@ -1792,12 +1797,6 @@ void CritterCl::DrawTextOnHead()
 
     if( SprDrawValid )
     {
-        Rect tr = GetTextRect();
-        int  x = (int) ( (float) ( tr.L + tr.W() / 2 + GameOpt.ScrOx ) / GameOpt.SpritesZoom - 100.0f );
-        int  y = (int) ( (float) ( tr.T + GameOpt.ScrOy ) / GameOpt.SpritesZoom - 70.0f );
-        FormatTextPoint( x, y );
-        Rect r( x, y, x + 200, y + 70 );
-
         char str[ MAX_FOTEXT ];
         uint color;
 
@@ -1829,6 +1828,16 @@ void CritterCl::DrawTextOnHead()
                 }
             }
         }
+
+        int text_height = SprMngr.GetLinesHeight( CRITTER_ON_HEAD_TEXT_WIDTH, 0, str );
+        if( text_height <= 0 )
+            text_height = SprMngr.GetLineHeight();
+
+        Rect tr = GetTextRect();
+        int  x = (int) ( (float) ( tr.L + tr.W() / 2 + GameOpt.ScrOx ) / GameOpt.SpritesZoom - CRITTER_ON_HEAD_TEXT_WIDTH / 2.0f );
+        int  y = (int) ( (float) ( tr.T + GameOpt.ScrOy ) / GameOpt.SpritesZoom - text_height );
+        FormatTextPoint( x, y );
+        Rect r( x, y, x + CRITTER_ON_HEAD_TEXT_WIDTH, y + text_height );
 
         if( fadingEnable )
         {
