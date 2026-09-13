@@ -332,6 +332,7 @@ public:
 
     bool DrawSprite( uint id, int x, int y, uint color = 0 );
     bool DrawSpritePattern( uint id, int x, int y, int w, int h, int spr_width = 0, int spr_height = 0, uint color = 0 );
+    bool DrawSpriteNinePatch( uint id, const Rect& rect, int left, int top, int right, int bottom, uint color = 0 );
     bool DrawSpriteSize( uint id, int x, int y, float w, float h, bool stretch_up, bool center, uint color = 0 );
     bool DrawSprites( Sprites& dtree, bool collect_contours, bool use_egg, int draw_oder_from, int draw_oder_to, TextureSampling sampling = TEXTURE_SAMPLING_INHERIT );
     bool DrawPoints( PointVec& points, int prim, float* zoom = NULL, RectF* stencil = NULL, PointF* offset = NULL, Effect* effect = NULL );

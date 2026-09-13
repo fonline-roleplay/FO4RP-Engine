@@ -1142,8 +1142,7 @@ void FOClient::ParseKeyboard()
                 MessBoxGenerate();
                 break;
             case DIK_F5:
-                IntAddMess = !IntAddMess;
-                MessBoxGenerate();
+                MessBoxToggleLock();
                 break;
             #ifndef FORP_ENGINE
             case DIK_F6:
@@ -1422,6 +1421,7 @@ void FOClient::ParseMouse()
     {
 		MainWindowMouseEvents.clear();
         IfaceHold = IFACE_NONE;
+        MessBoxEditMode = 0;
         Timer::StartAccelerator( ACCELERATE_NONE );
         if( Script::PrepareContext( ClientFunctions.InputLost, _FUNC_, "Game" ) )
             Script::RunPrepared();
@@ -1508,6 +1508,8 @@ void FOClient::ParseMouse()
     {
         old_cur_x = GameOpt.MouseX;
         old_cur_y = GameOpt.MouseY;
+
+        MessBoxMouseMove();
 
         if( GetActiveScreen() )
         {
@@ -1737,6 +1739,13 @@ void FOClient::ParseMouse()
                 script_result = Script::GetReturnedBool();
         }
 
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON_LEFT && MessBoxEditMode )
+        {
+            MessBoxLMouseUp();
+            Timer::StartAccelerator( ACCELERATE_NONE );
+            continue;
+        }
+
         if( script_result || GameOpt.DisableMouseEvents )
             continue;
         if( IsCurMode( CUR_WAIT ) )
@@ -1752,6 +1761,13 @@ void FOClient::ParseMouse()
         // Left Button Down
         if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON_LEFT )
         {
+            if( MessBoxLMouseDown() )
+            {
+                if( !MessBoxEditMode )
+                    Timer::StartAccelerator( ACCELERATE_MESSBOX );
+                continue;
+            }
+
             if( GetActiveScreen() )
             {
                 switch( GetActiveScreen() )
@@ -1857,14 +1873,19 @@ void FOClient::ParseMouse()
                 }
             }
 
-            if( MessBoxLMouseDown() )
-                Timer::StartAccelerator( ACCELERATE_MESSBOX );
             continue;
         }
 
         // Left Button Up
         if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON_LEFT)
         {
+            if( MessBoxEditMode )
+            {
+                MessBoxLMouseUp();
+                Timer::StartAccelerator( ACCELERATE_NONE );
+                continue;
+            }
+
             if( GetActiveScreen() )
             {
                 switch( GetActiveScreen() )
@@ -2108,6 +2129,9 @@ void FOClient::ProcessMouseWheel( int data )
         Rect r = MessBoxCurRectDraw();
         if( !r.IsZero() && IsCurInRect( r ) )
         {
+            if( MessBoxUnlocked && IsMainScreen( SCREEN_GAME ) )
+                return;
+
             if( data > 0 )
             {
                 if( GameOpt.MsgboxInvert && MessBoxScroll > 0 )
@@ -7035,8 +7059,6 @@ void FOClient::SetGameColor( uint color )
 bool FOClient::IsCurInInterface()
 {
     if( IntVisible && IsCurInRectNoTransp( IntMainPic->GetCurSprId(), IntWMain, 0, 0 ) )
-        return true;
-    if( IntVisible && IntAddMess && IsCurInRectNoTransp( IntPWAddMess->GetCurSprId(), IntWAddMess, 0, 0 ) )
         return true;
     // if( ConsoleActive && IsCurInRectNoTransp( ConsolePic, Main, 0, 0 ) ) // Todo: need check console?
     return false;
@@ -12210,11 +12232,6 @@ ScriptString* FOClient::SScriptFunc::Global_CustomCall( ScriptString& command, S
     else if( cmd == "SwitchIntVisible" )
     {
         Self->IntVisible = !Self->IntVisible;
-        Self->MessBoxGenerate();
-    }
-    else if( cmd == "SwitchIntAddMess" )
-    {
-        Self->IntAddMess = !Self->IntAddMess;
         Self->MessBoxGenerate();
     }
     else if( cmd == "SwitchShowTrack" )

@@ -3484,6 +3484,73 @@ bool SpriteManager::DrawSpritePattern( uint id, int x, int y, int w, int h, int 
     return true;
 }
 
+bool SpriteManager::DrawSpriteNinePatch( uint id, const Rect& rect, int left, int top, int right, int bottom, uint color /* = 0 */ )
+{
+    if( !id || rect.IsZero() )
+        return false;
+
+    SpriteInfo* si = sprData[ id ];
+    if( !si || si->Anim3d || left < 0 || top < 0 || right < 0 || bottom < 0 ||
+        left + right > si->Width || top + bottom > si->Height )
+        return false;
+
+    const float dst_width = (float) rect.W();
+    const float dst_height = (float) rect.H();
+    if( dst_width < left + right || dst_height < top + bottom )
+        return false;
+
+    if( !color )
+        color = COLOR_IFACE;
+
+    const float x[ 4 ] = { (float) rect.L, (float) rect.L + left, (float) rect.R + 1.0f - right, (float) rect.R + 1.0f };
+    const float y[ 4 ] = { (float) rect.T, (float) rect.T + top, (float) rect.B + 1.0f - bottom, (float) rect.B + 1.0f };
+    const float du = ( si->SprRect.R - si->SprRect.L ) / si->Width;
+    const float dv = ( si->SprRect.B - si->SprRect.T ) / si->Height;
+    const float u[ 4 ] = { si->SprRect.L, si->SprRect.L + du * left, si->SprRect.R - du * right, si->SprRect.R };
+    const float v[ 4 ] = { si->SprRect.T, si->SprRect.T + dv * top, si->SprRect.B - dv * bottom, si->SprRect.B };
+    Effect* effect = ( si->DrawEffect ? si->DrawEffect : Effect::Iface );
+
+    for( int row = 0; row < 3; row++ )
+    {
+        for( int column = 0; column < 3; column++ )
+        {
+            if( x[ column ] == x[ column + 1 ] || y[ row ] == y[ row + 1 ] )
+                continue;
+
+            if( dipQueue.empty() || dipQueue.back().SourceTexture != si->Surf->TextureOwner || dipQueue.back().SourceEffect->Id != effect->Id )
+                dipQueue.push_back( DipData( si->Surf->TextureOwner, effect ) );
+            else
+                dipQueue.back().SpritesCount++;
+
+            int mulpos = curSprCnt * 4;
+            vBuffer[ mulpos ].x = x[ column ];
+            vBuffer[ mulpos ].y = y[ row + 1 ];
+            vBuffer[ mulpos ].tu = u[ column ];
+            vBuffer[ mulpos ].tv = v[ row + 1 ];
+            vBuffer[ mulpos++ ].diffuse = color;
+            vBuffer[ mulpos ].x = x[ column ];
+            vBuffer[ mulpos ].y = y[ row ];
+            vBuffer[ mulpos ].tu = u[ column ];
+            vBuffer[ mulpos ].tv = v[ row ];
+            vBuffer[ mulpos++ ].diffuse = color;
+            vBuffer[ mulpos ].x = x[ column + 1 ];
+            vBuffer[ mulpos ].y = y[ row ];
+            vBuffer[ mulpos ].tu = u[ column + 1 ];
+            vBuffer[ mulpos ].tv = v[ row ];
+            vBuffer[ mulpos++ ].diffuse = color;
+            vBuffer[ mulpos ].x = x[ column + 1 ];
+            vBuffer[ mulpos ].y = y[ row + 1 ];
+            vBuffer[ mulpos ].tu = u[ column + 1 ];
+            vBuffer[ mulpos ].tv = v[ row + 1 ];
+            vBuffer[ mulpos ].diffuse = color;
+
+            if( ++curSprCnt == flushSprCnt )
+                Flush();
+        }
+    }
+    return true;
+}
+
 #pragma MESSAGE("Add 3d auto scaling.")
 bool SpriteManager::DrawSpriteSize( uint id, int x, int y, float w, float h, bool stretch_up, bool center, uint color /* = 0 */ )
 {

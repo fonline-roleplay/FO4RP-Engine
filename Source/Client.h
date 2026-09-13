@@ -823,17 +823,17 @@ public:
 /************************************************************************/
 /* Main iface                                                           */
 /************************************************************************/
-    AnyFrames* IntMainPic, * IntPWAddMess, * IntPBAddMessDn, * IntPBMessFilter1Dn, * IntPBMessFilter2Dn, * IntPBMessFilter3Dn,
+    AnyFrames* IntMainPic, * MessBoxBackgroundPic, * IntPBMessFilter1Dn, * IntPBMessFilter2Dn, * IntPBMessFilter3Dn,
     * IntPBScrUpDn, * IntPBScrDnDn, * IntPBSlotsDn,
     * IntPBInvDn, * IntPBMenuDn, * IntPBSkillDn, * IntPBMapDn, * IntPBChaDn, * IntPBPipDn,
     * IntDiodeG, * IntDiodeY, * IntDiodeR, * IntBreakTimePic, * IntWApCostPicNone;
 
     int        IntX, IntY;
-    bool       IntVisible, IntAddMess;
-    Rect       IntWMain, IntWAddMess, IntBAddMess, IntBMessFilter1, IntBMessFilter2, IntBMessFilter3;
+    bool       IntVisible;
+    Rect       IntWMain, IntBMessFilter1, IntBMessFilter2, IntBMessFilter3;
     Rect       IntBItem, IntWApCost;
     Rect       IntBChangeSlot, IntBInv, IntBMenu, IntBSkill, IntBMap, IntBChar, IntBPip;
-    Rect       IntWMess, IntWMessLarge;
+    Rect       IntWMess;
     Rect       IntAP, IntHP, IntAC, IntBreakTime;
     int        IntAPstepX, IntAPstepY, IntAPMax;
     AnyFrames* IntBItemPicDn;
@@ -1698,13 +1698,24 @@ public:
     string            MessBoxCurText;
     int               MessBoxScroll, MessBoxMaxScroll, MessBoxScrollLines;
     IntVec            MessBoxFilters;
+    bool              MessBoxUnlocked;
+    bool              MessBoxRectInitialized;
+    Rect              MessBoxRect;
+    int               MessBoxEditMode;
+    int               MessBoxEditMouseX, MessBoxEditMouseY;
+    Rect              MessBoxEditStartRect;
 
     void MessBoxGenerate();
     void AddMess( int mess_type, const char* msg );
     void MessBoxDraw();
+    void MessBoxDrawEditor();
     Rect MessBoxCurRectDraw();
     Rect MessBoxCurRectScroll();
     bool MessBoxLMouseDown();
+    void MessBoxLMouseUp();
+    void MessBoxMouseMove();
+    void MessBoxToggleLock();
+    void MessBoxSaveRect();
 
 /************************************************************************/
 /*                                                                      */
@@ -1854,7 +1865,7 @@ public:
 #define IFACE_INT_CHAR                 ( 7 )
 #define IFACE_INT_PIP                  ( 8 )
 #define IFACE_INT_UNUSED               ( 9 )
-#define IFACE_INT_ADDMESS              ( 10 )
+#define IFACE_INT_UNUSED2              ( 10 )
 #define IFACE_INT_FILTER1              ( 11 )
 #define IFACE_INT_FILTER2              ( 12 )
 #define IFACE_INT_FILTER3              ( 13 )

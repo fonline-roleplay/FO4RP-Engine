@@ -252,8 +252,6 @@ int FOClient::InitIface()
     }
     IntY = GameOpt.ScreenHeight - IntWMain.B;
     IfaceLoadRect2( IntWMain, "IntMain", IntX, IntY );
-    IfaceLoadRect2( IntWAddMess, "IntAddMessWindow", IntX, IntY );
-    IfaceLoadRect2( IntBAddMess, "IntAddMess", IntX, IntY );
     IfaceLoadRect2( IntBMessFilter1, "IntMessFilter1", IntX, IntY );
     IfaceLoadRect2( IntBMessFilter2, "IntMessFilter2", IntX, IntY );
     IfaceLoadRect2( IntBMessFilter3, "IntMessFilter3", IntX, IntY );
@@ -266,7 +264,6 @@ int FOClient::InitIface()
     IfaceLoadRect2( IntBChar, "IntCha", IntX, IntY );
     IfaceLoadRect2( IntBPip, "IntPip", IntX, IntY );
     IfaceLoadRect2( IntWMess, "IntMess", IntX, IntY );
-    IfaceLoadRect2( IntWMessLarge, "IntMessLarge", IntX, IntY );
     IfaceLoadRect2( IntHP, "IntHp", IntX, IntY );
     IfaceLoadRect2( IntAC, "IntAc", IntX, IntY );
     IfaceLoadRect2( IntAP, "IntAp", IntX, IntY );
@@ -285,11 +282,32 @@ int FOClient::InitIface()
     IfaceLoadRect2( IntWAmmoCountStr, "IntAmmoCountText", IntX, IntY );
     IfaceLoadRect2( IntWWearProcentStr, "IntWearProcentText", IntX, IntY );
     IntVisible = true;
-    IntAddMess = false;
     MessBoxFilters.clear();
     MessBoxScroll = 0;
     MessBoxMaxScroll = 0;
     MessBoxScrollLines = 0;
+    MessBoxUnlocked = false;
+    MessBoxRectInitialized = false;
+    MessBoxEditMode = 0;
+    char saved_messbox_rect[ 128 ];
+    IniParser& client_cfg = IniParser::GetClientConfig();
+    if( client_cfg.GetStr( "ChatRect", "", saved_messbox_rect ) )
+    {
+        int left, top, right, bottom;
+        if( sscanf( saved_messbox_rect, "%d %d %d %d", &left, &top, &right, &bottom ) == 4 )
+        {
+            Rect saved_rect( left, top, right, bottom );
+            if( saved_rect.W() >= 200 && saved_rect.H() >= 60 && saved_rect.W() <= GameOpt.ScreenWidth && saved_rect.H() <= GameOpt.ScreenHeight )
+            {
+                saved_rect.L = CLAMP( saved_rect.L, 0, GameOpt.ScreenWidth - saved_rect.W() );
+                saved_rect.T = CLAMP( saved_rect.T, 0, GameOpt.ScreenHeight - saved_rect.H() );
+                saved_rect.R = saved_rect.L + ( right - left );
+                saved_rect.B = saved_rect.T + ( bottom - top );
+                MessBoxRect = saved_rect;
+                MessBoxRectInitialized = true;
+            }
+        }
+    }
     IntBItemOffsX = IfaceIni.GetInt( "IntItemOffsX", 0 );
     IntBItemOffsY = IfaceIni.GetInt( "IntItemOffsY", -2 );
     IntAimX = IfaceIni.GetInt( "IntAimX", 0 );
@@ -952,8 +970,9 @@ int FOClient::InitIface()
     SprMngr.SurfType = RES_NONE;
 
     // Interface
-    IfaceLoadSpr( IntPWAddMess, "IntAddMessWindowPic" );
-    IfaceLoadSpr( IntPBAddMessDn, "IntAddMessPicDn" );
+    SprMngr.SurfType = RES_IFACE;
+    IntMessBoxBack = SprMngr.LoadAnimation( "main/iface_add_mess.png", PT_ART_INTRFACE, ANIM_USE_DUMMY );
+    SprMngr.SurfType = RES_NONE;
     IfaceLoadSpr( IntPBMessFilter1Dn, "IntMessFilter1PicDn" );
     IfaceLoadSpr( IntPBMessFilter2Dn, "IntMessFilter2PicDn" );
     IfaceLoadSpr( IntPBMessFilter3Dn, "IntMessFilter3PicDn" );
@@ -2098,9 +2117,9 @@ void FOClient::ConsoleDraw()
     if( ConsoleActive && is_game_screen )
     {
         if( IsMainScreen( SCREEN_GAME ) )
-            SprMngr.DrawSprite( ConsolePic, IntX + ConsolePicX, ( IntVisible ? ( IntAddMess ? IntWAddMess[ 1 ] : IntY ) : GameOpt.ScreenHeight ) + ConsolePicY );
+            SprMngr.DrawSprite( ConsolePic, IntX + ConsolePicX, ( IntVisible ? IntY : GameOpt.ScreenHeight ) + ConsolePicY );
 
-        Rect rect( IntX + ConsoleTextX, ( IntVisible ? ( IntAddMess ? IntWAddMess[ 1 ] : IntY ) : GameOpt.ScreenHeight ) + ConsoleTextY, GameOpt.ScreenWidth, GameOpt.ScreenHeight );
+        Rect rect( IntX + ConsoleTextX, ( IntVisible ? IntY : GameOpt.ScreenHeight ) + ConsoleTextY, GameOpt.ScreenWidth, GameOpt.ScreenHeight );
         if( IsMainScreen( SCREEN_GLOBAL_MAP ) )
             rect = GmapWPanel;
 
@@ -2684,8 +2703,7 @@ void FOClient::GameRMouseDown()
 {
     IfaceHold = IFACE_NONE;
 
-    if( !( IntVisible && ( ( IsCurInRect( IntWMain ) && SprMngr.IsPixNoTransp( IntMainPic->GetCurSprId(), GameOpt.MouseX - IntWMain[ 0 ], GameOpt.MouseY - IntWMain[ 1 ], false ) ) ||
-                           ( IntAddMess && IsCurInRect( IntWAddMess ) && SprMngr.IsPixNoTransp( IntPWAddMess->GetCurSprId(), GameOpt.MouseX - IntWAddMess[ 0 ], GameOpt.MouseY - IntWAddMess[ 1 ], false ) ) ) ) )
+    if( !( IntVisible && IsCurInRect( IntWMain ) && SprMngr.IsPixNoTransp( IntMainPic->GetCurSprId(), GameOpt.MouseX - IntWMain[ 0 ], GameOpt.MouseY - IntWMain[ 1 ], false ) ) )
         IfaceHold = IFACE_GAME_MNEXT;
 
 	if(GameOpt.NoobCursor)
@@ -2762,12 +2780,6 @@ void FOClient::IntDraw()
     SprMngr.DrawSprite( IntMainPic, IntX, IntY );
     SprMngr.DrawSprite( AnimGetCurSpr( IntWCombatAnim ), IntWCombat[ 0 ], IntWCombat[ 1 ] );
 
-    if( IntAddMess )
-    {
-        SprMngr.DrawSprite( IntPWAddMess, IntWAddMess[ 0 ], IntWAddMess[ 1 ] );
-        SprMngr.DrawSprite( IntPBAddMessDn, IntBAddMess[ 0 ], IntBAddMess[ 1 ] );
-    }
-
     if( std::find( MessBoxFilters.begin(), MessBoxFilters.end(), FOMB_COMBAT_RESULT ) != MessBoxFilters.end() )
         SprMngr.DrawSprite( IntPBMessFilter1Dn, IntBMessFilter1[ 0 ], IntBMessFilter1[ 1 ] );
     if( std::find( MessBoxFilters.begin(), MessBoxFilters.end(), FOMB_TALK ) != MessBoxFilters.end() )
@@ -2800,9 +2812,6 @@ void FOClient::IntDraw()
         break;
     case IFACE_INT_ITEM:
         SprMngr.DrawSprite( IntBItemPicDn, IntBItem[ 0 ], IntBItem[ 1 ] );
-        break;
-    case IFACE_INT_ADDMESS:
-        SprMngr.DrawSprite( IntPBAddMessDn, IntBAddMess[ 0 ], IntBAddMess[ 1 ] );
         break;
     case IFACE_INT_FILTER1:
         SprMngr.DrawSprite( IntPBMessFilter1Dn, IntBMessFilter1[ 0 ], IntBMessFilter1[ 1 ] );
@@ -2968,8 +2977,6 @@ int FOClient::IntLMouseDown()
         IfaceHold = IFACE_INT_CHAR;
     else if( IsCurInRect( IntBPip ) )
         IfaceHold = IFACE_INT_PIP;
-    else if( IsCurInRect( IntBAddMess ) )
-        IfaceHold = IFACE_INT_ADDMESS;
     else if( IsCurInRect( IntBMessFilter1 ) )
         IfaceHold = IFACE_INT_FILTER1;
     else if( IsCurInRect( IntBMessFilter2 ) )
@@ -2981,8 +2988,6 @@ int FOClient::IntLMouseDown()
     else if( IsCurInRect( IntBCombatEnd ) && IsTurnBased )
         IfaceHold = IFACE_INT_COMBAT_END;
     else if( IsCurInRectNoTransp( IntMainPic->GetCurSprId(), IntWMain, 0, 0 ) )
-        IfaceHold = IFACE_INT_MAIN;
-    else if( IntAddMess && IsCurInRectNoTransp( IntPWAddMess->GetCurSprId(), IntWAddMess, 0, 0 ) )
         IfaceHold = IFACE_INT_MAIN;
 
     return IfaceHold;
@@ -3054,11 +3059,6 @@ void FOClient::IntLMouseUp()
             else
                 TimerStart( Chosen->ItemSlotMain->GetId(), ResMngr.GetInvAnim( Chosen->ItemSlotMain->GetPicInv() ), Chosen->ItemSlotMain->GetInvColor() );
         }
-    }
-    else if( IfaceHold == IFACE_INT_ADDMESS && IsCurInRect( IntBAddMess ) )
-    {
-        IntAddMess = !IntAddMess;
-        MessBoxGenerate();
     }
     else if( IfaceHold == IFACE_INT_FILTER1 && IsCurInRect( IntBMessFilter1 ) )
     {
@@ -3206,9 +3206,6 @@ void FOClient::MessBoxGenerate()
 
 void FOClient::MessBoxDraw()
 {
-    if( MessBoxCurText.empty() )
-        return;
-
     uint flags = 0;
     if( !GameOpt.MsgboxInvert )
         flags |= FT_UPPER | FT_BOTTOM;
@@ -3217,7 +3214,41 @@ void FOClient::MessBoxDraw()
     if( ir.IsZero() )
         return;
 
-    SprMngr.DrawStr( ir, MessBoxCurText.c_str(), flags | ( GameOpt.MsgboxInvert ? FT_SKIPLINES( MessBoxScrollLines ) : FT_SKIPLINES_END( MessBoxScrollLines ) ), 0, ( GameOpt.NewChatFont ? FONT_CHAT : FONT_DEFAULT ) );
+    if( IsMainScreen( SCREEN_GAME ) && IntMessBoxBack && IntMessBoxBack != SpriteManager::DummyAnimation )
+    {
+        const Rect background( ir.L - 8, ir.T - 12, ir.R + 5, ir.B + 10 );
+        SprMngr.DrawSpriteNinePatch( IntMessBoxBack->GetCurSprId(), background, 8, 12, 5, 10 );
+    }
+
+    if( !MessBoxCurText.empty() )
+        SprMngr.DrawStr( ir, MessBoxCurText.c_str(), flags | ( GameOpt.MsgboxInvert ? FT_SKIPLINES( MessBoxScrollLines ) : FT_SKIPLINES_END( MessBoxScrollLines ) ), 0, ( GameOpt.NewChatFont ? FONT_CHAT : FONT_DEFAULT ) );
+
+    MessBoxDrawEditor();
+}
+
+void FOClient::MessBoxDrawEditor()
+{
+    if( !MessBoxUnlocked || !MessBoxRectInitialized || !IsMainScreen( SCREEN_GAME ) )
+        return;
+
+    const Rect& r = MessBoxRect;
+    const uint color = COLOR_ARGB( 0xFF, 0xD0, 0xA0, 0x40 );
+    PointVec border;
+    border.reserve( 5 );
+    border.push_back( PrepPoint( r.L, r.T, color ) );
+    border.push_back( PrepPoint( r.R, r.T, color ) );
+    border.push_back( PrepPoint( r.R, r.B, color ) );
+    border.push_back( PrepPoint( r.L, r.B, color ) );
+    border.push_back( PrepPoint( r.L, r.T, color ) );
+    SprMngr.DrawPoints( border, PRIMITIVE_LINESTRIP );
+
+    PointVec handle;
+    handle.reserve( 4 );
+    handle.push_back( PrepPoint( r.R - 10, r.B, color ) );
+    handle.push_back( PrepPoint( r.R, r.B - 10, color ) );
+    handle.push_back( PrepPoint( r.R - 6, r.B, color ) );
+    handle.push_back( PrepPoint( r.R, r.B - 6, color ) );
+    SprMngr.DrawPoints( handle, PRIMITIVE_LINELIST );
 }
 
 Rect FOClient::MessBoxCurRectDraw()
@@ -3232,10 +3263,9 @@ Rect FOClient::MessBoxCurRectDraw()
         return GmapWChat;
     else if( IsMainScreen( SCREEN_GAME ) && IntVisible && !IsScreenPresent( SCREEN__TOWN_VIEW ) )
     {
-        if( IntAddMess )
-            return IntWMessLarge;
-        else
-            return IntWMess;
+        if( MessBoxRectInitialized )
+            return MessBoxRect;
+        return IntWMess;
     }
 
     return r( 0, 0, 0, 0 );
@@ -3256,10 +3286,9 @@ Rect FOClient::MessBoxCurRectScroll()
             return GmapWChat;
         else if( IsMainScreen( SCREEN_GAME ) && IntVisible && !IsScreenPresent( SCREEN__TOWN_VIEW ) )
         {
-            if( IntAddMess )
-                return IntWMessLarge;
-            else
-                return IntWMess;
+            if( MessBoxRectInitialized )
+                return MessBoxRect;
+            return IntWMess;
         }
     }
 
@@ -3271,6 +3300,19 @@ bool FOClient::MessBoxLMouseDown()
     Rect rmb = MessBoxCurRectScroll();
     if( !rmb.IsZero() && IsCurInRect( rmb ) )
     {
+        if( MessBoxUnlocked && IsMainScreen( SCREEN_GAME ) )
+        {
+            if( IsCurInRect( Rect( rmb.R - 12, rmb.B - 12, rmb.R, rmb.B ) ) )
+                MessBoxEditMode = 2;
+            else
+                MessBoxEditMode = 1;
+
+            MessBoxEditMouseX = GameOpt.MouseX;
+            MessBoxEditMouseY = GameOpt.MouseY;
+            MessBoxEditStartRect = MessBoxRect;
+            return true;
+        }
+
         if( IsCurInRect( Rect( rmb.L, rmb.T, rmb.R, rmb.CY() ) ) )
         {
             if( GameOpt.MsgboxInvert && MessBoxScroll > 0 )
@@ -3290,6 +3332,72 @@ bool FOClient::MessBoxLMouseDown()
         return true;
     }
     return false;
+}
+
+void FOClient::MessBoxLMouseUp()
+{
+    if( MessBoxEditMode )
+        MessBoxSaveRect();
+    MessBoxEditMode = 0;
+}
+
+void FOClient::MessBoxMouseMove()
+{
+    if( !MessBoxEditMode || !MessBoxUnlocked || !MessBoxRectInitialized )
+        return;
+
+    const int dx = GameOpt.MouseX - MessBoxEditMouseX;
+    const int dy = GameOpt.MouseY - MessBoxEditMouseY;
+    if( MessBoxEditMode == 1 )
+    {
+        const int width = MessBoxEditStartRect.W();
+        const int height = MessBoxEditStartRect.H();
+        MessBoxRect.L = CLAMP( MessBoxEditStartRect.L + dx, 0, GameOpt.ScreenWidth - width );
+        MessBoxRect.T = CLAMP( MessBoxEditStartRect.T + dy, 0, GameOpt.ScreenHeight - height );
+        MessBoxRect.R = MessBoxRect.L + width - 1;
+        MessBoxRect.B = MessBoxRect.T + height - 1;
+    }
+    else if( MessBoxEditMode == 2 )
+    {
+        MessBoxRect.R = CLAMP( MessBoxEditStartRect.R + dx, MessBoxRect.L + 199, GameOpt.ScreenWidth - 1 );
+        MessBoxRect.B = CLAMP( MessBoxEditStartRect.B + dy, MessBoxRect.T + 59, GameOpt.ScreenHeight - 1 );
+    }
+
+    MessBoxGenerate();
+}
+
+void FOClient::MessBoxToggleLock()
+{
+    if( !IsMainScreen( SCREEN_GAME ) )
+        return;
+
+    if( !MessBoxRectInitialized )
+    {
+        MessBoxRect = IntWMess;
+        MessBoxRectInitialized = !MessBoxRect.IsZero();
+    }
+
+    if( MessBoxRectInitialized )
+    {
+        if( MessBoxUnlocked )
+            MessBoxSaveRect();
+        MessBoxUnlocked = !MessBoxUnlocked;
+    }
+    MessBoxEditMode = 0;
+    MessBoxGenerate();
+}
+
+void FOClient::MessBoxSaveRect()
+{
+    if( !MessBoxRectInitialized )
+        return;
+
+    IniParser& client_cfg = IniParser::GetClientConfig();
+    if( client_cfg.IsLoaded() )
+    {
+        client_cfg.SetStr( "ChatRect", Str::FormatBuf( "%d %d %d %d", MessBoxRect.L, MessBoxRect.T, MessBoxRect.R, MessBoxRect.B ) );
+        client_cfg.SaveFile( IniParser::GetConfigFileName(), PT_ROOT );
+    }
 }
 
 // ==============================================================================================================================
@@ -4677,8 +4785,6 @@ void FOClient::LMenuCollect()
             if( IntVisible )
             {
                 if( IsCurInRectNoTransp( IntMainPic->GetCurSprId(), IntWMain, 0, 0 ) )
-                    break;
-                if( IntAddMess && IsCurInRectNoTransp( IntPWAddMess->GetCurSprId(), IntWAddMess, 0, 0 ) )
                     break;
             }
 
