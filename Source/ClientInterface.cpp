@@ -288,7 +288,7 @@ int FOClient::InitIface()
     MessBoxScrollLines = 0;
     MessBoxUnlocked = false;
     MessBoxRectInitialized = false;
-    MessBoxEditMode = 0;
+    MessBoxEditMode = MESSBOX_EDIT_NONE;
     char saved_messbox_rect[ 128 ];
     IniParser& client_cfg = IniParser::GetClientConfig();
     if( client_cfg.GetStr( "ChatRect", "", saved_messbox_rect ) )
@@ -2114,18 +2114,11 @@ void FOClient::ConsoleDraw()
         SprMngr.DrawStr( Rect( 0, 20, GameOpt.ScreenWidth, GameOpt.ScreenHeight ), MsgGame->GetStr( STR_GAME_PAUSED ), FT_CENTERX, COLOR_TEXT_DRED, FONT_BIG );
 
     // Console
-    if( ConsoleActive && is_game_screen )
+    if( ConsoleActive && IsMainScreen( SCREEN_GLOBAL_MAP ) )
     {
-        if( IsMainScreen( SCREEN_GAME ) )
-            SprMngr.DrawSprite( ConsolePic, IntX + ConsolePicX, ( IntVisible ? IntY : GameOpt.ScreenHeight ) + ConsolePicY );
-
-        Rect rect( IntX + ConsoleTextX, ( IntVisible ? IntY : GameOpt.ScreenHeight ) + ConsoleTextY, GameOpt.ScreenWidth, GameOpt.ScreenHeight );
-        if( IsMainScreen( SCREEN_GLOBAL_MAP ) )
-            rect = GmapWPanel;
-
         char* buf = (char*) Str::FormatBuf( "%s", ConsoleStr.c_str() );
         Str::Insert( &buf[ ConsoleCur ], Timer::FastTick() % 800 < 400 ? "!" : "." );
-        SprMngr.DrawStr( rect, buf, FT_NOBREAK );
+        SprMngr.DrawStr( GmapWPanel, buf, FT_NOBREAK );
     }
 
     // Help info
@@ -2199,12 +2192,14 @@ void FOClient::ConsoleKeyDown( uchar dik, const char* dik_text )
             ConsoleStr = "";
             ConsoleCur = 0;
             ConsoleHistoryCur = (int) ConsoleHistory.size();
+            MessBoxGenerate();
             return;
         }
 
         if( ConsoleStr.empty() )
         {
             ConsoleActive = false;
+            MessBoxGenerate();
             return;
         }
 
@@ -2230,6 +2225,7 @@ void FOClient::ConsoleKeyDown( uchar dik, const char* dik_text )
 
         ConsoleStr = "";
         ConsoleCur = 0;
+        MessBoxGenerate();
     }
 
     if( !ConsoleActive )
@@ -2243,6 +2239,7 @@ void FOClient::ConsoleKeyDown( uchar dik, const char* dik_text )
         ConsoleHistoryCur--;
         ConsoleStr = ConsoleHistory[ ConsoleHistoryCur ];
         ConsoleCur = (uint) ConsoleStr.length();
+        MessBoxGenerate();
         return;
     case DIK_DOWN:
         if( ConsoleHistoryCur + 1 >= (int) ConsoleHistory.size() )
@@ -2250,14 +2247,17 @@ void FOClient::ConsoleKeyDown( uchar dik, const char* dik_text )
             ConsoleHistoryCur = (int) ConsoleHistory.size();
             ConsoleStr = "";
             ConsoleCur = 0;
+            MessBoxGenerate();
             return;
         }
         ConsoleHistoryCur++;
         ConsoleStr = ConsoleHistory[ ConsoleHistoryCur ];
         ConsoleCur = (uint) ConsoleStr.length();
+        MessBoxGenerate();
         return;
     default:
         Keyb::GetChar( dik, dik_text, ConsoleStr, &ConsoleCur, MAX_CHAT_MESSAGE, KIF_NO_SPEC_SYMBOLS );
+        MessBoxGenerate();
         if( dik == DIK_PAUSE )
             break;
         ConsoleLastKey = dik;
@@ -2275,7 +2275,10 @@ void FOClient::ConsoleKeyUp( uchar key )
 void FOClient::ConsoleProcess()
 {
     if( ConsoleLastKey && Timer::ProcessAccelerator( ACCELERATE_CONSOLE ) )
+    {
         Keyb::GetChar( ConsoleLastKey, ConsoleLastKeyText.c_str(), ConsoleStr, &ConsoleCur, MAX_CHAT_MESSAGE, KIF_NO_SPEC_SYMBOLS );
+        MessBoxGenerate();
+    }
 }
 
 // ==============================================================================================================================
@@ -3156,7 +3159,7 @@ void FOClient::MessBoxGenerate()
     if( MessBox.empty() )
         return;
 
-    Rect ir = MessBoxCurRectDraw();
+    Rect ir = MessBoxCurRectText();
     int max_lines = SprMngr.GetLinesCount( 0, ir.H(), NULL, ( GameOpt.NewChatFont ? FONT_CHAT : FONT_DEFAULT ) );
 
     if( ir.IsZero() || max_lines <= 0 )
@@ -3210,18 +3213,28 @@ void FOClient::MessBoxDraw()
     if( !GameOpt.MsgboxInvert )
         flags |= FT_UPPER | FT_BOTTOM;
 
-    Rect ir = MessBoxCurRectDraw();
+    const Rect chat_rect = MessBoxCurRectDraw();
+    Rect ir = MessBoxCurRectText();
     if( ir.IsZero() )
         return;
 
     if( IsMainScreen( SCREEN_GAME ) && IntMessBoxBack && IntMessBoxBack != SpriteManager::DummyAnimation )
     {
-        const Rect background( ir.L - 8, ir.T - 12, ir.R + 5, ir.B + 10 );
+        const Rect background( chat_rect.L - 8, chat_rect.T - 12, chat_rect.R + 5, chat_rect.B + 10 );
         SprMngr.DrawSpriteNinePatch( IntMessBoxBack->GetCurSprId(), background, 8, 12, 5, 10 );
     }
 
     if( !MessBoxCurText.empty() )
         SprMngr.DrawStr( ir, MessBoxCurText.c_str(), flags | ( GameOpt.MsgboxInvert ? FT_SKIPLINES( MessBoxScrollLines ) : FT_SKIPLINES_END( MessBoxScrollLines ) ), 0, ( GameOpt.NewChatFont ? FONT_CHAT : FONT_DEFAULT ) );
+
+    if( ConsoleActive && IsMainScreen( SCREEN_GAME ) )
+    {
+        const int font = ( GameOpt.NewChatFont ? FONT_CHAT : FONT_DEFAULT );
+        const Rect input_rect = MessBoxCurRectInput();
+        char* buf = (char*) Str::FormatBuf( "%s", ConsoleStr.c_str() );
+        Str::Insert( &buf[ ConsoleCur ], Timer::FastTick() % 800 < 400 ? "!" : "." );
+        SprMngr.DrawStr( input_rect, buf, 0, 0, font );
+    }
 
     MessBoxDrawEditor();
 }
@@ -3243,7 +3256,19 @@ void FOClient::MessBoxDrawEditor()
     SprMngr.DrawPoints( border, PRIMITIVE_LINESTRIP );
 
     PointVec handle;
-    handle.reserve( 4 );
+    handle.reserve( 16 );
+    handle.push_back( PrepPoint( r.L + 10, r.T, color ) );
+    handle.push_back( PrepPoint( r.L, r.T + 10, color ) );
+    handle.push_back( PrepPoint( r.L + 6, r.T, color ) );
+    handle.push_back( PrepPoint( r.L, r.T + 6, color ) );
+    handle.push_back( PrepPoint( r.R - 10, r.T, color ) );
+    handle.push_back( PrepPoint( r.R, r.T + 10, color ) );
+    handle.push_back( PrepPoint( r.R - 6, r.T, color ) );
+    handle.push_back( PrepPoint( r.R, r.T + 6, color ) );
+    handle.push_back( PrepPoint( r.L + 10, r.B, color ) );
+    handle.push_back( PrepPoint( r.L, r.B - 10, color ) );
+    handle.push_back( PrepPoint( r.L + 6, r.B, color ) );
+    handle.push_back( PrepPoint( r.L, r.B - 6, color ) );
     handle.push_back( PrepPoint( r.R - 10, r.B, color ) );
     handle.push_back( PrepPoint( r.R, r.B - 10, color ) );
     handle.push_back( PrepPoint( r.R - 6, r.B, color ) );
@@ -3269,6 +3294,36 @@ Rect FOClient::MessBoxCurRectDraw()
     }
 
     return r( 0, 0, 0, 0 );
+}
+
+Rect FOClient::MessBoxCurRectText()
+{
+    Rect r = MessBoxCurRectDraw();
+    if( ConsoleActive && IsMainScreen( SCREEN_GAME ) && !r.IsZero() )
+    {
+        r.B = MessBoxCurRectInput().T - 1;
+        if( r.B < r.T )
+            r.B = r.T;
+    }
+    return r;
+}
+
+Rect FOClient::MessBoxCurRectInput()
+{
+    Rect r = MessBoxCurRectDraw();
+    if( !ConsoleActive || !IsMainScreen( SCREEN_GAME ) || r.IsZero() )
+        return Rect( 0, 0, 0, 0 );
+
+    const int padding = 2;
+    const int font = ( GameOpt.NewChatFont ? FONT_CHAT : FONT_DEFAULT );
+    string input = ConsoleStr;
+    input.insert( ConsoleCur, "!" );
+    int text_height = SprMngr.GetLinesHeight( MAX( r.W() - padding * 2, 1 ), 0, input.c_str(), font );
+    if( text_height <= 0 )
+        text_height = SprMngr.GetLineHeight( font );
+
+    const int top = MAX( r.B - text_height - padding * 2 + 1, r.T );
+    return Rect( r.L + padding, top + padding, r.R - padding, r.B );
 }
 
 Rect FOClient::MessBoxCurRectScroll()
@@ -3302,10 +3357,16 @@ bool FOClient::MessBoxLMouseDown()
     {
         if( MessBoxUnlocked && IsMainScreen( SCREEN_GAME ) )
         {
-            if( IsCurInRect( Rect( rmb.R - 12, rmb.B - 12, rmb.R, rmb.B ) ) )
-                MessBoxEditMode = 2;
+            if( IsCurInRect( Rect( rmb.L, rmb.T, rmb.L + 12, rmb.T + 12 ) ) )
+                MessBoxEditMode = MESSBOX_EDIT_RESIZE_TOP_LEFT;
+            else if( IsCurInRect( Rect( rmb.R - 12, rmb.T, rmb.R, rmb.T + 12 ) ) )
+                MessBoxEditMode = MESSBOX_EDIT_RESIZE_TOP_RIGHT;
+            else if( IsCurInRect( Rect( rmb.L, rmb.B - 12, rmb.L + 12, rmb.B ) ) )
+                MessBoxEditMode = MESSBOX_EDIT_RESIZE_BOTTOM_LEFT;
+            else if( IsCurInRect( Rect( rmb.R - 12, rmb.B - 12, rmb.R, rmb.B ) ) )
+                MessBoxEditMode = MESSBOX_EDIT_RESIZE_BOTTOM_RIGHT;
             else
-                MessBoxEditMode = 1;
+                MessBoxEditMode = MESSBOX_EDIT_MOVE;
 
             MessBoxEditMouseX = GameOpt.MouseX;
             MessBoxEditMouseY = GameOpt.MouseY;
@@ -3336,19 +3397,19 @@ bool FOClient::MessBoxLMouseDown()
 
 void FOClient::MessBoxLMouseUp()
 {
-    if( MessBoxEditMode )
+    if( MessBoxEditMode != MESSBOX_EDIT_NONE )
         MessBoxSaveRect();
-    MessBoxEditMode = 0;
+    MessBoxEditMode = MESSBOX_EDIT_NONE;
 }
 
 void FOClient::MessBoxMouseMove()
 {
-    if( !MessBoxEditMode || !MessBoxUnlocked || !MessBoxRectInitialized )
+    if( MessBoxEditMode == MESSBOX_EDIT_NONE || !MessBoxUnlocked || !MessBoxRectInitialized )
         return;
 
     const int dx = GameOpt.MouseX - MessBoxEditMouseX;
     const int dy = GameOpt.MouseY - MessBoxEditMouseY;
-    if( MessBoxEditMode == 1 )
+    if( MessBoxEditMode == MESSBOX_EDIT_MOVE )
     {
         const int width = MessBoxEditStartRect.W();
         const int height = MessBoxEditStartRect.H();
@@ -3357,10 +3418,25 @@ void FOClient::MessBoxMouseMove()
         MessBoxRect.R = MessBoxRect.L + width - 1;
         MessBoxRect.B = MessBoxRect.T + height - 1;
     }
-    else if( MessBoxEditMode == 2 )
+    else if( MessBoxEditMode == MESSBOX_EDIT_RESIZE_TOP_LEFT )
     {
-        MessBoxRect.R = CLAMP( MessBoxEditStartRect.R + dx, MessBoxRect.L + 199, GameOpt.ScreenWidth - 1 );
-        MessBoxRect.B = CLAMP( MessBoxEditStartRect.B + dy, MessBoxRect.T + 59, GameOpt.ScreenHeight - 1 );
+        MessBoxRect.L = CLAMP( MessBoxEditStartRect.L + dx, 0, MessBoxEditStartRect.R - 199 );
+        MessBoxRect.T = CLAMP( MessBoxEditStartRect.T + dy, 0, MessBoxEditStartRect.B - 59 );
+    }
+    else if( MessBoxEditMode == MESSBOX_EDIT_RESIZE_TOP_RIGHT )
+    {
+        MessBoxRect.R = CLAMP( MessBoxEditStartRect.R + dx, MessBoxEditStartRect.L + 199, GameOpt.ScreenWidth - 1 );
+        MessBoxRect.T = CLAMP( MessBoxEditStartRect.T + dy, 0, MessBoxEditStartRect.B - 59 );
+    }
+    else if( MessBoxEditMode == MESSBOX_EDIT_RESIZE_BOTTOM_LEFT )
+    {
+        MessBoxRect.L = CLAMP( MessBoxEditStartRect.L + dx, 0, MessBoxEditStartRect.R - 199 );
+        MessBoxRect.B = CLAMP( MessBoxEditStartRect.B + dy, MessBoxEditStartRect.T + 59, GameOpt.ScreenHeight - 1 );
+    }
+    else if( MessBoxEditMode == MESSBOX_EDIT_RESIZE_BOTTOM_RIGHT )
+    {
+        MessBoxRect.R = CLAMP( MessBoxEditStartRect.R + dx, MessBoxEditStartRect.L + 199, GameOpt.ScreenWidth - 1 );
+        MessBoxRect.B = CLAMP( MessBoxEditStartRect.B + dy, MessBoxEditStartRect.T + 59, GameOpt.ScreenHeight - 1 );
     }
 
     MessBoxGenerate();
@@ -3383,7 +3459,7 @@ void FOClient::MessBoxToggleLock()
             MessBoxSaveRect();
         MessBoxUnlocked = !MessBoxUnlocked;
     }
-    MessBoxEditMode = 0;
+    MessBoxEditMode = MESSBOX_EDIT_NONE;
     MessBoxGenerate();
 }
 

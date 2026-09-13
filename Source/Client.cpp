@@ -1421,7 +1421,7 @@ void FOClient::ParseMouse()
     {
 		MainWindowMouseEvents.clear();
         IfaceHold = IFACE_NONE;
-        MessBoxEditMode = 0;
+        MessBoxEditMode = MESSBOX_EDIT_NONE;
         Timer::StartAccelerator( ACCELERATE_NONE );
         if( Script::PrepareContext( ClientFunctions.InputLost, _FUNC_, "Game" ) )
             Script::RunPrepared();
@@ -1739,7 +1739,7 @@ void FOClient::ParseMouse()
                 script_result = Script::GetReturnedBool();
         }
 
-        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON_LEFT && MessBoxEditMode )
+        if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON_LEFT && MessBoxEditMode != MESSBOX_EDIT_NONE )
         {
             MessBoxLMouseUp();
             Timer::StartAccelerator( ACCELERATE_NONE );
@@ -1763,7 +1763,7 @@ void FOClient::ParseMouse()
         {
             if( MessBoxLMouseDown() )
             {
-                if( !MessBoxEditMode )
+                if( MessBoxEditMode == MESSBOX_EDIT_NONE )
                     Timer::StartAccelerator( ACCELERATE_MESSBOX );
                 continue;
             }
@@ -1879,7 +1879,7 @@ void FOClient::ParseMouse()
         // Left Button Up
         if( event == SDL_MOUSEBUTTONUP && event_button == SDL_BUTTON_LEFT)
         {
-            if( MessBoxEditMode )
+            if( MessBoxEditMode != MESSBOX_EDIT_NONE )
             {
                 MessBoxLMouseUp();
                 Timer::StartAccelerator( ACCELERATE_NONE );
@@ -12397,12 +12397,14 @@ void FOClient::SScriptFunc::Global_SetConsoleMode( bool shouldEnable )
         Self->ConsoleStr[0] = 0;
         Self->ConsoleCur = 0;
         Self->ConsoleHistoryCur = (int)Self->ConsoleHistory.size();
+        Self->MessBoxGenerate();
         return;
     }
 
     if( !shouldEnable && !Self->ConsoleStr[0] )
     {
         Self->ConsoleActive = false;
+        Self->MessBoxGenerate();
         return;
     }
 

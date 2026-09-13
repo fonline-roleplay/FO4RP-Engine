@@ -1694,6 +1694,16 @@ public:
     };
     typedef vector< MessBoxMessage > MessBoxMessageVec;
 
+    enum MessBoxEditModeEnum
+    {
+        MESSBOX_EDIT_NONE = 0,
+        MESSBOX_EDIT_MOVE,
+        MESSBOX_EDIT_RESIZE_TOP_LEFT,
+        MESSBOX_EDIT_RESIZE_TOP_RIGHT,
+        MESSBOX_EDIT_RESIZE_BOTTOM_LEFT,
+        MESSBOX_EDIT_RESIZE_BOTTOM_RIGHT,
+    };
+
     MessBoxMessageVec MessBox;
     string            MessBoxCurText;
     int               MessBoxScroll, MessBoxMaxScroll, MessBoxScrollLines;
@@ -1710,6 +1720,8 @@ public:
     void MessBoxDraw();
     void MessBoxDrawEditor();
     Rect MessBoxCurRectDraw();
+    Rect MessBoxCurRectText();
+    Rect MessBoxCurRectInput();
     Rect MessBoxCurRectScroll();
     bool MessBoxLMouseDown();
     void MessBoxLMouseUp();
