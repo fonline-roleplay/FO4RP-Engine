@@ -1717,6 +1717,7 @@ public:
     IntVec            MessBoxFilters;
     bool              MessBoxUnlocked;
     bool              MessBoxRectInitialized;
+    bool              MessBoxDrawnWithHud;
     Rect              MessBoxRect;
     int               MessBoxEditMode;
     int               MessBoxEditMouseX, MessBoxEditMouseY;

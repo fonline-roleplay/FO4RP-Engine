@@ -777,12 +777,14 @@ int FOClient::MainLoop()
         ProcessScreenEffectMirror();
     }
 
+    MessBoxDrawnWithHud = false;
     DrawIfaceLayer( 2 );
 
     if( SaveLoadProcessDraft && GetMainScreen() == SCREEN_GLOBAL_MAP )
         SaveLoadFillDraft();
     ConsoleDraw();
-    MessBoxDraw();
+    if( !MessBoxDrawnWithHud )
+        MessBoxDraw();
 
     CHECK_MULTIPLY_WINDOWS4;
 
@@ -11992,6 +11994,8 @@ void FOClient::SScriptFunc::Global_DrawHardcodedScreen( int screen )
     case SCREEN_OPTIONS:
         break;
     case SCREEN_GAME:
+        Self->MessBoxDraw();
+        Self->MessBoxDrawnWithHud = true;
         Self->IntDraw();
         break;
     case SCREEN_GLOBAL_MAP:
