@@ -3223,10 +3223,6 @@ void FOClient::MessBoxDraw()
     {
         const int font = ( GameOpt.NewChatFont ? FONT_CHAT : FONT_DEFAULT );
         Rect input_rect = MessBoxCurRectInput();
-        input_rect.L += MESSBOX_INPUT_PADDING;
-        input_rect.T += MESSBOX_INPUT_PADDING;
-        input_rect.R -= MESSBOX_INPUT_PADDING;
-        input_rect.B -= MESSBOX_INPUT_PADDING;
 
         string input = ConsoleStr;
         input.insert( ConsoleCur, Timer::FastTick() % 800 < 400 ? "!" : "." );
@@ -3320,10 +3316,9 @@ Rect FOClient::MessBoxCurRectInput()
         return Rect( 0, 0, 0, 0 );
 
     const int font = ( GameOpt.NewChatFont ? FONT_CHAT : FONT_DEFAULT );
-    int text_height = SprMngr.GetLineHeight( font ) * MESSBOX_INPUT_LINES;
-    const int input_height = text_height + MESSBOX_OUTLINE;
-    const int top = MAX( r.B - input_height, r.T );
-    return Rect( r.L, top, r.R, r.B );
+    int text_height = SprMngr.GetLineHeight( font ) * MESSBOX_INPUT_LINES + 2;
+    const int top = MAX( r.B + 4 - text_height, r.T );
+    return Rect( r.L, top, r.R, top + text_height );
 }
 
 Rect FOClient::MessBoxCurRectScroll()
