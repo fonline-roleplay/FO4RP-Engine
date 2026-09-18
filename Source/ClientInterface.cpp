@@ -252,6 +252,7 @@ int FOClient::InitIface()
     }
     IntY = GameOpt.ScreenHeight - IntWMain.B;
     IfaceLoadRect2( IntWMain, "IntMain", IntX, IntY );
+    IfaceLoadRect2( IntBAddMess, "IntAddMess", IntX, IntY );
     IfaceLoadRect2( IntBMessFilter1, "IntMessFilter1", IntX, IntY );
     IfaceLoadRect2( IntBMessFilter2, "IntMessFilter2", IntX, IntY );
     IfaceLoadRect2( IntBMessFilter3, "IntMessFilter3", IntX, IntY );
@@ -973,6 +974,7 @@ int FOClient::InitIface()
     SprMngr.SurfType = RES_IFACE;
     IntMessBoxBack = SprMngr.LoadAnimation( "main/iface_add_mess.png", PT_ART_INTRFACE, ANIM_USE_DUMMY );
     SprMngr.SurfType = RES_NONE;
+    IfaceLoadSpr( IntPBAddMessDn, "IntAddMessPicDn" );
     IfaceLoadSpr( IntPBMessFilter1Dn, "IntMessFilter1PicDn" );
     IfaceLoadSpr( IntPBMessFilter2Dn, "IntMessFilter2PicDn" );
     IfaceLoadSpr( IntPBMessFilter3Dn, "IntMessFilter3PicDn" );
@@ -2775,6 +2777,9 @@ void FOClient::IntDraw()
     SprMngr.DrawSprite( IntMainPic, IntX, IntY );
     SprMngr.DrawSprite( AnimGetCurSpr( IntWCombatAnim ), IntWCombat[ 0 ], IntWCombat[ 1 ] );
 
+    if( GameOpt.NewChatFont )
+        SprMngr.DrawSprite( IntPBAddMessDn, IntBAddMess[ 0 ], IntBAddMess[ 1 ] );
+
     if( std::find( MessBoxFilters.begin(), MessBoxFilters.end(), FOMB_COMBAT_RESULT ) != MessBoxFilters.end() )
         SprMngr.DrawSprite( IntPBMessFilter1Dn, IntBMessFilter1[ 0 ], IntBMessFilter1[ 1 ] );
     if( std::find( MessBoxFilters.begin(), MessBoxFilters.end(), FOMB_TALK ) != MessBoxFilters.end() )
@@ -2784,6 +2789,9 @@ void FOClient::IntDraw()
 
     switch( IfaceHold )
     {
+    case IFACE_INT_CHAT_FONT:
+        SprMngr.DrawSprite( IntPBAddMessDn, IntBAddMess[ 0 ], IntBAddMess[ 1 ] );
+        break;
     case IFACE_INT_CHSLOT:
         SprMngr.DrawSprite( IntPBSlotsDn, IntBChangeSlot[ 0 ], IntBChangeSlot[ 1 ] );
         break;
@@ -2972,6 +2980,8 @@ int FOClient::IntLMouseDown()
         IfaceHold = IFACE_INT_CHAR;
     else if( IsCurInRect( IntBPip ) )
         IfaceHold = IFACE_INT_PIP;
+    else if( IsCurInRect( IntBAddMess ) )
+        IfaceHold = IFACE_INT_CHAT_FONT;
     else if( IsCurInRect( IntBMessFilter1 ) )
         IfaceHold = IFACE_INT_FILTER1;
     else if( IsCurInRect( IntBMessFilter2 ) )
@@ -3053,6 +3063,17 @@ void FOClient::IntLMouseUp()
                 SetAction( CHOSEN_USE_ITEM, Chosen->ItemSlotMain->GetId(), 0, TARGET_SELF, 0, USE_USE );
             else
                 TimerStart( Chosen->ItemSlotMain->GetId(), ResMngr.GetInvAnim( Chosen->ItemSlotMain->GetPicInv() ), Chosen->ItemSlotMain->GetInvColor() );
+        }
+    }
+    else if( IfaceHold == IFACE_INT_CHAT_FONT && IsCurInRect( IntBAddMess ) )
+    {
+        GameOpt.NewChatFont = !GameOpt.NewChatFont;
+        MessBoxGenerate();
+        IniParser& client_cfg = IniParser::GetClientConfig();
+        if( client_cfg.IsLoaded() )
+        {
+            client_cfg.SetStr( "NewChatFont", GameOpt.NewChatFont ? "1" : "0" );
+            client_cfg.SaveFile( IniParser::GetConfigFileName(), PT_ROOT );
         }
     }
     else if( IfaceHold == IFACE_INT_FILTER1 && IsCurInRect( IntBMessFilter1 ) )
@@ -3232,8 +3253,9 @@ void FOClient::MessBoxDraw()
         const int text_width = MAX( input_rect.W(), 1 );
         const int cursor_line = MAX( SprMngr.GetLinesCount( text_width, 0, input_before_cursor.c_str(), font ) - 1, 0 );
         const int line_count = SprMngr.GetLinesCount( text_width, 0, input.c_str(), font );
-        const int max_first_line = MAX( line_count - MESSBOX_INPUT_LINES, 0 );
-        const int first_line = MIN( MAX( cursor_line - MESSBOX_INPUT_LINES + 1, 0 ), max_first_line );
+        const int visible_lines = GameOpt.NewChatFont ? 1 : MESSBOX_INPUT_LINES;
+        const int max_first_line = MAX( line_count - visible_lines, 0 );
+        const int first_line = MIN( MAX( cursor_line - visible_lines + 1, 0 ), max_first_line );
         SprMngr.DrawStr( input_rect, input.c_str(), first_line > 0 ? FT_SKIPLINES( first_line ) : 0, 0, font );
     }
 
@@ -3316,7 +3338,8 @@ Rect FOClient::MessBoxCurRectInput()
         return Rect( 0, 0, 0, 0 );
 
     const int font = ( GameOpt.NewChatFont ? FONT_CHAT : FONT_DEFAULT );
-    int text_height = SprMngr.GetLineHeight( font ) * MESSBOX_INPUT_LINES + 2;
+    const int visible_lines = GameOpt.NewChatFont ? 1 : MESSBOX_INPUT_LINES;
+    int text_height = SprMngr.GetLineHeight( font ) * visible_lines + 2;
     const int top = MAX( r.B + 4 - text_height, r.T );
     return Rect( r.L, top, r.R, top + text_height );
 }

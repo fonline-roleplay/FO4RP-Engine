@@ -823,14 +823,14 @@ public:
 /************************************************************************/
 /* Main iface                                                           */
 /************************************************************************/
-    AnyFrames* IntMainPic, * IntMessBoxBack, * IntPBMessFilter1Dn, * IntPBMessFilter2Dn, * IntPBMessFilter3Dn,
+    AnyFrames* IntMainPic, * IntMessBoxBack, * IntPBAddMessDn, * IntPBMessFilter1Dn, * IntPBMessFilter2Dn, * IntPBMessFilter3Dn,
     * IntPBScrUpDn, * IntPBScrDnDn, * IntPBSlotsDn,
     * IntPBInvDn, * IntPBMenuDn, * IntPBSkillDn, * IntPBMapDn, * IntPBChaDn, * IntPBPipDn,
     * IntDiodeG, * IntDiodeY, * IntDiodeR, * IntBreakTimePic, * IntWApCostPicNone;
 
     int        IntX, IntY;
     bool       IntVisible;
-    Rect       IntWMain, IntBMessFilter1, IntBMessFilter2, IntBMessFilter3;
+    Rect       IntWMain, IntBAddMess, IntBMessFilter1, IntBMessFilter2, IntBMessFilter3;
     Rect       IntBItem, IntWApCost;
     Rect       IntBChangeSlot, IntBInv, IntBMenu, IntBSkill, IntBMap, IntBChar, IntBPip;
     Rect       IntWMess;
@@ -1884,7 +1884,7 @@ public:
 #define IFACE_INT_CHAR                 ( 7 )
 #define IFACE_INT_PIP                  ( 8 )
 #define IFACE_INT_UNUSED               ( 9 )
-#define IFACE_INT_UNUSED2              ( 10 )
+#define IFACE_INT_CHAT_FONT            ( 10 )
 #define IFACE_INT_FILTER1              ( 11 )
 #define IFACE_INT_FILTER2              ( 12 )
 #define IFACE_INT_FILTER3              ( 13 )
