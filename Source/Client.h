@@ -724,8 +724,6 @@ public:
 /************************************************************************/
 /* Console                                                              */
 /************************************************************************/
-    AnyFrames*  ConsolePic;
-    int         ConsolePicX, ConsolePicY, ConsoleTextX, ConsoleTextY;
     static bool ConsoleActive;
     string      ConsoleStr;
     uint        ConsoleCur;

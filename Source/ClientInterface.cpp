@@ -272,9 +272,11 @@ int FOClient::InitIface()
     IntAPstepX = IfaceIni.GetInt( "IntApStepX", 9 );
     IntAPstepY = IfaceIni.GetInt( "IntApStepY", 0 );
     IntAPMax = IfaceIni.GetInt( "IntApMax", 10 );
+    #ifndef FORP_ENGINE
     IfaceLoadRect2( IntWCombat, "IntCombat", IntX, IntY );
     IfaceLoadRect2( IntBCombatTurn, "IntCombatTurn", IntX, IntY );
     IfaceLoadRect2( IntBCombatEnd, "IntCombatEnd", IntX, IntY );
+    #endif
     IfaceLoadRect2( IntWApCost, "IntApCost", IntX, IntY );
     IfaceLoadRect2( IntWAmmoCount, "IntAmmoCount", IntX, IntY );
     IfaceLoadRect2( IntWWearProcent, "IntWearProcent", IntX, IntY );
@@ -325,10 +327,6 @@ int FOClient::InitIface()
     IntWearTick = 0;
 
     // Console
-    ConsolePicX = IfaceIni.GetInt( "ConsoleMainPicX", 0 );
-    ConsolePicY = IfaceIni.GetInt( "ConsoleMainPicY", 0 );
-    ConsoleTextX = IfaceIni.GetInt( "ConsoleTextX", 0 );
-    ConsoleTextY = IfaceIni.GetInt( "ConsoleTextY", 0 );
     ConsoleActive = false;
     ConsoleLastKey = 0;
     ConsoleLastKeyText = "";
@@ -2775,7 +2773,9 @@ void FOClient::IntDraw()
         return;
 
     SprMngr.DrawSprite( IntMainPic, IntX, IntY );
+    #ifndef FORP_ENGINE
     SprMngr.DrawSprite( AnimGetCurSpr( IntWCombatAnim ), IntWCombat[ 0 ], IntWCombat[ 1 ] );
+    #endif
 
     if( GameOpt.NewChatFont )
         SprMngr.DrawSprite( IntPBAddMessDn, IntBAddMess[ 0 ], IntBAddMess[ 1 ] );
@@ -2825,12 +2825,14 @@ void FOClient::IntDraw()
     case IFACE_INT_FILTER3:
         SprMngr.DrawSprite( IntPBMessFilter3Dn, IntBMessFilter3[ 0 ], IntBMessFilter3[ 1 ] );
         break;
+    #ifndef FORP_ENGINE
     case IFACE_INT_COMBAT_TURN:
         SprMngr.DrawSprite( IntBCombatTurnPicDown, IntBCombatTurn[ 0 ], IntBCombatTurn[ 1 ] );
         break;
     case IFACE_INT_COMBAT_END:
         SprMngr.DrawSprite( IntBCombatEndPicDown, IntBCombatEnd[ 0 ], IntBCombatEnd[ 1 ] );
         break;
+    #endif
     default:
         break;
     }
