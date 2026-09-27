@@ -19,6 +19,7 @@ static const float MapperGuiSplitterSize = 5.0f;
 static bool MapperGuiInitialized = false;
 static bool MapperGuiApplyPropertiesToAll = false;
 static bool MapperViewportPanning = false;
+static bool MapperViewportEdgeScrollBlocked = false;
 static float MapperViewportPanRemainderX = 0.0f;
 static float MapperViewportPanRemainderY = 0.0f;
 enum MapperGuiEditorMode
@@ -2374,8 +2375,17 @@ void FOMapper::ParseMouse()
         }
     }
 
+    if( MapperViewportEdgeScrollBlocked )
+    {
+        Rect viewport = SprMngr.GetWorldViewport();
+        bool mouse_in_viewport = GameOpt.MouseX >= viewport.L && GameOpt.MouseX <= viewport.R &&
+                                 GameOpt.MouseY >= viewport.T && GameOpt.MouseY <= viewport.B;
+        if( !MapperViewportPanning && mouse_in_viewport )
+            MapperViewportEdgeScrollBlocked = false;
+    }
+
     // Mouse Scroll
-    if( GameOpt.MouseScroll && !MapperViewportPanning )
+    if( GameOpt.MouseScroll && !MapperViewportPanning && !MapperViewportEdgeScrollBlocked )
     {
         if( GameOpt.MouseX >= GameOpt.ScreenWidth - 1 )
             GameOpt.ScrollMouseRight = true;
@@ -2397,7 +2407,7 @@ void FOMapper::ParseMouse()
         else
             GameOpt.ScrollMouseUp = false;
     }
-    else if( MapperViewportPanning )
+    else if( MapperViewportPanning || MapperViewportEdgeScrollBlocked )
     {
         GameOpt.ScrollMouseLeft = false;
         GameOpt.ScrollMouseRight = false;
@@ -2690,7 +2700,10 @@ void FOMapper::MainLoop()
                 MapperViewportPanRemainderX -= (float) pan_x;
                 MapperViewportPanRemainderY -= (float) pan_y;
                 if( pan_x || pan_y )
+                {
+                    MapperViewportEdgeScrollBlocked = true;
                     HexMngr.Scroll( pan_x, pan_y );
+                }
             }
         }
         else if( event.type == SDL_KEYDOWN || event.type == SDL_KEYUP )
