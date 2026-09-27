@@ -16,6 +16,7 @@
 #include "AngelScript/scriptarray.h"
 #include "AngelScript/scriptgrid.h"
 #include "AngelScript/docgen.h"
+#include "AngelScript/aatc/aatc.hpp"
 #include <stdio.h>
 #include <list>
 #include <set>
@@ -347,6 +348,7 @@ int main( int argc, char* argv[] )
     RegisterScriptFile( Engine );
     RegisterScriptMath( Engine );
     RegisterScriptGrid( Engine );
+    aatc::RegisterAllContainers( Engine );
 
     // Stuff for run func
     if( !run_func.empty() )

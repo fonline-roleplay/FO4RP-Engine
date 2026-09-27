@@ -18,9 +18,9 @@ public:
             scriptStr->assign( str );
         return *scriptStr;
     }
-protected:
     #endif
 
+public:
     ScriptString();
     ScriptString( const ScriptString& other );
     ScriptString( const char* s, uint len );
@@ -63,6 +63,8 @@ public:
         append( other );
         return *this;
     }
+    bool operator==( const ScriptString& other ) const { return buffer == other.buffer; }
+    bool operator<( const ScriptString& other ) const { return buffer < other.buffer; }
 
     virtual void  assign( const char* buf, uint count );
     virtual void  assign( const char* buf );

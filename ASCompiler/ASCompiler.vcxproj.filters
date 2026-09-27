@@ -17,6 +17,9 @@
     <Filter Include="SHA2">
       <UniqueIdentifier>{dbec4ed1-462f-4fa0-9626-f20c67d7df30}</UniqueIdentifier>
     </Filter>
+    <Filter Include="AngelScript\aatc">
+      <UniqueIdentifier>{ebc9c2d5-8d90-4fc6-a428-90b75d606d31}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ScriptEngine.h">
@@ -271,6 +274,75 @@
     <ClInclude Include="..\Source\AngelScript\docgen.h">
       <Filter>AngelScript</Filter>
     </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_common.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_config.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_deque.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_list.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_listing.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_listing_heavy.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_map.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_mapped_templated_shared.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_mapped_templated_shared_method.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_set.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_shared.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_templated_shared.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_templated_shared_method.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_tempspec_shared.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_tempspec_shared_method.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_unordered_map.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_unordered_set.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_container_vector.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_enginestorage.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_hash.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_serializer.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\AngelScript\aatc\aatc_templatemagic.hpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Source\ASCompiler.cpp">
@@ -512,6 +584,48 @@
     </ClCompile>
     <ClCompile Include="..\Source\AngelScript\docgen.cpp">
       <Filter>AngelScript</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\aatc\aatc.cpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\aatc\aatc_common.cpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\aatc\aatc_container_deque.cpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\aatc\aatc_container_list.cpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\aatc\aatc_container_map.cpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\aatc\aatc_container_set.cpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\aatc\aatc_container_shared.cpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\aatc\aatc_container_unordered_map.cpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\aatc\aatc_container_unordered_set.cpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\aatc\aatc_container_vector.cpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\aatc\aatc_enginestorage.cpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\aatc\aatc_hash.cpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\aatc\aatc_registration.cpp">
+      <Filter>AngelScript\aatc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\AngelScript\aatc\aatc_serializer.cpp">
+      <Filter>AngelScript\aatc</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

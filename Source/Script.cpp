@@ -13,6 +13,7 @@
 #include "AngelScript/scriptfilesystem.h"
 #include "AngelScript/preprocessor.h"
 #include "AngelScript/as_jit.h"
+#include "AngelScript/aatc/aatc.hpp"
 #include <strstream>
 
 #ifdef FO_WINDOWS
@@ -986,6 +987,7 @@ asIScriptEngine* Script::CreateEngine( Preprocessor::Pragma::Callback* pragma_ca
     RegisterScriptMath( engine );
     RegisterScriptGrid( engine );
     RegisterScriptFileSystem( engine );
+    aatc::RegisterAllContainers( engine );
 
     EngineData* edata = new EngineData();
     edata->PragmaCB = pragma_callback;
