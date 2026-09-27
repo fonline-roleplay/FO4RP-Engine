@@ -1763,6 +1763,9 @@ void FOClient::ParseMouse()
         // Left Button Down
         if( event == SDL_MOUSEBUTTONDOWN && event_button == SDL_BUTTON_LEFT )
         {
+            if( !GetActiveScreen() && GetMainScreen() == SCREEN_GAME && IntLMouseDown() != IFACE_NONE )
+                continue;
+
             if( MessBoxLMouseDown() )
             {
                 if( MessBoxEditMode == MESSBOX_EDIT_NONE )
@@ -1855,8 +1858,7 @@ void FOClient::ParseMouse()
                 switch( GetMainScreen() )
                 {
                 case SCREEN_GAME:
-                    if( IntLMouseDown() == IFACE_NONE )
-                        GameLMouseDown();
+                    GameLMouseDown();
                     break;
                 case SCREEN_GLOBAL_MAP:
                     GmapLMouseDown();

@@ -997,9 +997,6 @@ int FOClient::InitIface()
     IfaceLoadSpr( IntBCombatEndPicDown, "IntCombatEndPicDn" );
     IfaceLoadSpr( IntMainPic, "IntMainPic" );
 
-    // Console
-    IfaceLoadSpr( ConsolePic, "ConsoleMainPic" );
-
     // Default animations
     SprMngr.SurfType = RES_IFACE;
     ItemHex::DefaultAnim = SprMngr.LoadAnimation( "art\\items\\reserved.frm", PT_DATA, ANIM_USE_DUMMY | ANIM_FRM_ANIM_PIX );
