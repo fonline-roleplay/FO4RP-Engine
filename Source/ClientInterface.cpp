@@ -2951,6 +2951,27 @@ void FOClient::IntDraw()
 	#endif
 }
 
+bool FOClient::IntIsButtonHovered()
+{
+    if( !Chosen || !IntVisible )
+        return false;
+
+    return IsCurInRect( IntBItem, 0, 0 ) ||
+           IsCurInRect( IntBChangeSlot ) ||
+           IsCurInRect( IntBInv ) ||
+           IsCurInRect( IntBMenu ) ||
+           IsCurInRect( IntBSkill ) ||
+           IsCurInRect( IntBMap ) ||
+           IsCurInRect( IntBChar ) ||
+           IsCurInRect( IntBPip ) ||
+           IsCurInRect( IntBAddMess ) ||
+           IsCurInRect( IntBMessFilter1 ) ||
+           IsCurInRect( IntBMessFilter2 ) ||
+           IsCurInRect( IntBMessFilter3 ) ||
+           ( IsCurInRect( IntBCombatTurn ) && IsTurnBasedMyTurn() ) ||
+           ( IsCurInRect( IntBCombatEnd ) && IsTurnBased );
+}
+
 int FOClient::IntLMouseDown()
 {
     IfaceHold = IFACE_NONE;
@@ -9830,7 +9851,8 @@ void FOClient::CurDraw()
 
     // Messboxes scroll
     Rect rmb = MessBoxCurRectScroll();
-    if( !rmb.IsZero() && IsCurInRect( rmb ) )
+    bool hud_button_hovered = IsMainScreen( SCREEN_GAME ) && GetActiveScreen() == SCREEN_NONE && IntIsButtonHovered();
+    if( !hud_button_hovered && !rmb.IsZero() && IsCurInRect( rmb ) )
     {
         AnyFrames* anim = IntPBScrDnDn;
         if( IsCurInRect( Rect( rmb.L, rmb.T, rmb.R, rmb.CY() ) ) )

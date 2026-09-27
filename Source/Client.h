@@ -848,6 +848,7 @@ public:
     uint       IntAmmoTick, IntWearTick;
 
     void IntDraw();
+    bool IntIsButtonHovered();
     int  IntLMouseDown();
     void IntRMouseDown();
     void IntLMouseUp();
