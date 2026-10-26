@@ -3579,12 +3579,8 @@ void FOClient::Net_SendLevelUp( ushort perk_up )
     {
         if( ChaSkillUp[ i ] )
         {
-            ushort skill_up = ChaSkillUp[ i ];
-            if( Chosen->IsTagSkill( i + SKILL_BEGIN ) )
-                skill_up /= 2;
-
             Bout << ushort( i + SKILL_BEGIN );
-            Bout << skill_up;
+            Bout << ChaSkillUp[ i ];
         }
     }
 

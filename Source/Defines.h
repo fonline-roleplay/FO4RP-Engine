@@ -399,7 +399,7 @@ const char ClientSaveSignature[ 4 ] = { 'F', 'O', 0, CLIENT_SAVE_LAST };
 // Stats
 #define ST_STRENGTH                  ( 0 )
 #define ST_PERCEPTION                ( 1 )
-// #define ST_ENDURANCE                (2)
+#define ST_ENDURANCE                 ( 2 )
 #define ST_CHARISMA                  ( 3 )
 #define ST_INTELLECT                 ( 4 )
 #define ST_AGILITY                   ( 5 )
@@ -458,7 +458,12 @@ const char ClientSaveSignature[ 4 ] = { 'F', 'O', 0, CLIENT_SAVE_LAST };
 #define SKILL_END                    ( GameOpt.SkillEnd )
 #define SKILL_COUNT                  ( SKILL_END - SKILL_BEGIN + 1 )
 #define MAX_SKILL_VAL                ( GameOpt.SkillMaxValue )
+#define SK_SMALL_GUNS				 ( 200 )
+#define SK_MEDIUM_GUNS				 ( 201 )
+#define SK_BIG_GUNS					 ( 202 )
 #define SK_UNARMED                   ( 203 )
+#define SK_MELEE_WEAPONS			 ( 204 )
+#define SK_THROWING					 ( 205 )
 #define SK_FIRST_AID                 ( 206 )
 #define SK_DOCTOR                    ( 207 )
 #define SK_SNEAK                     ( 208 )
@@ -469,6 +474,10 @@ const char ClientSaveSignature[ 4 ] = { 'F', 'O', 0, CLIENT_SAVE_LAST };
 #define SK_REPAIR                    ( 213 )
 #define SK_CRAFT                     ( 214 )
 #define SK_BARTER                    ( 215 )
+
+// FO4RP skill-point bleeding system.
+#define CR_SKILL_DIRECT_BEGIN        ( 603 )
+#define CR_SKILL_DIRECT_END          ( 618 )
 
 // Tag skills
 #define TAG_SKILL1                   ( 226 )
@@ -550,6 +559,7 @@ const char ClientSaveSignature[ 4 ] = { 'F', 'O', 0, CLIENT_SAVE_LAST };
 #define TRAIT_BEGIN                  ( GameOpt.TraitBegin )
 #define TRAIT_END                    ( GameOpt.TraitEnd )
 #define TRAIT_COUNT                  ( TRAIT_END - TRAIT_BEGIN + 1 )
+#define TRAIT_SKILLED                ( 564 )
 
 // Reputation
 #define REPUTATION_BEGIN             ( GameOpt.ReputationBegin )

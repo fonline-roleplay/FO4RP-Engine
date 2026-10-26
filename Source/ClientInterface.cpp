@@ -25,6 +25,197 @@ int offset_to_skill(int offs) {
 	return skill;
 }
 
+#ifdef FORP_ENGINE
+const int SkillBleedLastSkill = 215;
+
+struct SkillBleedProgress 
+{
+  double Value;
+  double SPToNext;
+};
+
+bool SkillBleedIsManaged(int skill)
+{
+  return skill >= SKILL_BEGIN && skill <= SkillBleedLastSkill;
+}
+
+int SkillBleedBaseValue(CritterCl *cr, int skill)
+{
+    const int st = cr->GetRawParam( ST_STRENGTH );
+    const int pe = cr->GetRawParam( ST_PERCEPTION );
+    const int en = cr->GetRawParam( ST_ENDURANCE );
+    const int ch = cr->GetRawParam( ST_CHARISMA );
+    const int ag = cr->GetRawParam( ST_AGILITY );
+    const int lk = cr->GetRawParam( ST_LUCK );
+
+    switch (skill)
+    {
+    case SK_SMALL_GUNS:
+        return pe * ag;
+    case SK_MEDIUM_GUNS:
+        return pe * ag;
+    case SK_BIG_GUNS:
+        return pe * st;
+    case SK_UNARMED:
+        return st * en;
+    case SK_MELEE_WEAPONS:
+        return st * ag;
+    case SK_THROWING:
+        return st * ag;
+    case SK_FIRST_AID:
+        return st * ch;
+    case SK_DOCTOR:
+        return pe * ch;
+    case SK_SNEAK:
+        return ag * lk;
+    case SK_LOCKPICK:
+        return pe * ag;
+    case SK_STEAL:
+        return ag * lk;
+    case SK_TRAPS:
+        return pe * lk;
+    case SK_SCIENCE:
+        return pe * lk;
+    case SK_REPAIR:
+        return ag * lk;
+    case SK_CRAFT:
+        return ch * lk;
+    case SK_BARTER:
+        return ch * ch * 2;
+    }
+
+    return 0;
+}
+
+int SkillBleedMultiplicity(int source, int target)
+{
+    switch (source)
+    {
+    case SK_SMALL_GUNS:
+        return target == SK_MEDIUM_GUNS ? 1 : 0;
+    case SK_MEDIUM_GUNS:
+        return target == SK_SMALL_GUNS || target == SK_BIG_GUNS ? 1 : 0;
+    case SK_BIG_GUNS:
+        return target == SK_MEDIUM_GUNS || target == SK_THROWING ? 1 : 0;
+    case SK_UNARMED:
+        return target == SK_MELEE_WEAPONS || target == SK_SNEAK ? 1 : 0;
+    case SK_MELEE_WEAPONS:
+        return target == SK_THROWING || target == SK_UNARMED ? 1 : 0;
+    case SK_THROWING:
+        return target == SK_BIG_GUNS || target == SK_MELEE_WEAPONS ? 1 : 0;
+    case SK_FIRST_AID:
+        return target == SK_DOCTOR ? 2 : 0;
+    case SK_DOCTOR:
+        return target == SK_SCIENCE || target == SK_FIRST_AID ? 1 : 0;
+    case SK_SNEAK:
+        return target == SK_UNARMED || target == SK_STEAL ? 1 : 0;
+    case SK_LOCKPICK:
+        return target == SK_STEAL || target == SK_TRAPS ? 1 : 0;
+    case SK_STEAL:
+        return target == SK_SNEAK || target == SK_LOCKPICK ? 1 : 0;
+    case SK_TRAPS:
+        return target == SK_LOCKPICK || target == SK_REPAIR ? 1 : 0;
+    case SK_SCIENCE:
+        return target == SK_CRAFT || target == SK_DOCTOR ? 1 : 0;
+    case SK_REPAIR:
+        return target == SK_TRAPS || target == SK_CRAFT ? 1 : 0;
+    case SK_CRAFT:
+        return target == SK_REPAIR || target == SK_SCIENCE ? 1 : 0;
+    }
+
+    return 0;
+}
+
+int SkillBleedStepCost(double value)
+{
+    if (value >= 290.0)
+        return 10;
+    if (value >= 280.0)
+        return 8;
+    if (value >= 225.0)
+        return 6;
+    if (value >= 150.0)
+        return 3;
+    if (value >= 100.0)
+        return 2;
+    return 1;
+}
+
+SkillBleedProgress SkillBleedApplySp(double start, double total_sp, bool tagged)
+{
+    const double epsilon = 0.0000001;
+    const double gain = tagged ? 2.0 : 1.0;
+    double value = start;
+    double remaining = MAX(0.0, total_sp);
+    double partialStep = 0.0;
+    while (value < 300.0 - epsilon && remaining > epsilon) 
+    {
+        double cost = (double)SkillBleedStepCost(value);
+        if (remaining + epsilon >= cost)
+        {
+            remaining -= cost;
+            value = MIN(300.0, value + gain);
+            partialStep = 0.0;
+        }
+        else
+        {
+            partialStep = remaining;
+            value = MIN(300.0, value + remaining / cost * gain);
+            remaining = 0.0;
+        }
+    }
+
+    SkillBleedProgress result;
+    result.Value = floor(value + 0.5);
+    result.SPToNext = (value >= (300.0 - epsilon)) ? 0.0 : MAX(0.0, (double)SkillBleedStepCost(value) - partialStep);
+    return result;
+}
+
+int SkillBleedStagedDirect(CritterCl *cr, const ushort *staged, int skill)
+{
+    const int offset = skill_to_offset(skill);
+    return MAX(0, cr->GetRawParam(CR_SKILL_DIRECT_BEGIN + skill - SKILL_BEGIN)) + staged[offset];
+}
+
+SkillBleedProgress SkillBleedPreview(CritterCl *cr, const ushort *staged, int target)
+{
+    double totalSp = (double)SkillBleedStagedDirect(cr, staged, target);
+    for (int source = SKILL_BEGIN; source <= SkillBleedLastSkill; source++)
+        totalSp += (double)(SkillBleedStagedDirect(cr, staged, source) * SkillBleedMultiplicity(source, target)) * 0.25;
+
+    bool tagged = cr->IsTagSkill(target);
+    int start = SkillBleedBaseValue(cr, target) + (tagged ? 30 : 0);
+    return SkillBleedApplySp((double)start, totalSp, tagged);
+}
+
+int SkillBleedLastSPCount(CritterCl *cr, const ushort *staged, int skill)
+{
+    const int offset = skill_to_offset(skill);
+    const int stagedSp = staged[offset];
+    if ( stagedSp <= 0)
+        return 0;
+
+    // Recreate the sequence produced by the plus button. Bleed from other
+    // staged skills remains fixed, while this skill is advanced click by click.
+    UShortVec replay(SKILL_COUNT);
+    memcpy(&replay[0], staged, sizeof(ushort) * SKILL_COUNT);
+    replay[offset] = 0;
+
+    int spConsumed = 0;
+    int spCount = 0;
+    while ( spConsumed < stagedSp )
+    {
+        SkillBleedProgress progress = SkillBleedPreview(cr, &replay[0], skill);
+        int allocation = MAX(1, (int)ceil(progress.SPToNext - 0.0000001));
+        spCount = MIN(allocation, stagedSp - spConsumed );
+        spConsumed += spCount;
+        replay[offset] = (ushort)spConsumed;
+    }
+
+    return spCount;
+}
+#endif
+
 // ==============================================================================================================================
 // ******************************************************************************************************************************
 // ==============================================================================================================================
@@ -7545,13 +7736,21 @@ void FOClient::ChaDraw( bool is_reg )
         // Name
         SprMngr.DrawStr( Rect( ChaWSkillName, ChaX + ChaWSkillNextX * offs, ChaY + ChaWSkillNextY * offs ), MsgGame->GetStr( STR_PARAM_NAME_( i ) ), FT_NOBREAK, cr->IsTagSkill( i ) ? 0xFFAAAAAA : COLOR_TEXT );
         // Value
-        SprMngr.DrawStr( Rect( ChaWSkillValue, ChaX + ChaWSkillNextX * offs, ChaY + ChaWSkillNextY * offs ), Str::FormatBuf( "%d%%", CLAMP( CHA_PARAM( i ) + ( is_reg ? 0 : ChaSkillUp[ offs ] ), -MAX_SKILL_VAL, MAX_SKILL_VAL ) ), FT_NOBREAK, cr->IsTagSkill( i ) ? 0xFFAAAAAA : COLOR_TEXT );
+		int skill_value = CHA_PARAM( i ) + ( is_reg ? 0 : ChaSkillUp[ offs ] );
+
+		#ifdef FORP_ENGINE
+		if( !is_reg && SkillBleedIsManaged( i ) )
+			skill_value = (int) SkillBleedPreview( cr, ChaSkillUp, i ).Value;
+		#endif
+
+        SprMngr.DrawStr( Rect( ChaWSkillValue, ChaX + ChaWSkillNextX * offs, ChaY + ChaWSkillNextY * offs ), Str::FormatBuf( "%d%%", CLAMP( skill_value, -MAX_SKILL_VAL, MAX_SKILL_VAL ) ), FT_NOBREAK, cr->IsTagSkill( i ) ? 0xFFAAAAAA : COLOR_TEXT );
     }
 
     if( is_reg )
     {
         SprMngr.DrawStr( Rect( ChaWUnspentSPText, ChaX, ChaY ), MsgGame->GetStr( STR_REG_UNSPENT_TAGS ), FT_NOBREAK | FT_CENTERX | FT_CENTERY, COLOR_TEXT_SAND, FONT_FAT );
-        int free_tag_skill = GameOpt.StartTagSkillPoints - ( cr->Params[ TAG_SKILL1 ] ? 1 : 0 ) - ( cr->Params[ TAG_SKILL2 ] ? 1 : 0 ) - ( cr->Params[ TAG_SKILL3 ] ? 1 : 0 ) - ( cr->Params[ TAG_SKILL4 ] ? 1 : 0 );
+        int allowed_tag_skills = cr->Params[ TRAIT_SKILLED ] ? 1 : GameOpt.StartTagSkillPoints;
+        int free_tag_skill = allowed_tag_skills - ( cr->Params[ TAG_SKILL1 ] ? 1 : 0 ) - ( cr->Params[ TAG_SKILL2 ] ? 1 : 0 ) - ( cr->Params[ TAG_SKILL3 ] ? 1 : 0 ) - ( cr->Params[ TAG_SKILL4 ] ? 1 : 0 );
         SprMngr.DrawStr( Rect( ChaWUnspentSP, ChaX, ChaY ), Str::FormatBuf( "%02d", free_tag_skill ), FT_NOBREAK, COLOR_IFACE, FONT_BIG_NUM );
     }
     else
@@ -7997,7 +8196,24 @@ void FOClient::ChaLMouseUp( bool is_reg )
         if( !ChaUnspentSkillPoints )
             break;
 
-		int skill_val = cr->GetRawParam(offset_to_skill(ChaCurSkill)) + ChaSkillUp[ChaCurSkill];
+		int selected_skill = offset_to_skill( ChaCurSkill );
+
+		#ifdef FORP_ENGINE
+		if( SkillBleedIsManaged( selected_skill ) )
+		{
+			SkillBleedProgress progress = SkillBleedPreview( cr, ChaSkillUp, selected_skill );
+			if( progress.Value >= MAX_SKILL_VAL )
+				break;
+			int need_sp = MAX( 1, (int) ceil( progress.SPToNext - 0.0000001 ) );
+			if( ChaUnspentSkillPoints < need_sp || ChaSkillUp[ ChaCurSkill ] > 0xFFFF - need_sp )
+				break;
+			ChaUnspentSkillPoints -= need_sp;
+			ChaSkillUp[ ChaCurSkill ] += (ushort)need_sp;
+			break;
+		}
+		#endif
+
+		int skill_val = cr->GetRawParam(selected_skill) + ChaSkillUp[ChaCurSkill];
         if( skill_val >= MAX_SKILL_VAL )
             break;
 
@@ -8031,10 +8247,22 @@ void FOClient::ChaLMouseUp( bool is_reg )
         if( !ChaSkillUp[ ChaCurSkill ] )
             break;
 
+		int selected_skill = offset_to_skill( ChaCurSkill );
+
+		#ifdef FORP_ENGINE
+		if( SkillBleedIsManaged( selected_skill ) )
+		{
+			int refund_sp = SkillBleedLastSPCount( cr, ChaSkillUp, selected_skill );
+			ChaSkillUp[ ChaCurSkill ] -= (ushort) refund_sp;
+			ChaUnspentSkillPoints += refund_sp;
+			break;
+		}
+		#endif
+
         ChaSkillUp[ ChaCurSkill ]--;
-        if( cr->IsTagSkill( offset_to_skill(ChaCurSkill) ) )
+		if( cr->IsTagSkill( selected_skill ) )
             ChaSkillUp[ ChaCurSkill ]--;
-        int skill_val = cr->GetRawParam( offset_to_skill(ChaCurSkill) ) + ChaSkillUp[ ChaCurSkill ];
+		int skill_val = cr->GetRawParam( selected_skill ) + ChaSkillUp[ ChaCurSkill ];
 
         if( skill_val > GameOpt.SkillModAdd6 )
             ChaUnspentSkillPoints += 6;
@@ -8087,7 +8315,8 @@ void FOClient::ChaLMouseUp( bool is_reg )
         if( !IsCurInRect( RegBTagSkill, offs * RegBTagSkillNextX + ChaX, offs * RegBTagSkillNextY + ChaY ) )
             break;
 
-        int free_tag_skill = GameOpt.StartTagSkillPoints - ( cr->ParamsReg[ TAG_SKILL1 ] ? 1 : 0 ) - ( cr->ParamsReg[ TAG_SKILL2 ] ? 1 : 0 ) - ( cr->ParamsReg[ TAG_SKILL3 ] ? 1 : 0 ) - ( cr->ParamsReg[ TAG_SKILL4 ] ? 1 : 0 );
+        int allowed_tag_skills = cr->ParamsReg[ TRAIT_SKILLED ] ? 1 : GameOpt.StartTagSkillPoints;
+        int free_tag_skill = allowed_tag_skills - ( cr->ParamsReg[ TAG_SKILL1 ] ? 1 : 0 ) - ( cr->ParamsReg[ TAG_SKILL2 ] ? 1 : 0 ) - ( cr->ParamsReg[ TAG_SKILL3 ] ? 1 : 0 ) - ( cr->ParamsReg[ TAG_SKILL4 ] ? 1 : 0 );
 
         if( cr->ParamsReg[ TAG_SKILL1 ] == RegCurTagSkill )
             cr->ParamsReg[ TAG_SKILL1 ] = 0;
@@ -8136,6 +8365,15 @@ void FOClient::ChaLMouseUp( bool is_reg )
             if( j < 2 )
                 cr->ParamsReg[ trait ] = 1;
         }
+
+		#ifdef FORP_ENGINE
+		if( trait == TRAIT_SKILLED && cr->ParamsReg[ TRAIT_SKILLED ] )
+		{
+			cr->ParamsReg[ TAG_SKILL2 ] = 0;
+			cr->ParamsReg[ TAG_SKILL3 ] = 0;
+			cr->ParamsReg[ TAG_SKILL4 ] = 0;
+		}
+		#endif
 
         cr->GenParams();
     }
