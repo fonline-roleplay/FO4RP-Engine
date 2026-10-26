@@ -501,7 +501,7 @@ struct GameOptions
     uint         NpcMaxTalkers;
     uint         MinNameLength;
     uint         MaxNameLength;
-    uint         DlgTalkMinTime;
+    uint         DlgTalkTime;
     uint         DlgBarterMinTime;
     uint         MinimumOfflineTime;
 

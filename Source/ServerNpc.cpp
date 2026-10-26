@@ -1531,7 +1531,7 @@ void FOServer::Dialog_Begin( Client* cl, Npc* npc, uint dlg_pack_id, ushort hx, 
     cl->Talk.DialogPackId = dlg_pack_id;
     cl->Talk.LastDialogId = go_dialog;
     cl->Talk.StartTick = Timer::GameTick();
-    cl->Talk.TalkTime = MAX( cl->GetRawParam( SK_SPEECH ) * 1000, (int) GameOpt.DlgTalkMinTime );
+    cl->Talk.TalkTime = MAX( 1000, (int) GameOpt.DlgTalkTime );
     cl->Talk.Barter = false;
     cl->Talk.IgnoreDistance = ignore_distance;
 
@@ -1861,7 +1861,7 @@ label_Barter:
     }
 
     cl->Talk.StartTick = Timer::GameTick();
-    cl->Talk.TalkTime = MAX( cl->GetRawParam( SK_SPEECH ) * 1000, (int) GameOpt.DlgTalkMinTime );
+    cl->Talk.TalkTime = MAX( 1000, (int) GameOpt.DlgTalkTime );
     cl->Send_Talk();
     SetScore( SCORE_SPEAKER, cl, 5 );
 }

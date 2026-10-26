@@ -1381,7 +1381,7 @@ struct GameOptions
     int NpcMaxTalkers;
     int MinNameLength;
     int MaxNameLength;
-    int DlgTalkMinTime;
+    int DlgTalkTime;
     int DlgBarterMinTime;
     int MinimumOfflineTime;
 

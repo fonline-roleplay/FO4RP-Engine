@@ -1147,7 +1147,7 @@ GameOptions::GameOptions()
     NpcMaxTalkers = 1;
     MinNameLength = 4;
     MaxNameLength = 12;
-    DlgTalkMinTime = 0;
+    DlgTalkTime = 0;
     DlgBarterMinTime = 0;
     MinimumOfflineTime = 180000;
 

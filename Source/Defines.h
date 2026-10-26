@@ -467,7 +467,7 @@ const char ClientSaveSignature[ 4 ] = { 'F', 'O', 0, CLIENT_SAVE_LAST };
 #define SK_TRAPS                     ( 211 )
 #define SK_SCIENCE                   ( 212 )
 #define SK_REPAIR                    ( 213 )
-#define SK_SPEECH                    ( 214 )
+#define SK_CRAFT                     ( 214 )
 #define SK_BARTER                    ( 215 )
 
 // Tag skills
