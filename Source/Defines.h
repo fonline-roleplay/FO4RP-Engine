@@ -474,6 +474,16 @@ const char ClientSaveSignature[ 4 ] = { 'F', 'O', 0, CLIENT_SAVE_LAST };
 #define SK_REPAIR                    ( 213 )
 #define SK_CRAFT                     ( 214 )
 #define SK_BARTER                    ( 215 )
+#define SK_GAMBLING                  ( 216 )
+#define SK_OUTDOORSMAN               ( 217 )
+#define SK_MINING                    ( 218 )
+#define SK_CHOPPING                  ( 219 )
+#define SK_SCAVENGING                ( 220 )
+#define SK_HUNTING                   ( 221 )
+#define SK_FISHING                   ( 222 )
+#define SK_FARMING                   ( 223 )
+#define SK_COOKING                   ( 224 )
+#define SK_HERBALISM                 ( 225 )
 
 // FO4RP skill-point bleeding system.
 #define CR_SKILL_DIRECT_BEGIN        ( 603 )

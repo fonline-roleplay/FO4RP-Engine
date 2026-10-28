@@ -2,27 +2,50 @@
 #include "Client.h"
 #include "Version.h"
 
-#define SK_LAST_LEGACY (217) // SK_OUTDOORSMAN
-#define SK_SPACING (4)
+const int CharacterScreenSkills[] = {
+    SK_SMALL_GUNS,
+    SK_MEDIUM_GUNS,
+    SK_BIG_GUNS,
+    SK_THROWING,
+    SK_MELEE_WEAPONS,
+    SK_UNARMED,
+    SK_SNEAK,
+    SK_STEAL,
+    SK_LOCKPICK,
+    SK_TRAPS,
+    SK_REPAIR,
+    SK_CRAFT,
+    SK_SCIENCE,
+    SK_DOCTOR,
+    SK_FIRST_AID,
+    SK_BARTER,
+    SK_GAMBLING,
+    SK_OUTDOORSMAN,
+    SK_MINING,
+    SK_CHOPPING,
+    SK_SCAVENGING,
+    SK_HUNTING,
+    SK_FISHING,
+    SK_FARMING,
+    SK_COOKING,
+    SK_HERBALISM,
+};
+const int CharacterScreenSkillCount = sizeof( CharacterScreenSkills ) / sizeof( CharacterScreenSkills[ 0 ] );
+const int CharacterScreenTrainedSkillBegin = 18;
+const int CharacterScreenTrainedSkillSpacing = 4;
 
-int skill_to_offset(int skill) {
-    int offs = skill - SKILL_BEGIN;
-	#ifdef FORP_ENGINE
-    if( skill > SK_LAST_LEGACY ) {
-        offs += SK_SPACING;
-    }
-	#endif
-	return offs;
+int CharacterScreenSkillVisualRow( int row )
+{
+    return row >= CharacterScreenTrainedSkillBegin ? row + CharacterScreenTrainedSkillSpacing : row;
 }
 
-int offset_to_skill(int offs) {
-    int skill = offs + SKILL_BEGIN;
-	#ifdef FORP_ENGINE
-    if( skill-SK_SPACING > SK_LAST_LEGACY ) {
-        skill -= SK_SPACING;
-    }
-	#endif
-	return skill;
+int CharacterScreenSkillToRow( int skill )
+{
+    for( int row = 0; row < CharacterScreenSkillCount; row++ )
+        if( CharacterScreenSkills[ row ] == skill )
+            return row;
+
+    return -1;
 }
 
 #ifdef FORP_ENGINE
@@ -173,7 +196,7 @@ SkillBleedProgress SkillBleedApplySp(double start, double total_sp, bool tagged)
 
 int SkillBleedStagedDirect(CritterCl *cr, const ushort *staged, int skill)
 {
-    const int offset = skill_to_offset(skill);
+    const int offset = skill - SKILL_BEGIN;
     return MAX(0, cr->GetRawParam(CR_SKILL_DIRECT_BEGIN + skill - SKILL_BEGIN)) + staged[offset];
 }
 
@@ -190,7 +213,7 @@ SkillBleedProgress SkillBleedPreview(CritterCl *cr, const ushort *staged, int ta
 
 int SkillBleedLastSPCount(CritterCl *cr, const ushort *staged, int skill)
 {
-    const int offset = skill_to_offset(skill);
+    const int offset = skill - SKILL_BEGIN;
     const int stagedSp = staged[offset];
     if ( stagedSp <= 0)
         return 0;
@@ -7730,20 +7753,22 @@ void FOClient::ChaDraw( bool is_reg )
     // Skill
     SprMngr.DrawStr( Rect( ChaWSkillText, ChaX, ChaY ), MsgGame->GetStr( STR_CHA_SKILLS ), FT_NOBREAK | FT_CENTERY, COLOR_TEXT_SAND, FONT_FAT );
 
-    for( uint i = SKILL_BEGIN; i <= SKILL_END; i++ )
+    for( int row = 0; row < CharacterScreenSkillCount; row++ )
     {
-		int offs = skill_to_offset(i);
+		int skill = CharacterScreenSkills[ row ];
+		int visualRow = CharacterScreenSkillVisualRow( row );
+		int stagedOffset = skill - SKILL_BEGIN;
         // Name
-        SprMngr.DrawStr( Rect( ChaWSkillName, ChaX + ChaWSkillNextX * offs, ChaY + ChaWSkillNextY * offs ), MsgGame->GetStr( STR_PARAM_NAME_( i ) ), FT_NOBREAK, cr->IsTagSkill( i ) ? 0xFFAAAAAA : COLOR_TEXT );
+        SprMngr.DrawStr( Rect( ChaWSkillName, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), MsgGame->GetStr( STR_PARAM_NAME_( skill ) ), FT_NOBREAK, cr->IsTagSkill( skill ) ? 0xFFAAAAAA : COLOR_TEXT );
         // Value
-		int skill_value = CHA_PARAM( i ) + ( is_reg ? 0 : ChaSkillUp[ offs ] );
+		int skill_value = CHA_PARAM( skill ) + ( is_reg ? 0 : ChaSkillUp[ stagedOffset ] );
 
 		#ifdef FORP_ENGINE
-		if( !is_reg && SkillBleedIsManaged( i ) )
-			skill_value = (int) SkillBleedPreview( cr, ChaSkillUp, i ).Value;
+		if( !is_reg && SkillBleedIsManaged( skill ) )
+			skill_value = (int) SkillBleedPreview( cr, ChaSkillUp, skill ).Value;
 		#endif
 
-        SprMngr.DrawStr( Rect( ChaWSkillValue, ChaX + ChaWSkillNextX * offs, ChaY + ChaWSkillNextY * offs ), Str::FormatBuf( "%d%%", CLAMP( skill_value, -MAX_SKILL_VAL, MAX_SKILL_VAL ) ), FT_NOBREAK, cr->IsTagSkill( i ) ? 0xFFAAAAAA : COLOR_TEXT );
+        SprMngr.DrawStr( Rect( ChaWSkillValue, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), Str::FormatBuf( "%d%%", CLAMP( skill_value, -MAX_SKILL_VAL, MAX_SKILL_VAL ) ), FT_NOBREAK, cr->IsTagSkill( skill ) ? 0xFFAAAAAA : COLOR_TEXT );
     }
 
     if( is_reg )
@@ -7848,15 +7873,16 @@ void FOClient::ChaDraw( bool is_reg )
     // Slider
     if( !is_reg )
     {
-        SprMngr.DrawSprite( ChaPWSlider, ChaCurSkill * ChaWSkillNextX + ChaWSliderX + ChaX, ChaCurSkill * ChaWSkillNextY + ChaWSliderY + ChaY );
+        int visualRow = CharacterScreenSkillVisualRow( ChaCurSkill );
+        SprMngr.DrawSprite( ChaPWSlider, visualRow * ChaWSkillNextX + ChaWSliderX + ChaX, visualRow * ChaWSkillNextY + ChaWSliderY + ChaY );
 
         switch( IfaceHold )
         {
         case IFACE_CHA_PLUS:
-            SprMngr.DrawSprite( ChaPBSliderPlusDn, ChaBSliderPlus[ 0 ] + ChaCurSkill * ChaWSkillNextX + ChaX, ChaBSliderPlus[ 1 ] + ChaCurSkill * ChaWSkillNextY + ChaY );
+            SprMngr.DrawSprite( ChaPBSliderPlusDn, ChaBSliderPlus[ 0 ] + visualRow * ChaWSkillNextX + ChaX, ChaBSliderPlus[ 1 ] + visualRow * ChaWSkillNextY + ChaY );
             break;
         case IFACE_CHA_MINUS:
-            SprMngr.DrawSprite( ChaPBSliderMinusDn, ChaBSliderMinus[ 0 ] + ChaCurSkill * ChaWSkillNextX + ChaX, ChaBSliderMinus[ 1 ] + ChaCurSkill * ChaWSkillNextY + ChaY );
+            SprMngr.DrawSprite( ChaPBSliderMinusDn, ChaBSliderMinus[ 0 ] + visualRow * ChaWSkillNextX + ChaX, ChaBSliderMinus[ 1 ] + visualRow * ChaWSkillNextY + ChaY );
             break;
         default:
             break;
@@ -7873,7 +7899,14 @@ void FOClient::ChaDraw( bool is_reg )
             SprMngr.DrawSprite( RegPBSpecialMinusDn, RegBSpecialMinus[ 0 ] + RegCurSpecial * RegBSpecialNextX + ChaX, RegBSpecialMinus[ 1 ] + RegCurSpecial * RegBSpecialNextY + ChaY );
             break;
         case IFACE_REG_TAGSKILL:
-			SprMngr.DrawSprite( RegPBTagSkillDn, RegBTagSkill[0] + skill_to_offset(RegCurTagSkill) * RegBTagSkillNextX + ChaX, RegBTagSkill[1] + skill_to_offset(RegCurTagSkill) * RegBTagSkillNextY + ChaY );
+		{
+			int row = CharacterScreenSkillToRow( RegCurTagSkill );
+			if( row >= 0 )
+			{
+				int visualRow = CharacterScreenSkillVisualRow( row );
+				SprMngr.DrawSprite( RegPBTagSkillDn, RegBTagSkill[0] + visualRow * RegBTagSkillNextX + ChaX, RegBTagSkill[1] + visualRow * RegBTagSkillNextY + ChaY );
+			}
+		}
             break;
         default:
             break;
@@ -7919,23 +7952,24 @@ label_DrawSpecial:
     }
 
     // Skills
-    for( uint i = SKILL_BEGIN; i <= SKILL_END; i++ )
+    for( int row = 0; row < CharacterScreenSkillCount; row++ )
     {
-		int offs = skill_to_offset(i);
-        if( is_reg && IsCurInRect( RegBTagSkill, offs * RegBTagSkillNextX + ChaX, offs * RegBTagSkillNextY + ChaY ) )
+		int skill = CharacterScreenSkills[ row ];
+		int visualRow = CharacterScreenSkillVisualRow( row );
+		if( is_reg && IsCurInRect( RegBTagSkill, visualRow * RegBTagSkillNextX + ChaX, visualRow * RegBTagSkillNextY + ChaY ) )
         {
-            RegCurTagSkill = i;
+			RegCurTagSkill = skill;
             IfaceHold = IFACE_REG_TAGSKILL;
             goto label_DrawSkill;
         }
 
-        if( IsCurInRect( ChaWSkillName, ChaX + ChaWSkillNextX * offs, ChaY + ChaWSkillNextY * offs ) || IsCurInRect( ChaWSkillValue, ChaX + ChaWSkillNextX * offs, ChaY + ChaWSkillNextY * offs ) )
+		if( IsCurInRect( ChaWSkillName, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ) || IsCurInRect( ChaWSkillValue, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ) )
         {
 label_DrawSkill:
-            ChaSkilldexPic = SKILLDEX_PARAM( i );
-            Str::Copy( ChaName, MsgGame->GetStr( STR_PARAM_NAME_( i ) ) );
-            Str::Copy( ChaDesc, MsgGame->GetStr( STR_PARAM_DESC_( i ) ) );
-            ChaCurSkill = offs;
+            ChaSkilldexPic = SKILLDEX_PARAM( skill );
+            Str::Copy( ChaName, MsgGame->GetStr( STR_PARAM_NAME_( skill ) ) );
+            Str::Copy( ChaDesc, MsgGame->GetStr( STR_PARAM_DESC_( skill ) ) );
+			ChaCurSkill = row;
             return;
         }
     }
@@ -8100,12 +8134,12 @@ label_DrawTrait:
         Timer::StartAccelerator( ACCELERATE_CHA_SW_SCRDOWN );
         IfaceHold = IFACE_CHA_SW_SCRDN;
     }
-    else if( !is_reg && IsCurInRect( ChaBSliderPlus, ChaCurSkill * ChaWSkillNextX + ChaX, ChaCurSkill * ChaWSkillNextY + ChaY ) )
+    else if( !is_reg && IsCurInRect( ChaBSliderPlus, CharacterScreenSkillVisualRow( ChaCurSkill ) * ChaWSkillNextX + ChaX, CharacterScreenSkillVisualRow( ChaCurSkill ) * ChaWSkillNextY + ChaY ) )
     {
         Timer::StartAccelerator( ACCELERATE_CHA_PLUS );
         IfaceHold = IFACE_CHA_PLUS;
     }
-    else if( !is_reg && IsCurInRect( ChaBSliderMinus, ChaCurSkill * ChaWSkillNextX + ChaX, ChaCurSkill * ChaWSkillNextY + ChaY ) )
+    else if( !is_reg && IsCurInRect( ChaBSliderMinus, CharacterScreenSkillVisualRow( ChaCurSkill ) * ChaWSkillNextX + ChaX, CharacterScreenSkillVisualRow( ChaCurSkill ) * ChaWSkillNextY + ChaY ) )
     {
         Timer::StartAccelerator( ACCELERATE_CHA_MINUS );
         IfaceHold = IFACE_CHA_MINUS;
@@ -8191,29 +8225,30 @@ void FOClient::ChaLMouseUp( bool is_reg )
     {
         if( is_reg )
             break;
-        if( !IsCurInRect( ChaBSliderPlus, ChaCurSkill * ChaWSkillNextX + ChaX, ChaCurSkill * ChaWSkillNextY + ChaY ) )
+        if( !IsCurInRect( ChaBSliderPlus, CharacterScreenSkillVisualRow( ChaCurSkill ) * ChaWSkillNextX + ChaX, CharacterScreenSkillVisualRow( ChaCurSkill ) * ChaWSkillNextY + ChaY ) )
             break;
         if( !ChaUnspentSkillPoints )
             break;
 
-		int selected_skill = offset_to_skill( ChaCurSkill );
+		int selected_skill = CharacterScreenSkills[ ChaCurSkill ];
+		int stagedOffset = selected_skill - SKILL_BEGIN;
 
 		#ifdef FORP_ENGINE
 		if( SkillBleedIsManaged( selected_skill ) )
 		{
-			SkillBleedProgress progress = SkillBleedPreview( cr, ChaSkillUp, selected_skill );
-			if( progress.Value >= MAX_SKILL_VAL )
-				break;
-			int need_sp = MAX( 1, (int) ceil( progress.SPToNext - 0.0000001 ) );
-			if( ChaUnspentSkillPoints < need_sp || ChaSkillUp[ ChaCurSkill ] > 0xFFFF - need_sp )
-				break;
-			ChaUnspentSkillPoints -= need_sp;
-			ChaSkillUp[ ChaCurSkill ] += (ushort)need_sp;
+		SkillBleedProgress progress = SkillBleedPreview( cr, ChaSkillUp, selected_skill );
+		if( progress.Value >= MAX_SKILL_VAL )
 			break;
+		int need_sp = MAX( 1, (int) ceil( progress.SPToNext - 0.0000001 ) );
+		if( ChaUnspentSkillPoints < need_sp || ChaSkillUp[ stagedOffset ] > 0xFFFF - need_sp )
+			break;
+		ChaUnspentSkillPoints -= need_sp;
+		ChaSkillUp[ stagedOffset ] += (ushort)need_sp;
+		break;
 		}
 		#endif
 
-		int skill_val = cr->GetRawParam(selected_skill) + ChaSkillUp[ChaCurSkill];
+		int skill_val = cr->GetRawParam(selected_skill) + ChaSkillUp[ stagedOffset ];
         if( skill_val >= MAX_SKILL_VAL )
             break;
 
@@ -8233,36 +8268,36 @@ void FOClient::ChaLMouseUp( bool is_reg )
             break;
 
         ChaUnspentSkillPoints -= need_sp;
-        ChaSkillUp[ ChaCurSkill ]++;
-        if( cr->IsTagSkill( offset_to_skill(ChaCurSkill) ) )
-            ChaSkillUp[ ChaCurSkill ]++;
+        ChaSkillUp[ stagedOffset ]++;
+		if( cr->IsTagSkill( selected_skill ) )
+            ChaSkillUp[ stagedOffset ]++;
     }
     break;
     case IFACE_CHA_MINUS:
     {
         if( is_reg )
             break;
-        if( !IsCurInRect( ChaBSliderMinus, ChaCurSkill * ChaWSkillNextX + ChaX, ChaCurSkill * ChaWSkillNextY + ChaY ) )
+        if( !IsCurInRect( ChaBSliderMinus, CharacterScreenSkillVisualRow( ChaCurSkill ) * ChaWSkillNextX + ChaX, CharacterScreenSkillVisualRow( ChaCurSkill ) * ChaWSkillNextY + ChaY ) )
             break;
-        if( !ChaSkillUp[ ChaCurSkill ] )
-            break;
-
-		int selected_skill = offset_to_skill( ChaCurSkill );
+		int selected_skill = CharacterScreenSkills[ ChaCurSkill ];
+		int stagedOffset = selected_skill - SKILL_BEGIN;
+		if( !ChaSkillUp[ stagedOffset ] )
+			break;
 
 		#ifdef FORP_ENGINE
 		if( SkillBleedIsManaged( selected_skill ) )
 		{
 			int refund_sp = SkillBleedLastSPCount( cr, ChaSkillUp, selected_skill );
-			ChaSkillUp[ ChaCurSkill ] -= (ushort) refund_sp;
+			ChaSkillUp[ stagedOffset ] -= (ushort) refund_sp;
 			ChaUnspentSkillPoints += refund_sp;
 			break;
 		}
 		#endif
 
-        ChaSkillUp[ ChaCurSkill ]--;
+        ChaSkillUp[ stagedOffset ]--;
 		if( cr->IsTagSkill( selected_skill ) )
-            ChaSkillUp[ ChaCurSkill ]--;
-		int skill_val = cr->GetRawParam( selected_skill ) + ChaSkillUp[ ChaCurSkill ];
+            ChaSkillUp[ stagedOffset ]--;
+		int skill_val = cr->GetRawParam( selected_skill ) + ChaSkillUp[ stagedOffset ];
 
         if( skill_val > GameOpt.SkillModAdd6 )
             ChaUnspentSkillPoints += 6;
@@ -8311,8 +8346,11 @@ void FOClient::ChaLMouseUp( bool is_reg )
     {
         if( !is_reg )
             break;
-		int offs = skill_to_offset(RegCurTagSkill);
-        if( !IsCurInRect( RegBTagSkill, offs * RegBTagSkillNextX + ChaX, offs * RegBTagSkillNextY + ChaY ) )
+		int row = CharacterScreenSkillToRow( RegCurTagSkill );
+		if( row < 0 )
+			break;
+		int visualRow = CharacterScreenSkillVisualRow( row );
+		if( !IsCurInRect( RegBTagSkill, visualRow * RegBTagSkillNextX + ChaX, visualRow * RegBTagSkillNextY + ChaY ) )
             break;
 
         int allowed_tag_skills = cr->ParamsReg[ TRAIT_SKILLED ] ? 1 : GameOpt.StartTagSkillPoints;
