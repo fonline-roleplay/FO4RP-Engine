@@ -200,11 +200,18 @@ int SkillBleedStagedDirect(CritterCl *cr, const ushort *staged, int skill)
     return MAX(0, cr->GetRawParam(CR_SKILL_DIRECT_BEGIN + skill - SKILL_BEGIN)) + staged[offset];
 }
 
+double SkillBleedIncomingSp(CritterCl *cr, const ushort *staged, int target)
+{
+    double bleedSp = 0.0;
+    for( int source = SKILL_BEGIN; source <= SkillBleedLastSkill; source++ )
+        bleedSp += (double)( SkillBleedStagedDirect( cr, staged, source ) * SkillBleedMultiplicity( source, target ) ) * 0.25;
+
+    return bleedSp;
+}
+
 SkillBleedProgress SkillBleedPreview(CritterCl *cr, const ushort *staged, int target)
 {
-    double totalSp = (double)SkillBleedStagedDirect(cr, staged, target);
-    for (int source = SKILL_BEGIN; source <= SkillBleedLastSkill; source++)
-        totalSp += (double)(SkillBleedStagedDirect(cr, staged, source) * SkillBleedMultiplicity(source, target)) * 0.25;
+    double totalSp = (double)SkillBleedStagedDirect(cr, staged, target) + SkillBleedIncomingSp(cr, staged, target);
 
     bool tagged = cr->IsTagSkill(target);
     int start = SkillBleedBaseValue(cr, target) + (tagged ? 30 : 0);
@@ -7751,7 +7758,16 @@ void FOClient::ChaDraw( bool is_reg )
     }
 
     // Skill
-    SprMngr.DrawStr( Rect( ChaWSkillText, ChaX, ChaY ), MsgGame->GetStr( STR_CHA_SKILLS ), FT_NOBREAK | FT_CENTERY, COLOR_TEXT_SAND, FONT_FAT );
+    Rect directSpRect( ChaWSkillValue, -96, 0 );
+    Rect bleedSpRect( ChaWSkillValue, -52, 0 );
+    Rect skillNameRect = ChaWSkillName;
+    Rect skillTitleRect = ChaWSkillText;
+    if( !is_reg )
+    {
+        skillNameRect.R = MIN( skillNameRect.R, directSpRect.L - 4 );
+        skillTitleRect.R = skillNameRect.R;
+    }
+    SprMngr.DrawStr( Rect( skillTitleRect, ChaX, ChaY ), MsgGame->GetStr( STR_CHA_SKILLS ), FT_NOBREAK | FT_CENTERY, COLOR_TEXT_SAND, FONT_FAT );
 
     for( int row = 0; row < CharacterScreenSkillCount; row++ )
     {
@@ -7759,13 +7775,28 @@ void FOClient::ChaDraw( bool is_reg )
 		int visualRow = CharacterScreenSkillVisualRow( row );
 		int stagedOffset = skill - SKILL_BEGIN;
         // Name
-        SprMngr.DrawStr( Rect( ChaWSkillName, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), MsgGame->GetStr( STR_PARAM_NAME_( skill ) ), FT_NOBREAK, cr->IsTagSkill( skill ) ? 0xFFAAAAAA : COLOR_TEXT );
+        SprMngr.DrawStr( Rect( skillNameRect, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), MsgGame->GetStr( STR_PARAM_NAME_( skill ) ), FT_NOBREAK, cr->IsTagSkill( skill ) ? 0xFFAAAAAA : COLOR_TEXT );
         // Value
 		int skill_value = CHA_PARAM( skill ) + ( is_reg ? 0 : ChaSkillUp[ stagedOffset ] );
 
 		#ifdef FORP_ENGINE
 		if( !is_reg && SkillBleedIsManaged( skill ) )
+		{
 			skill_value = (int) SkillBleedPreview( cr, ChaSkillUp, skill ).Value;
+			int directSp = SkillBleedStagedDirect( cr, ChaSkillUp, skill );
+			double bleedSp = SkillBleedIncomingSp( cr, ChaSkillUp, skill );
+			char directSpText[ 32 ];
+			char bleedSpText[ 32 ];
+			snprintf( directSpText, sizeof( directSpText ), "%d", directSp );
+			if( fabs( bleedSp - floor( bleedSp ) ) < 0.001 )
+				snprintf( bleedSpText, sizeof( bleedSpText ), "%d", (int)floor( bleedSp ) );
+			else if( fabs( bleedSp * 2.0 - floor( bleedSp * 2.0 ) ) < 0.001 )
+				snprintf( bleedSpText, sizeof( bleedSpText ), "%.1f", bleedSp );
+			else
+				snprintf( bleedSpText, sizeof( bleedSpText ), "%.2f", bleedSp );
+			SprMngr.DrawStr( Rect( directSpRect, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), directSpText, FT_NOBREAK | FT_CENTERR, COLOR_TEXT );
+			SprMngr.DrawStr( Rect( bleedSpRect, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), bleedSpText, FT_NOBREAK | FT_CENTERR, COLOR_TEXT );
+		}
 		#endif
 
         SprMngr.DrawStr( Rect( ChaWSkillValue, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), Str::FormatBuf( "%d%%", CLAMP( skill_value, -MAX_SKILL_VAL, MAX_SKILL_VAL ) ), FT_NOBREAK, cr->IsTagSkill( skill ) ? 0xFFAAAAAA : COLOR_TEXT );
