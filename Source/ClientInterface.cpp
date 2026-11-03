@@ -7759,9 +7759,7 @@ void FOClient::ChaDraw( bool is_reg )
     }
 
     // Skill
-    int skillMetrixMiddle = ( ChaWSkillMetrixText.L + ChaWSkillMetrixText.R ) / 2;
-    Rect directSpRect( ChaWSkillMetrixText.L, ChaWSkillName.T, skillMetrixMiddle - 2, ChaWSkillName.B );
-    Rect bleedSpRect( skillMetrixMiddle + 2, ChaWSkillName.T, ChaWSkillMetrixText.R, ChaWSkillName.B );
+    Rect skillMetrixRect( ChaWSkillMetrixText.L + 10, ChaWSkillName.T, ChaWSkillMetrixText.R - 20, ChaWSkillName.B );
     Rect skillNameRect = ChaWSkillName;
     Rect skillTitleRect = ChaWSkillText;
     Rect skillMetrixTitleRect = ChaWSkillMetrixText;
@@ -7799,8 +7797,8 @@ void FOClient::ChaDraw( bool is_reg )
 				snprintf( bleedSpText, sizeof( bleedSpText ), "%.1f", bleedSp );
 			else
 				snprintf( bleedSpText, sizeof( bleedSpText ), "%.2f", bleedSp );
-			SprMngr.DrawStr( Rect( directSpRect, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), directSpText, FT_NOBREAK | FT_CENTERR, COLOR_TEXT );
-			SprMngr.DrawStr( Rect( bleedSpRect, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), bleedSpText, FT_NOBREAK | FT_CENTERR, COLOR_TEXT );
+			SprMngr.DrawStr( Rect( skillMetrixRect, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), directSpText, FT_NOBREAK, COLOR_TEXT );
+			SprMngr.DrawStr( Rect( skillMetrixRect, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), bleedSpText, FT_NOBREAK | FT_CENTERR, COLOR_TEXT );
 		}
 		#endif
 
