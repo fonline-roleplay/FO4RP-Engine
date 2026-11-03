@@ -7815,7 +7815,7 @@ void FOClient::ChaDraw( bool is_reg )
     else
     {
         SprMngr.DrawStr( Rect( ChaWUnspentSPText, ChaX, ChaY ), MsgGame->GetStr( STR_CHA_UNSPENT_SP ), FT_NOBREAK | FT_CENTERX | FT_CENTERY, COLOR_TEXT_SAND, FONT_FAT );
-        SprMngr.DrawStr( Rect( ChaWUnspentSP, ChaX, ChaY ), Str::FormatBuf( "%02d", ChaUnspentSkillPoints ), FT_NOBREAK, COLOR_IFACE, FONT_BIG_NUM );
+        SprMngr.DrawStr( Rect( ChaWUnspentSP, ChaX, ChaY ), Str::FormatBuf( "%04d", ChaUnspentSkillPoints ), FT_NOBREAK, COLOR_IFACE, FONT_BIG_NUM );
     }
 
     // Tips
