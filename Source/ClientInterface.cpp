@@ -7759,14 +7759,15 @@ void FOClient::ChaDraw( bool is_reg )
     }
 
     // Skill
-    Rect directSpRect( ChaWSkillValue, -96, 0 );
-    Rect bleedSpRect( ChaWSkillValue, -52, 0 );
+    int skillMetrixMiddle = ( ChaWSkillMetrixText.L + ChaWSkillMetrixText.R ) / 2;
+    Rect directSpRect( ChaWSkillMetrixText.L, ChaWSkillName.T, skillMetrixMiddle - 2, ChaWSkillName.B );
+    Rect bleedSpRect( skillMetrixMiddle + 2, ChaWSkillName.T, ChaWSkillMetrixText.R, ChaWSkillName.B );
     Rect skillNameRect = ChaWSkillName;
     Rect skillTitleRect = ChaWSkillText;
     Rect skillMetrixTitleRect = ChaWSkillMetrixText;
     if( !is_reg )
     {
-        skillNameRect.R = MIN( skillNameRect.R, directSpRect.L - 4 );
+        skillNameRect.R = MIN( skillNameRect.R, ChaWSkillMetrixText.L - 4 );
         skillTitleRect.R = skillNameRect.R;
 
         SprMngr.DrawStr( Rect( skillMetrixTitleRect, ChaX, ChaY ), MsgGame->GetStr( STR_CHA_SKILLS_METRIX ), FT_NOBREAK | FT_CENTERY, COLOR_TEXT_SAND, FONT_FAT );
