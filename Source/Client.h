@@ -1174,7 +1174,7 @@ public:
     IntVec ChaSpecialParams;
 
     // Skills
-    Rect   ChaWSkillText, ChaWSkillName, ChaWSkillValue;
+    Rect   ChaWSkillText, ChaWSkillMetrixText, ChaWSkillName, ChaWSkillValue;
     int    ChaWSkillNextX, ChaWSkillNextY;
     ushort ChaSkillUp[ MAX_PARAMS ];
     Rect   ChaWUnspentSP, ChaWUnspentSPText;

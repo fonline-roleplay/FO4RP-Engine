@@ -754,6 +754,7 @@ int FOClient::InitIface()
     IfaceLoadArray( ChaSpecialParams, "ChaSpecialParams" );
     // Skills
     IfaceLoadRect( ChaWSkillText, "ChaSkillText" );
+    IfaceLoadRect( ChaWSkillMetrixText, "ChaSkillMetrixText" );
     IfaceLoadRect( ChaWSkillName, "ChaSkillName" );
     IfaceLoadRect( ChaWSkillValue, "ChaSkillValue" );
     IfaceLoadRect( ChaWUnspentSP, "ChaUnspentSP" );
@@ -7762,10 +7763,13 @@ void FOClient::ChaDraw( bool is_reg )
     Rect bleedSpRect( ChaWSkillValue, -52, 0 );
     Rect skillNameRect = ChaWSkillName;
     Rect skillTitleRect = ChaWSkillText;
+    Rect skillMetrixTitleRect = ChaWSkillMetrixText;
     if( !is_reg )
     {
         skillNameRect.R = MIN( skillNameRect.R, directSpRect.L - 4 );
         skillTitleRect.R = skillNameRect.R;
+
+        SprMngr.DrawStr( Rect( skillMetrixTitleRect, ChaX, ChaY ), MsgGame->GetStr( STR_CHA_SKILLS_METRIX ), FT_NOBREAK | FT_CENTERY, COLOR_TEXT_SAND, FONT_FAT );
     }
     SprMngr.DrawStr( Rect( skillTitleRect, ChaX, ChaY ), MsgGame->GetStr( STR_CHA_SKILLS ), FT_NOBREAK | FT_CENTERY, COLOR_TEXT_SAND, FONT_FAT );
 
