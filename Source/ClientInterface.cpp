@@ -7777,8 +7777,9 @@ void FOClient::ChaDraw( bool is_reg )
 		int skill = CharacterScreenSkills[ row ];
 		int visualRow = CharacterScreenSkillVisualRow( row );
 		int stagedOffset = skill - SKILL_BEGIN;
+		uint skillColor = cr->IsTagSkill( skill ) ? 0xFFAAAAAA : COLOR_TEXT;
         // Name
-        SprMngr.DrawStr( Rect( skillNameRect, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), MsgGame->GetStr( STR_PARAM_NAME_( skill ) ), FT_NOBREAK, cr->IsTagSkill( skill ) ? 0xFFAAAAAA : COLOR_TEXT );
+        SprMngr.DrawStr( Rect( skillNameRect, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), MsgGame->GetStr( STR_PARAM_NAME_( skill ) ), FT_NOBREAK, skillColor );
         // Value
 		int skill_value = CHA_PARAM( skill ) + ( is_reg ? 0 : ChaSkillUp[ stagedOffset ] );
 
@@ -7791,18 +7792,13 @@ void FOClient::ChaDraw( bool is_reg )
 			char directSpText[ 32 ];
 			char bleedSpText[ 32 ];
 			snprintf( directSpText, sizeof( directSpText ), "%d", directSp );
-			if( fabs( bleedSp - floor( bleedSp ) ) < 0.001 )
-				snprintf( bleedSpText, sizeof( bleedSpText ), "%d", (int)floor( bleedSp ) );
-			else if( fabs( bleedSp * 2.0 - floor( bleedSp * 2.0 ) ) < 0.001 )
-				snprintf( bleedSpText, sizeof( bleedSpText ), "%.1f", bleedSp );
-			else
-				snprintf( bleedSpText, sizeof( bleedSpText ), "%.2f", bleedSp );
-			SprMngr.DrawStr( Rect( skillMetrixRect, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), directSpText, FT_NOBREAK, COLOR_TEXT );
-			SprMngr.DrawStr( Rect( skillMetrixRect, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), bleedSpText, FT_NOBREAK | FT_CENTERR, COLOR_TEXT );
+			snprintf( bleedSpText, sizeof( bleedSpText ), "%d", (int)round( bleedSp ) );
+			SprMngr.DrawStr( Rect( skillMetrixRect, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), directSpText, FT_NOBREAK, skillColor );
+			SprMngr.DrawStr( Rect( skillMetrixRect, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), bleedSpText, FT_NOBREAK | FT_CENTERR, skillColor );
 		}
 		#endif
 
-        SprMngr.DrawStr( Rect( ChaWSkillValue, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), Str::FormatBuf( "%d%%", CLAMP( skill_value, -MAX_SKILL_VAL, MAX_SKILL_VAL ) ), FT_NOBREAK, cr->IsTagSkill( skill ) ? 0xFFAAAAAA : COLOR_TEXT );
+        SprMngr.DrawStr( Rect( ChaWSkillValue, ChaX + ChaWSkillNextX * visualRow, ChaY + ChaWSkillNextY * visualRow ), Str::FormatBuf( "%d%%", CLAMP( skill_value, -MAX_SKILL_VAL, MAX_SKILL_VAL ) ), FT_NOBREAK, skillColor );
     }
 
     if( is_reg )
